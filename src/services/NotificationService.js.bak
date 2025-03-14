@@ -1,0 +1,333 @@
+import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { format, parseISO, addMinutes, setHours, setMinutes, parse, isBefore } from 'date-fns';
+
+// Configure notification behavior for the app
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
+// Key for storing notification settings
+const NOTIFICATION_SETTINGS_KEY = 'notification_settings';
+const SCHEDULED_NOTIFICATIONS_KEY = 'scheduled_notifications';
+
+// Initialize notification permissions
+export const initializeNotifications = async () => {
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('shift-reminders', {
+      name: 'Nhắc nhở ca làm việc',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#4285F4',
+      sound: true,
+    });
+  }
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+
+  return finalStatus === 'granted';
+};
+
+// Save notification settings
+export const saveNotificationSettings = async (settings) => {
+  try {
+    await AsyncStorage.setItem(
+      NOTIFICATION_SETTINGS_KEY, 
+      JSON.stringify(settings)
+    );
+    return true;
+  } catch (error) {
+    console.error('Error saving notification settings:', error);
+    return false;
+  }
+};
+
+// Load notification settings
+export const loadNotificationSettings = async () => {
+  try {
+    const settingsJson = await AsyncStorage.getItem(NOTIFICATION_SETTINGS_KEY);
+    return settingsJson 
+      ? JSON.parse(settingsJson) 
+      : {
+          enabled: true,
+          sound: true,
+          vibration: true,
+          reminderType: 'none', // none, before_5_min, before_15_min, before_30_min
+        };
+  } catch (error) {
+    console.error('Error loading notification settings:', error);
+    return {
+      enabled: true,
+      sound: true,
+      vibration: true,
+      reminderType: 'none',
+    };
+  }
+};
+
+// Schedule a notification
+export const scheduleNotification = async ({
+  title,
+  body,
+  data,
+  trigger,
+  identifier,
+  sound = true,
+  vibrate = true,
+}) => {
+  try {
+    // Create a unique identifier if none provided
+    const notificationId = identifier || `reminder_${Date.now()}`;
+    
+    // Get current notification settings
+    const settings = await loadNotificationSettings();
+    
+    // Configure the notification based on settings
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+        data: { ...data, id: notificationId },
+        sound: settings.sound && sound,
+        vibrate: settings.vibration && vibrate,
+        priority: 'high',
+        color: '#4285F4',
+      },
+      trigger,
+      identifier: notificationId,
+    });
+
+    // Store the scheduled notification info
+    await saveScheduledNotification(notificationId, {
+      id: notificationId,
+      title,
+      body,
+      scheduledFor: trigger.date ? trigger.date.toISOString() : new Date().toISOString(),
+      shiftId: data?.shiftId,
+      type: data?.type,
+    });
+    
+    return notificationId;
+  } catch (error) {
+    console.error('Error scheduling notification:', error);
+    return null;
+  }
+};
+
+// Save scheduled notification info
+const saveScheduledNotification = async (id, notificationInfo) => {
+  try {
+    const existingJson = await AsyncStorage.getItem(SCHEDULED_NOTIFICATIONS_KEY);
+    const existing = existingJson ? JSON.parse(existingJson) : {};
+    
+    // Add new notification to the list
+    existing[id] = notificationInfo;
+    
+    await AsyncStorage.setItem(
+      SCHEDULED_NOTIFICATIONS_KEY,
+      JSON.stringify(existing)
+    );
+  } catch (error) {
+    console.error('Error saving scheduled notification:', error);
+  }
+};
+
+// Get all scheduled notifications
+export const getScheduledNotifications = async () => {
+  try {
+    const existingJson = await AsyncStorage.getItem(SCHEDULED_NOTIFICATIONS_KEY);
+    return existingJson ? JSON.parse(existingJson) : {};
+  } catch (error) {
+    console.error('Error getting scheduled notifications:', error);
+    return {};
+  }
+};
+
+// Cancel a specific notification
+export const cancelNotification = async (notificationId) => {
+  try {
+    await Notifications.cancelScheduledNotificationAsync(notificationId);
+    
+    // Remove from stored notifications
+    const existingJson = await AsyncStorage.getItem(SCHEDULED_NOTIFICATIONS_KEY);
+    const existing = existingJson ? JSON.parse(existingJson) : {};
+    
+    if (existing[notificationId]) {
+      delete existing[notificationId];
+      await AsyncStorage.setItem(
+        SCHEDULED_NOTIFICATIONS_KEY,
+        JSON.stringify(existing)
+      );
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error canceling notification:', error);
+    return false;
+  }
+};
+
+// Cancel all shift-related notifications
+export const cancelAllShiftNotifications = async (shiftId = null) => {
+  try {
+    // If shift ID is not provided, cancel all
+    const existingJson = await AsyncStorage.getItem(SCHEDULED_NOTIFICATIONS_KEY);
+    const existing = existingJson ? JSON.parse(existingJson) : {};
+    
+    const notificationIds = Object.keys(existing).filter(id => 
+      !shiftId || existing[id].shiftId === shiftId
+    );
+    
+    // Cancel each notification
+    for (const id of notificationIds) {
+      await Notifications.cancelScheduledNotificationAsync(id);
+      delete existing[id];
+    }
+    
+    // Update storage
+    await AsyncStorage.setItem(
+      SCHEDULED_NOTIFICATIONS_KEY,
+      JSON.stringify(existing)
+    );
+    
+    return true;
+  } catch (error) {
+    console.error('Error canceling shift notifications:', error);
+    return false;
+  }
+};
+
+// Schedule shift reminders based on shift details and reminder type
+export const scheduleShiftReminders = async (shift, reminderType, note = null) => {
+  if (!shift || reminderType === 'none') return null;
+  
+  try {
+    // First, cancel any existing reminders for this shift
+    await cancelAllShiftNotifications(shift.id);
+    
+    const today = new Date();
+    const noteText = note ? `Ghi chú: ${note}` : '';
+    
+    // Parse shift times
+    const departureTime = parse(shift.departureTime, 'HH:mm', today);
+    const startWorkTime = parse(shift.startWorkTime, 'HH:mm', today);
+    
+    // Calculate reminder time based on selected type
+    let minutesBeforeWork;
+    switch (reminderType) {
+      case 'before_5_min':
+        minutesBeforeWork = 5;
+        break;
+      case 'before_15_min':
+        minutesBeforeWork = 15;
+        break;
+      case 'before_30_min':
+        minutesBeforeWork = 30;
+        break;
+      default:
+        minutesBeforeWork = shift.remindBeforeWork || 30;
+    }
+    
+    // Schedule departure reminder
+    const departureReminderTime = addMinutes(departureTime, -minutesBeforeWork);
+    
+    // Only schedule if it's in the future
+    if (isBefore(today, departureReminderTime)) {
+      const departureId = await scheduleNotification({
+        title: `Chuẩn bị đi làm: ${shift.name}`,
+        body: `Bạn cần đi làm trong ${minutesBeforeWork} phút nữa. ${noteText}`,
+        data: {
+          shiftId: shift.id,
+          type: 'departure',
+          reminderTime: departureTime.toISOString(),
+        },
+        trigger: { date: departureReminderTime },
+        identifier: `departure_${shift.id}_${format(departureReminderTime, 'yyyyMMddHHmm')}`,
+      });
+    }
+    
+    // Schedule check-in reminder
+    const checkInReminderTime = addMinutes(startWorkTime, -minutesBeforeWork);
+    
+    // Only schedule if it's in the future
+    if (isBefore(today, checkInReminderTime)) {
+      const checkInId = await scheduleNotification({
+        title: `Sắp đến giờ làm việc: ${shift.name}`,
+        body: `Bạn cần checkin trong ${minutesBeforeWork} phút nữa. ${noteText}`,
+        data: {
+          shiftId: shift.id,
+          type: 'check_in',
+          reminderTime: startWorkTime.toISOString(),
+        },
+        trigger: { date: checkInReminderTime },
+        identifier: `checkin_${shift.id}_${format(checkInReminderTime, 'yyyyMMddHHmm')}`,
+      });
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error scheduling shift reminders:', error);
+    return false;
+  }
+};
+
+// Clean up expired notifications from storage
+export const cleanupExpiredNotifications = async () => {
+  try {
+    const now = new Date();
+    const existingJson = await AsyncStorage.getItem(SCHEDULED_NOTIFICATIONS_KEY);
+    const existing = existingJson ? JSON.parse(existingJson) : {};
+    
+    let changed = false;
+    
+    // Remove expired notifications
+    for (const id in existing) {
+      if (existing[id].scheduledFor) {
+        const notificationTime = parseISO(existing[id].scheduledFor);
+        if (isBefore(notificationTime, now)) {
+          delete existing[id];
+          changed = true;
+        }
+      }
+    }
+    
+    // Update storage if changed
+    if (changed) {
+      await AsyncStorage.setItem(
+        SCHEDULED_NOTIFICATIONS_KEY,
+        JSON.stringify(existing)
+      );
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error cleaning up expired notifications:', error);
+    return false;
+  }
+};
+
+// Handle notification response
+export const handleNotificationResponse = (response) => {
+  // Extract notification data
+  const data = response.notification.request.content.data;
+  
+  // You can perform different actions based on notification type
+  if (data.type === 'departure') {
+    console.log('User responded to departure notification');
+    // Navigate to home screen or perform specific action
+  } else if (data.type === 'check_in') {
+    console.log('User responded to check-in notification');
+    // Navigate to check-in screen or perform specific action
+  }
+};
