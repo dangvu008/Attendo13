@@ -61,7 +61,7 @@ const ShiftScreen = () => {
       setNameCharCount(0);
       setNameError('');
     }
-  }, [newShift.name]);
+  }, [newShift.name, validateShiftName]);
 
   const validateShiftName = (name) => {
     setNameError('');
@@ -861,10 +861,6 @@ const styles = StyleSheet.create({
   },
   appliedDaysGroup: {
     marginBottom: 16,
-  },
-  appliedDaysLabel: {
-    fontSize: 16,
-    marginBottom: 8,
   },
   appliedDaysList: {
     flexDirection: 'row',

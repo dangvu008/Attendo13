@@ -7,6 +7,7 @@ import { useLocalization } from '../context/LocalizationContext';
 import { useShift } from '../context/ShiftContext';
 import { useNavigation } from '@react-navigation/native';
 import Constants from 'expo-constants';
+import * as NotificationService from '../services/NotificationService';
 
 const SettingsScreen = () => {
   const { theme, isDarkMode, toggleTheme } = useTheme();
@@ -17,10 +18,73 @@ const SettingsScreen = () => {
   const [notificationSound, setNotificationSound] = useState(true);
   const [notificationVibration, setNotificationVibration] = useState(true);
   const [reminderType, setReminderType] = useState('none');
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [reminderModalVisible, setReminderModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedShift, setSelectedShift] = useState(null);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+
+  // Load notification settings
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        setIsLoadingSettings(true);
+        
+        // Initialize notifications
+        await NotificationService.initializeNotifications();
+        
+        // Load saved settings
+        const settings = await NotificationService.loadNotificationSettings();
+        setNotificationSound(settings.sound);
+        setNotificationVibration(settings.vibration);
+        setReminderType(settings.reminderType);
+        setNotificationsEnabled(settings.enabled);
+      } catch (error) {
+        console.error('Error loading notification settings:', error);
+      } finally {
+        setIsLoadingSettings(false);
+      }
+    };
+    
+    loadSettings();
+  }, []);
+
+  // Save settings when changed
+  useEffect(() => {
+    const saveSettings = async () => {
+      if (isLoadingSettings) return;
+      
+      try {
+        const settings = {
+          enabled: notificationsEnabled,
+          sound: notificationSound,
+          vibration: notificationVibration,
+          reminderType: reminderType,
+        };
+        
+        await NotificationService.saveNotificationSettings(settings);
+        
+        // Schedule or cancel reminders based on settings
+        if (notificationsEnabled && reminderType !== 'none' && currentShift) {
+          await NotificationService.scheduleShiftReminders(
+            currentShift,
+            reminderType
+          );
+        } else if (!notificationsEnabled || reminderType === 'none') {
+          await NotificationService.cancelAllShiftNotifications();
+        }
+      } catch (error) {
+        console.error('Error saving notification settings:', error);
+      }
+    };
+    
+    saveSettings();
+  }, [notificationsEnabled, notificationSound, notificationVibration, reminderType, currentShift, isLoadingSettings]);
+
+  const handleToggleNotifications = () => {
+    setNotificationsEnabled(prev => !prev);
+  };
 
   const handleToggleSound = () => {
     setNotificationSound(prev => !prev);
@@ -60,9 +124,19 @@ const SettingsScreen = () => {
     setLanguageModalVisible(false);
   };
   
-  const handleSelectReminderType = (type) => {
+  const handleSelectReminderType = async (type) => {
     setReminderType(type);
     setReminderModalVisible(false);
+    
+    // Schedule or cancel reminders based on the new type
+    if (type !== 'none' && notificationsEnabled && currentShift) {
+      await NotificationService.scheduleShiftReminders(
+        currentShift,
+        type
+      );
+    } else if (type === 'none' && currentShift) {
+      await NotificationService.cancelAllShiftNotifications(currentShift.id);
+    }
   };
 
   const renderShiftItem = (shift) => {
@@ -252,15 +326,78 @@ const SettingsScreen = () => {
             <TouchableOpacity 
               style={styles.settingControl}
               onPress={() => setReminderModalVisible(true)}
+              disabled={!notificationsEnabled}
             >
-              <Text style={[styles.settingValue, { color: theme.colors.textSecondary }]}>
+              <Text style={[
+                styles.settingValue, 
+                { 
+                  color: notificationsEnabled 
+                    ? theme.colors.textSecondary 
+                    : theme.colors.disabled 
+                }
+              ]}>
                 {reminderType === 'none' ? t('no_reminder') : 
                  reminderType === 'before_5_min' ? t('before_5_min') :
                  reminderType === 'before_15_min' ? t('before_15_min') : 
                  t('before_30_min')}
               </Text>
-              <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+              <Ionicons 
+                name="chevron-forward" 
+                size={20} 
+                color={notificationsEnabled ? theme.colors.textSecondary : theme.colors.disabled} 
+              />
             </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Notification Settings */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
+              <Ionicons name="notifications-outline" size={22} color={theme.colors.primary} />
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                {t('notification_settings')}
+              </Text>
+            </View>
+          </View>
+          
+          {renderSettingItem(
+            <Ionicons name="notifications" size={20} color={theme.colors.primary} />,
+            t('notifications_enabled'),
+            t('notifications_enabled_description'),
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={handleToggleNotifications}
+              trackColor={{ false: '#767577', true: theme.colors.primaryLight }}
+              thumbColor={notificationsEnabled ? theme.colors.primary : '#f4f3f4'}
+              ios_backgroundColor="#3e3e3e"
+            />
+          )}
+          
+          {renderSettingItem(
+            <Ionicons name="volume-high-outline" size={20} color={theme.colors.primary} />,
+            t('notification_sound'),
+            t('notification_sound_description'),
+            <Switch
+              value={notificationSound}
+              onValueChange={handleToggleSound}
+              trackColor={{ false: '#767577', true: theme.colors.primaryLight }}
+              thumbColor={notificationSound ? theme.colors.primary : '#f4f3f4'}
+              ios_backgroundColor="#3e3e3e"
+            />
+          )}
+          
+          {renderSettingItem(
+            <MaterialCommunityIcons name="vibrate" size={20} color={theme.colors.primary} />,
+            t('notification_vibration'),
+            t('notification_vibration_description'),
+            <Switch
+              value={notificationVibration}
+              onValueChange={handleToggleVibration}
+              trackColor={{ false: '#767577', true: theme.colors.primaryLight }}
+              thumbColor={notificationVibration ? theme.colors.primary : '#f4f3f4'}
+              ios_backgroundColor="#3e3e3e"
+            />
           )}
         </View>
 
@@ -301,32 +438,6 @@ const SettingsScreen = () => {
               </Text>
               <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
             </TouchableOpacity>
-          )}
-          
-          {renderSettingItem(
-            <Ionicons name="volume-high-outline" size={20} color={theme.colors.primary} />,
-            t('notification_sound'),
-            t('notification_sound_description'),
-            <Switch
-              value={notificationSound}
-              onValueChange={handleToggleSound}
-              trackColor={{ false: '#767577', true: theme.colors.primaryLight }}
-              thumbColor={notificationSound ? theme.colors.primary : '#f4f3f4'}
-              ios_backgroundColor="#3e3e3e"
-            />
-          )}
-          
-          {renderSettingItem(
-            <MaterialCommunityIcons name="vibrate" size={20} color={theme.colors.primary} />,
-            t('notification_vibration'),
-            t('notification_vibration_description'),
-            <Switch
-              value={notificationVibration}
-              onValueChange={handleToggleVibration}
-              trackColor={{ false: '#767577', true: theme.colors.primaryLight }}
-              thumbColor={notificationVibration ? theme.colors.primary : '#f4f3f4'}
-              ios_backgroundColor="#3e3e3e"
-            />
           )}
         </View>
         

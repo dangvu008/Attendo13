@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format, addDays, parseISO, differenceInMinutes, differenceInHours, subDays, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import { useLocalization } from './LocalizationContext';
+import * as NotificationService from '../services/NotificationService';
 
 const ShiftContext = createContext();
 
@@ -495,6 +496,90 @@ export const ShiftProvider = ({ children }) => {
     }
   }, [workEntries, isLoading]);
 
+  // Update a shift
+  const updateShift = async (shiftId, updatedShift) => {
+    try {
+      const updatedShifts = shifts.map(shift => 
+        shift.id === shiftId ? { ...shift, ...updatedShift } : shift
+      );
+      setShifts(updatedShifts);
+      await AsyncStorage.setItem('shifts', JSON.stringify(updatedShifts));
+      
+      // If this is the current shift, update it
+      if (currentShift && currentShift.id === shiftId) {
+        const updatedCurrentShift = { ...currentShift, ...updatedShift };
+        setCurrentShift(updatedCurrentShift);
+        await AsyncStorage.setItem('currentShift', JSON.stringify(updatedCurrentShift));
+        
+        // Update reminders for the current shift
+        const settings = await NotificationService.loadNotificationSettings();
+        if (settings.reminderType !== 'none') {
+          await NotificationService.scheduleShiftReminders(
+            updatedCurrentShift, 
+            settings.reminderType
+          );
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating shift:', error);
+      return false;
+    }
+  };
+
+  // Set the current shift and schedule reminders
+  const setCurrentShiftAndScheduleReminders = async (shift) => {
+    try {
+      // Cancel any existing reminders
+      await NotificationService.cancelAllShiftNotifications();
+      
+      // Update current shift
+      setCurrentShift(shift);
+      await AsyncStorage.setItem('currentShift', JSON.stringify(shift));
+      
+      // Schedule new reminders if enabled
+      const settings = await NotificationService.loadNotificationSettings();
+      if (settings.reminderType !== 'none') {
+        await NotificationService.scheduleShiftReminders(
+          shift, 
+          settings.reminderType
+        );
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error setting current shift:', error);
+      return false;
+    }
+  };
+
+  // Reset work status and clear reminders
+  const resetWorkStatus = async () => {
+    try {
+      // Cancel reminders
+      await NotificationService.cancelAllShiftNotifications();
+      
+      // Reset status
+      setWorkStatus('inactive');
+      await AsyncStorage.setItem('workStatus', 'inactive');
+      
+      // Update status details
+      const newStatusDetails = { ...statusDetails };
+      newStatusDetails[format(new Date(), 'yyyy-MM-dd')] = {
+        status: 'inactive',
+        timestamp: new Date().toISOString(),
+      };
+      setStatusDetails(newStatusDetails);
+      await AsyncStorage.setItem('statusDetails', JSON.stringify(newStatusDetails));
+      
+      return true;
+    } catch (error) {
+      console.error('Error resetting work status:', error);
+      return false;
+    }
+  };
+
   // Add a new shift
   const addShift = async (newShift) => {
     try {
@@ -520,44 +605,6 @@ export const ShiftProvider = ({ children }) => {
       return true;
     } catch (error) {
       console.error('Error adding shift:', error);
-      return false;
-    }
-  };
-
-  // Update an existing shift
-  const updateShift = async (updatedShift) => {
-    try {
-      // Xác thực dữ liệu trước khi cập nhật
-      if (!validateShiftData(updatedShift)) {
-        return false;
-      }
-      
-      // Đảm bảo các trường mới luôn có giá trị
-      const shiftToUpdate = {
-        ...updatedShift,
-        departureTime: updatedShift.departureTime || '',
-        remindBeforeWork: updatedShift.remindBeforeWork || 15,
-        remindAfterWork: updatedShift.remindAfterWork || 15,
-        showSignButton: updatedShift.showSignButton !== undefined ? updatedShift.showSignButton : true,
-        appliedDays: updatedShift.appliedDays || [1, 2, 3, 4, 5]
-      };
-      
-      const updatedShifts = shifts.map(shift => 
-        shift.id === shiftToUpdate.id ? shiftToUpdate : shift
-      );
-      
-      setShifts(updatedShifts);
-      await AsyncStorage.setItem('shifts', JSON.stringify(updatedShifts));
-      
-      // Nếu ca làm việc đang cập nhật là ca hiện tại, cập nhật luôn currentShift
-      if (shiftToUpdate.active) {
-        setCurrentShift(shiftToUpdate);
-        await AsyncStorage.setItem('currentShift', JSON.stringify(shiftToUpdate));
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error updating shift:', error);
       return false;
     }
   };
@@ -912,22 +959,17 @@ export const ShiftProvider = ({ children }) => {
         notes,
         workEntries,
         isLoading,
-        setCurrentShift,
+        setWorkStatus,
+        updateWorkStatus,
         addShift,
         updateShift,
         deleteShift,
-        updateWorkStatus,
-        resetDayStatus,
-        getTodayStatus,
-        validateAction,
+        setCurrentShift: setCurrentShiftAndScheduleReminders,
         addNote,
         updateNote,
         deleteNote,
-        getMonthlyWorkEntries,
-        addWorkEntry,
-        updateWorkEntry,
-        deleteWorkEntry,
-        updateDayStatus
+        resetWorkStatus,
+        getMonthlyWorkStats,
       }}
     >
       {children}

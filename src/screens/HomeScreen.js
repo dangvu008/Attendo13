@@ -14,10 +14,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { format, isToday, parseISO, differenceInMinutes, differenceInHours } from 'date-fns';
-import { vi as viLocale } from 'date-fns/locale';
+import { vi } from 'date-fns/locale';
 import { useShift } from '../context/ShiftContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocalization } from '../context/LocalizationContext';
+import * as NotificationService from '../services/NotificationService';
 
 // Components
 import MultiActionButton from '../components/MultiActionButton';
@@ -53,20 +54,42 @@ const HomeScreen = () => {
   const [confirmResetVisible, setConfirmResetVisible] = useState(false);
   const [confirmActionVisible, setConfirmActionVisible] = useState(false);
   const [nextAction, setNextAction] = useState(null);
+  const [currentReminders, setCurrentReminders] = useState([]);
 
-  // Update the current time every second
+  // Lấy thông tin nhắc nhở hiện tại
   useEffect(() => {
-    const timer = setInterval(() => {
+    const loadReminders = async () => {
+      try {
+        const reminders = await NotificationService.getScheduledNotifications();
+        if (reminders) {
+          const remindersList = Object.values(reminders);
+          setCurrentReminders(remindersList);
+        }
+      } catch (error) {
+        console.error('Error loading reminders:', error);
+      }
+    };
+    
+    loadReminders();
+    
+    // Cập nhật mỗi 1 phút
+    const intervalId = setInterval(loadReminders, 60000);
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Cập nhật đồng hồ mỗi giây
+  useEffect(() => {
+    const intervalId = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
-
-    return () => clearInterval(timer);
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   // Format functions
   const formatDate = (date) => {
     // Check if viLocale is available before using it
-    return format(date, 'EEEE, dd/MM/yyyy', viLocale ? { locale: viLocale } : undefined);
+    return format(date, 'EEEE, dd/MM/yyyy', vi ? { locale: vi } : undefined);
   };
 
   const formatTime = (date) => {
@@ -129,6 +152,68 @@ const HomeScreen = () => {
       setNextAction(null);
     }
     setConfirmActionVisible(false);
+  };
+
+  // Xử lý khi nhấn nút đi làm
+  const handleGoToWork = async () => {
+    try {
+      if (validateAction('goToWork')) {
+        await updateWorkStatus('goToWork');
+        
+        // Tự động lập lịch nhắc nhở dựa trên cài đặt
+        const settings = await NotificationService.loadNotificationSettings();
+        if (settings.enabled && settings.reminderType !== 'none' && currentShift) {
+          await NotificationService.scheduleShiftReminders(
+            currentShift,
+            settings.reminderType
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error handling go to work:', error);
+    }
+  };
+
+  // Xử lý khi nhấn nút check in
+  const handleCheckIn = async () => {
+    try {
+      if (validateAction('checkIn')) {
+        await updateWorkStatus('checkIn');
+        // Hủy nhắc nhở check-in nếu có
+        if (currentReminders.some(r => r.type === 'check_in')) {
+          const checkInReminder = currentReminders.find(r => r.type === 'check_in');
+          if (checkInReminder) {
+            await NotificationService.cancelNotification(checkInReminder.id);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error handling check in:', error);
+    }
+  };
+
+  // Xử lý khi nhấn nút check out
+  const handleCheckOut = async () => {
+    try {
+      if (validateAction('checkOut')) {
+        await updateWorkStatus('checkOut');
+      }
+    } catch (error) {
+      console.error('Error handling check out:', error);
+    }
+  };
+
+  // Xử lý khi nhấn nút hoàn thành
+  const handleComplete = async () => {
+    try {
+      if (validateAction('complete')) {
+        await updateWorkStatus('complete');
+        // Hủy tất cả nhắc nhở liên quan đến ca làm việc hiện tại
+        await NotificationService.cancelAllShiftNotifications();
+      }
+    } catch (error) {
+      console.error('Error handling complete:', error);
+    }
   };
 
   // Note handlers
@@ -240,7 +325,17 @@ const HomeScreen = () => {
               label={actionButton.label}
               iconName={actionButton.icon}
               color={actionButton.color}
-              onPress={() => handleMultiActionPress(actionButton.status)}
+              onPress={() => {
+                if (actionButton.status === 'go_work') {
+                  handleGoToWork();
+                } else if (actionButton.status === 'check_in') {
+                  handleCheckIn();
+                } else if (actionButton.status === 'check_out') {
+                  handleCheckOut();
+                } else if (actionButton.status === 'complete') {
+                  handleComplete();
+                }
+              }}
               disabled={actionButton.disabled || actionButtonDisabled}
             />
             

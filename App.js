@@ -6,6 +6,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SplashScreen from 'expo-splash-screen';
 import { Provider as PaperProvider } from 'react-native-paper';
+import * as NotificationService from './src/services/NotificationService';
+import * as Notifications from 'expo-notifications';
 
 // Contexts
 import { ThemeProvider } from './src/context/ThemeContext';
@@ -44,6 +46,31 @@ export default function App() {
     }
   }, [appIsReady]);
 
+  useEffect(() => {
+    // Initialize notifications
+    NotificationService.initializeNotifications();
+    
+    // Listen for incoming notifications
+    const notificationListener = Notifications.addNotificationReceivedListener(
+      notification => {
+        console.log('Received notification:', notification);
+      }
+    );
+    
+    // Listen for notification interactions
+    const responseListener = Notifications.addNotificationResponseReceivedListener(
+      response => {
+        NotificationService.handleNotificationResponse(response);
+      }
+    );
+    
+    // Cleanup on unmount
+    return () => {
+      Notifications.removeNotificationSubscription(notificationListener);
+      Notifications.removeNotificationSubscription(responseListener);
+    };
+  }, []);
+
   if (!appIsReady) {
     return null;
   }
@@ -53,10 +80,12 @@ export default function App() {
       <ThemeProvider>
         <LocalizationProvider>
           <ShiftProvider>
-            <NavigationContainer>
-              <MainNavigator />
+            <View style={{ flex: 1 }}>
               <StatusBar style="auto" />
-            </NavigationContainer>
+              <NavigationContainer>
+                <MainNavigator />
+              </NavigationContainer>
+            </View>
           </ShiftProvider>
         </LocalizationProvider>
       </ThemeProvider>
