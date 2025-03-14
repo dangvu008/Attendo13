@@ -1,0 +1,560 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  Modal,
+  TextInput,
+  TouchableWithoutFeedback,
+  FlatList
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { format, isToday, parseISO, differenceInMinutes, differenceInHours } from 'date-fns';
+import vi from 'date-fns/locale/vi';
+import { useShift } from '../context/ShiftContext';
+import { useTheme } from '../context/ThemeContext';
+import { useLocalization } from '../context/LocalizationContext';
+
+// Components
+import MultiActionButton from '../components/MultiActionButton';
+import WeeklyStatusGrid from '../components/WeeklyStatusGrid';
+import NoteItem from '../components/NoteItem';
+import AddNoteModal from '../components/AddNoteModal';
+
+const HomeScreen = () => {
+  const {
+    currentShift,
+    workStatus,
+    statusHistory,
+    weeklyStatus,
+    notes,
+    updateWorkStatus,
+    resetDayStatus,
+    getTodayStatus,
+    addNote,
+    updateNote,
+    deleteNote,
+    validateAction
+  } = useShift();
+
+  const { theme, isDarkMode } = useTheme();
+  const { t, locale } = useLocalization();
+
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [isAddNoteModalVisible, setIsAddNoteModalVisible] = useState(false);
+  const [selectedNote, setSelectedNote] = useState(null);
+  const [actionButtonDisabled, setActionButtonDisabled] = useState(false);
+  const [confirmResetVisible, setConfirmResetVisible] = useState(false);
+  const [confirmActionVisible, setConfirmActionVisible] = useState(false);
+  const [nextAction, setNextAction] = useState(null);
+
+  // Update the current time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Format functions
+  const formatDate = (date) => {
+    return format(date, 'EEEE, dd/MM/yyyy', { locale: vi });
+  };
+
+  const formatTime = (date) => {
+    return format(date, 'HH:mm:ss');
+  };
+
+  const formatShiftTime = (timeString) => {
+    return timeString || '--:--';
+  };
+
+  // Get today's history entries
+  const todayEntries = getTodayStatus();
+  
+  // Find latest entries for different statuses
+  const findLatestEntryByStatus = (status) => {
+    const filtered = todayEntries.filter(entry => entry.status === status);
+    return filtered.length > 0 ? filtered[0] : null;
+  };
+
+  const goWorkEntry = findLatestEntryByStatus('go_work');
+  const checkInEntry = findLatestEntryByStatus('check_in');
+  const checkOutEntry = findLatestEntryByStatus('check_out');
+  const completeEntry = findLatestEntryByStatus('complete');
+
+  // Button action handlers
+  const handleMultiActionPress = (action) => {
+    // Check if action needs validation
+    let lastActionTimestamp = null;
+    
+    if (action === 'check_in' && goWorkEntry) {
+      lastActionTimestamp = goWorkEntry.timestamp;
+    } else if (action === 'check_out' && checkInEntry) {
+      lastActionTimestamp = checkInEntry.timestamp;
+    }
+    
+    // Validate time difference
+    if (lastActionTimestamp && !validateAction(action, lastActionTimestamp)) {
+      // Show confirmation dialog
+      setNextAction(action);
+      setConfirmActionVisible(true);
+      return;
+    }
+    
+    // Execute action if validation passes
+    updateWorkStatus(action);
+  };
+
+  const handleResetPress = () => {
+    setConfirmResetVisible(true);
+  };
+
+  const confirmReset = () => {
+    resetDayStatus();
+    setConfirmResetVisible(false);
+  };
+
+  const confirmAction = () => {
+    if (nextAction) {
+      updateWorkStatus(nextAction);
+      setNextAction(null);
+    }
+    setConfirmActionVisible(false);
+  };
+
+  // Note handlers
+  const handleAddNote = () => {
+    setSelectedNote(null);
+    setIsAddNoteModalVisible(true);
+  };
+
+  const handleEditNote = (note) => {
+    setSelectedNote(note);
+    setIsAddNoteModalVisible(true);
+  };
+
+  const handleDeleteNote = (noteId) => {
+    Alert.alert(
+      t('confirm'),
+      t('delete_note_confirm'),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('delete'), onPress: () => deleteNote(noteId), style: 'destructive' }
+      ]
+    );
+  };
+
+  const handleSaveNote = (note) => {
+    if (selectedNote) {
+      updateNote({ ...selectedNote, ...note });
+    } else {
+      addNote(note);
+    }
+    setIsAddNoteModalVisible(false);
+  };
+
+  // Get the appropriate button based on current status
+  const getActionButton = () => {
+    const buttons = {
+      inactive: {
+        status: 'go_work',
+        label: t('go_work'),
+        icon: 'walk-outline',
+        color: theme.colors.goWorkButton
+      },
+      go_work: {
+        status: 'check_in',
+        label: t('check_in'),
+        icon: 'log-in-outline',
+        color: theme.colors.checkInButton
+      },
+      check_in: {
+        status: 'check_out',
+        label: t('check_out'),
+        icon: 'log-out-outline',
+        color: theme.colors.checkOutButton
+      },
+      check_out: {
+        status: 'complete',
+        label: t('complete'),
+        icon: 'checkmark-circle-outline',
+        color: theme.colors.completeButton
+      },
+      complete: {
+        status: 'complete',
+        label: t('completed'),
+        icon: 'checkmark-done-circle-outline',
+        color: theme.colors.disabled,
+        disabled: true
+      }
+    };
+
+    return buttons[workStatus] || buttons.inactive;
+  };
+
+  const actionButton = getActionButton();
+  
+  // Determine if we should show the reset button
+  const showResetButton = workStatus !== 'inactive';
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Header Section */}
+        <View style={styles.header}>
+          <View style={styles.dateTimeContainer}>
+            <Text style={[styles.dateText, { color: theme.colors.text }]}>{formatDate(currentTime)}</Text>
+            <Text style={[styles.timeText, { color: theme.colors.primary }]}>{formatTime(currentTime)}</Text>
+          </View>
+          
+          {currentShift && (
+            <View style={[styles.shiftInfo, { backgroundColor: isDarkMode ? theme.colors.surface : '#e6e6ff' }]}>
+              <Ionicons name="time-outline" size={18} color={theme.colors.primary} />
+              <Text style={[styles.shiftText, { color: theme.colors.primary }]}>{currentShift.name}</Text>
+              <Text style={[styles.shiftTimeText, { color: theme.colors.textSecondary }]}>
+                {formatShiftTime(currentShift.startWorkTime)} - {formatShiftTime(currentShift.endWorkTime)}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Main Action Button Section */}
+        <View style={styles.actionSection}>
+          <View style={styles.multiActionContainer}>
+            <MultiActionButton
+              status={actionButton.status}
+              label={actionButton.label}
+              iconName={actionButton.icon}
+              color={actionButton.color}
+              onPress={() => handleMultiActionPress(actionButton.status)}
+              disabled={actionButton.disabled || actionButtonDisabled}
+            />
+            
+            {showResetButton && (
+              <TouchableOpacity 
+                style={[styles.resetButton, { backgroundColor: theme.colors.resetButton }]}
+                onPress={handleResetPress}
+              >
+                <Ionicons name="refresh" size={20} color="#fff" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Status Information */}
+          <View style={[styles.statusInfoContainer, { backgroundColor: theme.colors.surface }]}>
+            {goWorkEntry && (
+              <View style={styles.statusItem}>
+                <Ionicons name="walk-outline" size={18} color={theme.colors.goWorkButton} />
+                <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
+                  {t('go_work')}: {format(new Date(goWorkEntry.timestamp), 'HH:mm')}
+                </Text>
+              </View>
+            )}
+            
+            {checkInEntry && (
+              <View style={styles.statusItem}>
+                <Ionicons name="log-in-outline" size={18} color={theme.colors.checkInButton} />
+                <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
+                  {t('check_in')}: {format(new Date(checkInEntry.timestamp), 'HH:mm')}
+                </Text>
+              </View>
+            )}
+            
+            {checkOutEntry && (
+              <View style={styles.statusItem}>
+                <Ionicons name="log-out-outline" size={18} color={theme.colors.checkOutButton} />
+                <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
+                  {t('check_out')}: {format(new Date(checkOutEntry.timestamp), 'HH:mm')}
+                </Text>
+              </View>
+            )}
+            
+            {completeEntry && (
+              <View style={styles.statusItem}>
+                <Ionicons name="checkmark-circle-outline" size={18} color={theme.colors.completeButton} />
+                <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
+                  {t('complete')}: {format(new Date(completeEntry.timestamp), 'HH:mm')}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Weekly Status Grid */}
+        <View style={[styles.weeklyStatusSection, { backgroundColor: theme.colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('weekly_status')}</Text>
+          <WeeklyStatusGrid weeklyStatus={weeklyStatus} />
+        </View>
+
+        {/* Notes Section */}
+        <View style={[styles.notesSection, { backgroundColor: theme.colors.surface }]}>
+          <View style={styles.notesHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('work_notes')}</Text>
+            <TouchableOpacity 
+              style={[styles.addNoteButton, { backgroundColor: theme.colors.primary }]}
+              onPress={handleAddNote}
+            >
+              <Text style={styles.addNoteButtonText}>{t('add_note')}</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {notes.length > 0 ? (
+            notes.slice(0, 3).map(note => (
+              <NoteItem
+                key={note.id}
+                note={note}
+                onEdit={() => handleEditNote(note)}
+                onDelete={() => handleDeleteNote(note.id)}
+                theme={theme}
+              />
+            ))
+          ) : (
+            <Text style={[styles.emptyNotesText, { color: theme.colors.textSecondary }]}>{t('no_notes')}</Text>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Add/Edit Note Modal */}
+      <AddNoteModal
+        visible={isAddNoteModalVisible}
+        onClose={() => setIsAddNoteModalVisible(false)}
+        onSave={handleSaveNote}
+        initialData={selectedNote}
+        theme={theme}
+        t={t}
+      />
+
+      {/* Reset Confirmation Modal */}
+      <Modal
+        transparent={true}
+        visible={confirmResetVisible}
+        animationType="fade"
+        onRequestClose={() => setConfirmResetVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setConfirmResetVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.confirmDialog, { backgroundColor: theme.colors.surface }]}>
+                <Text style={[styles.confirmTitle, { color: theme.colors.text }]}>{t('confirm')}</Text>
+                <Text style={[styles.confirmText, { color: theme.colors.textSecondary }]}>
+                  {t('reset_day_confirm')}
+                </Text>
+                <View style={styles.confirmButtons}>
+                  <TouchableOpacity
+                    style={[styles.confirmButton, styles.cancelButton, { backgroundColor: theme.colors.disabled }]}
+                    onPress={() => setConfirmResetVisible(false)}
+                  >
+                    <Text style={[styles.confirmButtonText, { color: theme.colors.text }]}>{t('cancel')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.confirmButton, styles.confirmResetButton, { backgroundColor: theme.colors.resetButton }]}
+                    onPress={confirmReset}
+                  >
+                    <Text style={[styles.confirmButtonText, styles.resetButtonText]}>{t('reset')}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Action Confirmation Modal */}
+      <Modal
+        transparent={true}
+        visible={confirmActionVisible}
+        animationType="fade"
+        onRequestClose={() => setConfirmActionVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setConfirmActionVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.confirmDialog, { backgroundColor: theme.colors.surface }]}>
+                <Text style={[styles.confirmTitle, { color: theme.colors.text }]}>{t('confirm')}</Text>
+                <Text style={[styles.confirmText, { color: theme.colors.textSecondary }]}>
+                  {nextAction === 'check_in' ? 
+                    t('time_validation_check_in') : 
+                    t('time_validation_check_out')}
+                </Text>
+                <View style={styles.confirmButtons}>
+                  <TouchableOpacity
+                    style={[styles.confirmButton, styles.cancelButton, { backgroundColor: theme.colors.disabled }]}
+                    onPress={() => setConfirmActionVisible(false)}
+                  >
+                    <Text style={[styles.confirmButtonText, { color: theme.colors.text }]}>{t('cancel')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.confirmButton, styles.confirmActionButton, { backgroundColor: theme.colors.success }]}
+                    onPress={confirmAction}
+                  >
+                    <Text style={[styles.confirmButtonText, styles.actionButtonText]}>{t('continue')}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+  },
+  header: {
+    marginBottom: 16,
+  },
+  dateTimeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dateText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  timeText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  shiftInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 8,
+  },
+  shiftText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  shiftTimeText: {
+    marginLeft: 'auto',
+    fontSize: 14,
+  },
+  actionSection: {
+    marginBottom: 24,
+  },
+  multiActionContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  resetButton: {
+    position: 'absolute',
+    right: 0,
+    top: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+  },
+  statusInfoContainer: {
+    borderRadius: 8,
+    padding: 12,
+    elevation: 2,
+  },
+  statusItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  statusText: {
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  weeklyStatusSection: {
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 24,
+    elevation: 2,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  notesSection: {
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 24,
+    elevation: 2,
+  },
+  notesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  addNoteButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+  },
+  addNoteButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  emptyNotesText: {
+    textAlign: 'center',
+    fontStyle: 'italic',
+    padding: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  confirmDialog: {
+    width: '80%',
+    borderRadius: 8,
+    padding: 20,
+    elevation: 5,
+  },
+  confirmTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  confirmText: {
+    fontSize: 14,
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  confirmButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  confirmButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  confirmButtonText: {
+    fontWeight: 'bold',
+  },
+  resetButtonText: {
+    color: '#fff',
+  },
+  actionButtonText: {
+    color: '#fff',
+  },
+});
+
+export default HomeScreen;
