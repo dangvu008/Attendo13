@@ -52,7 +52,16 @@ const NotesScreen = () => {
       t('delete_note_confirm'),
       [
         { text: t('cancel'), style: 'cancel' },
-        { text: t('delete'), onPress: () => deleteNote(noteId), style: 'destructive' }
+        { 
+          text: t('delete'), 
+          style: 'destructive',
+          onPress: async () => {
+            const success = await deleteNote(noteId);
+            if (!success) {
+              Alert.alert(t('error'), t('delete_note_error'));
+            }
+          }
+        }
       ]
     );
   };

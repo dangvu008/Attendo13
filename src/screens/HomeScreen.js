@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { format, isToday, parseISO, differenceInMinutes, differenceInHours } from 'date-fns';
-import vi from 'date-fns/locale/vi';
+import { vi as viLocale } from 'date-fns/locale';
 import { useShift } from '../context/ShiftContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocalization } from '../context/LocalizationContext';
@@ -31,6 +31,7 @@ const HomeScreen = () => {
     workStatus,
     statusHistory,
     weeklyStatus,
+    statusDetails,
     notes,
     updateWorkStatus,
     resetDayStatus,
@@ -38,7 +39,8 @@ const HomeScreen = () => {
     addNote,
     updateNote,
     deleteNote,
-    validateAction
+    validateAction,
+    updateDayStatus
   } = useShift();
 
   const { theme, isDarkMode } = useTheme();
@@ -63,7 +65,8 @@ const HomeScreen = () => {
 
   // Format functions
   const formatDate = (date) => {
-    return format(date, 'EEEE, dd/MM/yyyy', { locale: vi });
+    // Check if viLocale is available before using it
+    return format(date, 'EEEE, dd/MM/yyyy', viLocale ? { locale: viLocale } : undefined);
   };
 
   const formatTime = (date) => {
@@ -157,6 +160,11 @@ const HomeScreen = () => {
       addNote(note);
     }
     setIsAddNoteModalVisible(false);
+  };
+  
+  // Handle status change for a specific day
+  const handleStatusChange = (date, newStatus) => {
+    updateDayStatus(date, newStatus);
   };
 
   // Get the appropriate button based on current status
@@ -289,7 +297,12 @@ const HomeScreen = () => {
         {/* Weekly Status Grid */}
         <View style={[styles.weeklyStatusSection, { backgroundColor: theme.colors.surface }]}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('weekly_status')}</Text>
-          <WeeklyStatusGrid weeklyStatus={weeklyStatus} />
+          <WeeklyStatusGrid 
+            weeklyStatus={weeklyStatus} 
+            statusDetails={statusDetails}
+            onStatusChange={handleStatusChange}
+            theme={theme}
+          />
         </View>
 
         {/* Notes Section */}
@@ -350,13 +363,13 @@ const HomeScreen = () => {
                     style={[styles.confirmButton, styles.cancelButton, { backgroundColor: theme.colors.disabled }]}
                     onPress={() => setConfirmResetVisible(false)}
                   >
-                    <Text style={[styles.confirmButtonText, { color: theme.colors.text }]}>{t('cancel')}</Text>
+                    <Text style={styles.confirmButtonText}>{t('cancel')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.confirmButton, styles.confirmResetButton, { backgroundColor: theme.colors.resetButton }]}
+                    style={[styles.confirmButton, styles.okButton, { backgroundColor: theme.colors.primary }]}
                     onPress={confirmReset}
                   >
-                    <Text style={[styles.confirmButtonText, styles.resetButtonText]}>{t('reset')}</Text>
+                    <Text style={styles.confirmButtonText}>{t('reset')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -378,22 +391,20 @@ const HomeScreen = () => {
               <View style={[styles.confirmDialog, { backgroundColor: theme.colors.surface }]}>
                 <Text style={[styles.confirmTitle, { color: theme.colors.text }]}>{t('confirm')}</Text>
                 <Text style={[styles.confirmText, { color: theme.colors.textSecondary }]}>
-                  {nextAction === 'check_in' ? 
-                    t('time_validation_check_in') : 
-                    t('time_validation_check_out')}
+                  {nextAction === 'check_in' ? t('time_validation_check_in') : t('time_validation_check_out')}
                 </Text>
                 <View style={styles.confirmButtons}>
                   <TouchableOpacity
                     style={[styles.confirmButton, styles.cancelButton, { backgroundColor: theme.colors.disabled }]}
                     onPress={() => setConfirmActionVisible(false)}
                   >
-                    <Text style={[styles.confirmButtonText, { color: theme.colors.text }]}>{t('cancel')}</Text>
+                    <Text style={styles.confirmButtonText}>{t('cancel')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.confirmButton, styles.confirmActionButton, { backgroundColor: theme.colors.success }]}
+                    style={[styles.confirmButton, styles.okButton, { backgroundColor: theme.colors.primary }]}
                     onPress={confirmAction}
                   >
-                    <Text style={[styles.confirmButtonText, styles.actionButtonText]}>{t('continue')}</Text>
+                    <Text style={styles.confirmButtonText}>{t('continue')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -416,17 +427,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   dateTimeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   dateText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 4,
   },
   timeText: {
-    fontSize: 22,
+    fontSize: 32,
     fontWeight: 'bold',
   },
   shiftInfo: {
@@ -434,65 +442,59 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 10,
     borderRadius: 8,
+    marginVertical: 8,
   },
   shiftText: {
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 8,
+    marginRight: 12,
   },
   shiftTimeText: {
-    marginLeft: 'auto',
     fontSize: 14,
   },
   actionSection: {
     marginBottom: 24,
   },
   multiActionContainer: {
-    position: 'relative',
+    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
   },
   resetButton: {
-    position: 'absolute',
-    right: 0,
-    top: 10,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 3,
+    marginLeft: 10,
   },
   statusInfoContainer: {
     borderRadius: 8,
     padding: 12,
-    elevation: 2,
   },
   statusItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginVertical: 4,
   },
   statusText: {
     fontSize: 14,
     marginLeft: 8,
   },
   weeklyStatusSection: {
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
-    marginBottom: 24,
-    elevation: 2,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 12,
   },
   notesSection: {
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
-    marginBottom: 24,
-    elevation: 2,
   },
   notesHeader: {
     flexDirection: 'row',
@@ -503,7 +505,7 @@ const styles = StyleSheet.create({
   addNoteButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   addNoteButtonText: {
     color: '#fff',
@@ -511,20 +513,21 @@ const styles = StyleSheet.create({
   },
   emptyNotesText: {
     textAlign: 'center',
+    padding: 20,
     fontStyle: 'italic',
-    padding: 16,
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
   confirmDialog: {
-    width: '80%',
-    borderRadius: 8,
+    width: '90%',
+    borderRadius: 12,
     padding: 20,
-    elevation: 5,
+    alignItems: 'center',
   },
   confirmTitle: {
     fontSize: 18,
@@ -532,28 +535,31 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   confirmText: {
-    fontSize: 14,
-    marginBottom: 20,
-    lineHeight: 20,
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 24,
   },
   confirmButtons: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    width: '100%',
+    justifyContent: 'space-between',
   },
   confirmButton: {
-    paddingVertical: 8,
+    borderRadius: 8,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 4,
-    marginLeft: 8,
+    minWidth: '45%',
+    alignItems: 'center',
   },
   confirmButtonText: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: 'bold',
   },
-  resetButtonText: {
-    color: '#fff',
+  cancelButton: {
+    marginRight: 10,
   },
-  actionButtonText: {
-    color: '#fff',
+  okButton: {
   },
 });
 

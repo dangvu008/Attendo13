@@ -1,144 +1,560 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLocalization } from '../context/LocalizationContext';
 import { useShift } from '../context/ShiftContext';
+import { useNavigation } from '@react-navigation/native';
+import Constants from 'expo-constants';
 
 const SettingsScreen = () => {
   const { theme, isDarkMode, toggleTheme } = useTheme();
   const { locale, changeLocale, t } = useLocalization();
-  const { shifts, applyShift } = useShift();
+  const { shifts, currentShift, setCurrentShift, addShift, updateShift, deleteShift } = useShift();
+  const navigation = useNavigation();
   
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [showAllShifts, setShowAllShifts] = useState(true);
+  const [notificationSound, setNotificationSound] = useState(true);
+  const [notificationVibration, setNotificationVibration] = useState(true);
+  const [reminderType, setReminderType] = useState('none');
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  const [reminderModalVisible, setReminderModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [selectedShift, setSelectedShift] = useState(null);
 
-  const handleToggleNotifications = () => {
-    setNotificationsEnabled(prev => !prev);
+  const handleToggleSound = () => {
+    setNotificationSound(prev => !prev);
   };
 
-  const handleToggleShowAllShifts = () => {
-    setShowAllShifts(prev => !prev);
+  const handleToggleVibration = () => {
+    setNotificationVibration(prev => !prev);
+  };
+
+  const handleSelectShift = (shift) => {
+    setCurrentShift(shift);
+  };
+
+  const handleDeleteShift = (shift) => {
+    setSelectedShift(shift);
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDeleteShift = () => {
+    if (selectedShift) {
+      deleteShift(selectedShift.id);
+      setDeleteModalVisible(false);
+      setSelectedShift(null);
+    }
+  };
+
+  const handleEditShift = (shift) => {
+    navigation.navigate('EditShift', { shift });
+  };
+
+  const handleAddShift = () => {
+    navigation.navigate('AddShift');
   };
 
   const handleChangeLanguage = (newLocale) => {
     changeLocale(newLocale);
-    Alert.alert(
-      locale === 'vi' ? 'Language Changed' : 'Đã Thay Đổi Ngôn Ngữ',
-      locale === 'vi' ? 'Application language changed to English' : 'Ngôn ngữ ứng dụng đã thay đổi thành Tiếng Việt',
-      [{ text: 'OK' }]
+    setLanguageModalVisible(false);
+  };
+  
+  const handleSelectReminderType = (type) => {
+    setReminderType(type);
+    setReminderModalVisible(false);
+  };
+
+  const renderShiftItem = (shift) => {
+    const isActive = currentShift && currentShift.id === shift.id;
+    
+    return (
+      <View 
+        key={shift.id} 
+        style={[
+          styles.shiftItem, 
+          { 
+            backgroundColor: theme.colors.surface,
+            ...(isActive ? { borderLeftWidth: 4, borderLeftColor: theme.colors.primary } : {})
+          }
+        ]}
+      >
+        <View style={styles.shiftItemContent}>
+          <Text style={[styles.shiftName, { color: theme.colors.text }]}>
+            {shift.name}
+          </Text>
+          <Text style={[styles.shiftTime, { color: theme.colors.textSecondary }]}>
+            {shift.startWorkTime} - {shift.endWorkTime}
+          </Text>
+          {isActive && (
+            <View style={styles.activeShiftBadge}>
+              <Text style={[styles.activeShiftText, { color: theme.colors.primary }]}>
+                {t('currently_applied')}
+              </Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.shiftActions}>
+          <TouchableOpacity 
+            style={[
+              styles.shiftActionButton, 
+              { 
+                borderColor: isActive ? theme.colors.primary : theme.colors.border,
+                backgroundColor: isActive ? theme.colors.primaryLight : 'transparent'
+              }
+            ]} 
+            onPress={() => handleSelectShift(shift)}
+          >
+            <Ionicons 
+              name="checkmark" 
+              size={20} 
+              color={isActive ? theme.colors.primary : theme.colors.textSecondary} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.shiftActionButton, { borderColor: theme.colors.border }]} 
+            onPress={() => handleEditShift(shift)}
+          >
+            <Ionicons 
+              name="create-outline" 
+              size={20} 
+              color={theme.colors.primary} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[
+              styles.shiftActionButton, 
+              { backgroundColor: theme.colors.error, borderColor: theme.colors.error }
+            ]} 
+            onPress={() => handleDeleteShift(shift)}
+          >
+            <Ionicons 
+              name="trash-outline" 
+              size={20} 
+              color="#fff" 
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   };
 
-  const renderSettingItem = (icon, title, subtitle, rightComponent) => (
-    <View style={[styles.settingItem, { backgroundColor: theme.colors.surface }]}>
-      <View style={styles.settingIcon}>
-        <Ionicons name={icon} size={24} color={theme.colors.primary} />
+  const renderSettingItem = (icon, title, description, control) => {
+    return (
+      <View style={[
+        styles.settingItem, 
+        { 
+          backgroundColor: theme.colors.surface,
+          ...theme.elevation.small
+        }
+      ]}>
+        <View style={styles.settingItemLeft}>
+          <View style={[styles.settingIcon, { backgroundColor: theme.colors.primaryLight }]}>
+            {icon}
+          </View>
+          <View style={styles.settingTextContainer}>
+            <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
+              {title}
+            </Text>
+            {description && (
+              <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
+                {description}
+              </Text>
+            )}
+          </View>
+        </View>
+        {control}
       </View>
-      <View style={styles.settingContent}>
-        <Text style={[styles.settingTitle, { color: theme.colors.text }]}>{title}</Text>
-        {subtitle && <Text style={[styles.settingSubtitle, { color: theme.colors.textSecondary }]}>{subtitle}</Text>}
-      </View>
-      {rightComponent}
-    </View>
-  );
-
-  const renderSectionHeader = (title) => (
-    <View style={styles.sectionHeader}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.primary }]}>{title}</Text>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
-        <Text style={styles.headerTitle}>{t('settings_title')}</Text>
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: theme.colors.surface, ...theme.elevation.small }]}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="chevron-back" size={24} color={theme.colors.primary} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('settings_title')}</Text>
+        <View style={styles.headerRight} />
       </View>
       
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Theme */}
-        {renderSectionHeader(t('theme'))}
-        {renderSettingItem(
-          isDarkMode ? 'moon' : 'sunny',
-          t('dark_mode'),
-          isDarkMode ? 'On' : 'Off',
-          <Switch
-            value={isDarkMode}
-            onValueChange={toggleTheme}
-            trackColor={{ false: '#767577', true: theme.colors.primaryLight }}
-            thumbColor={isDarkMode ? theme.colors.primary : '#f4f3f4'}
-          />
-        )}
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Work Shift Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
+              <MaterialCommunityIcons name="clock-time-four-outline" size={22} color={theme.colors.primary} />
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                {t('work_shift')}
+              </Text>
+            </View>
+            <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary }]}>
+              {t('manage_work_shifts')}
+            </Text>
+            <TouchableOpacity 
+              style={[
+                styles.addButton, 
+                { 
+                  backgroundColor: theme.colors.primary,
+                  ...theme.elevation.small
+                }
+              ]}
+              onPress={handleAddShift}
+            >
+              <Ionicons name="add" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.shiftList}>
+            {shifts.map(renderShiftItem)}
+            {shifts.length === 0 && (
+              <View style={[
+                styles.emptyState, 
+                { 
+                  backgroundColor: theme.colors.surface,
+                  ...theme.elevation.small
+                }
+              ]}>
+                <MaterialCommunityIcons name="calendar-clock" size={48} color={theme.colors.disabled} />
+                <Text style={[styles.emptyStateText, { color: theme.colors.textSecondary }]}>
+                  {t('no_data')}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Reminder Settings */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
+              <MaterialIcons name="notifications-none" size={22} color={theme.colors.primary} />
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                {t('shift_reminders')}
+              </Text>
+            </View>
+            <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary }]}>
+              {t('shift_reminder_description')}
+            </Text>
+          </View>
+          
+          {renderSettingItem(
+            <MaterialIcons name="access-time" size={20} color={theme.colors.primary} />,
+            t('reminder_type'),
+            null,
+            <TouchableOpacity 
+              style={styles.settingControl}
+              onPress={() => setReminderModalVisible(true)}
+            >
+              <Text style={[styles.settingValue, { color: theme.colors.textSecondary }]}>
+                {reminderType === 'none' ? t('no_reminder') : 
+                 reminderType === 'before_5_min' ? t('before_5_min') :
+                 reminderType === 'before_15_min' ? t('before_15_min') : 
+                 t('before_30_min')}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* General Settings */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
+              <Ionicons name="settings-outline" size={22} color={theme.colors.primary} />
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                {t('general_settings')}
+              </Text>
+            </View>
+          </View>
+          
+          {renderSettingItem(
+            <Ionicons name="moon-outline" size={20} color={theme.colors.primary} />,
+            t('dark_mode'),
+            t('dark_mode_description'),
+            <Switch
+              value={isDarkMode}
+              onValueChange={toggleTheme}
+              trackColor={{ false: '#767577', true: theme.colors.primaryLight }}
+              thumbColor={isDarkMode ? theme.colors.primary : '#f4f3f4'}
+              ios_backgroundColor="#3e3e3e"
+            />
+          )}
+          
+          {renderSettingItem(
+            <Ionicons name="language-outline" size={20} color={theme.colors.primary} />,
+            t('language'),
+            null,
+            <TouchableOpacity 
+              style={styles.settingControl}
+              onPress={() => setLanguageModalVisible(true)}
+            >
+              <Text style={[styles.settingValue, { color: theme.colors.textSecondary }]}>
+                {locale === 'vi' ? 'Tiếng Việt' : 'English'}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+          
+          {renderSettingItem(
+            <Ionicons name="volume-high-outline" size={20} color={theme.colors.primary} />,
+            t('notification_sound'),
+            t('notification_sound_description'),
+            <Switch
+              value={notificationSound}
+              onValueChange={handleToggleSound}
+              trackColor={{ false: '#767577', true: theme.colors.primaryLight }}
+              thumbColor={notificationSound ? theme.colors.primary : '#f4f3f4'}
+              ios_backgroundColor="#3e3e3e"
+            />
+          )}
+          
+          {renderSettingItem(
+            <MaterialCommunityIcons name="vibrate" size={20} color={theme.colors.primary} />,
+            t('notification_vibration'),
+            t('notification_vibration_description'),
+            <Switch
+              value={notificationVibration}
+              onValueChange={handleToggleVibration}
+              trackColor={{ false: '#767577', true: theme.colors.primaryLight }}
+              thumbColor={notificationVibration ? theme.colors.primary : '#f4f3f4'}
+              ios_backgroundColor="#3e3e3e"
+            />
+          )}
+        </View>
         
-        {/* Language */}
-        {renderSectionHeader(t('language'))}
-        {renderSettingItem(
-          'language',
-          t('vietnamese'),
-          '',
-          <TouchableOpacity 
-            style={[
-              styles.languageButton,
-              { backgroundColor: locale === 'vi' ? theme.colors.primary : theme.colors.surface, borderColor: theme.colors.primary }
-            ]}
-            onPress={() => handleChangeLanguage('vi')}
-          >
-            <Text style={{ color: locale === 'vi' ? '#fff' : theme.colors.primary }}>{locale === 'vi' ? '✓' : ''}</Text>
-          </TouchableOpacity>
-        )}
-        {renderSettingItem(
-          'language-outline',
-          t('english'),
-          '',
-          <TouchableOpacity 
-            style={[
-              styles.languageButton,
-              { backgroundColor: locale === 'en' ? theme.colors.primary : theme.colors.surface, borderColor: theme.colors.primary }
-            ]}
-            onPress={() => handleChangeLanguage('en')}
-          >
-            <Text style={{ color: locale === 'en' ? '#fff' : theme.colors.primary }}>{locale === 'en' ? '✓' : ''}</Text>
-          </TouchableOpacity>
-        )}
-        
-        {/* Notifications */}
-        {renderSectionHeader(t('notifications'))}
-        {renderSettingItem(
-          'notifications',
-          t('enable_notifications'),
-          notificationsEnabled ? 'On' : 'Off',
-          <Switch
-            value={notificationsEnabled}
-            onValueChange={handleToggleNotifications}
-            trackColor={{ false: '#767577', true: theme.colors.primaryLight }}
-            thumbColor={notificationsEnabled ? theme.colors.primary : '#f4f3f4'}
-          />
-        )}
-        
-        {/* Shift Display */}
-        {renderSectionHeader(t('shift_display'))}
-        {renderSettingItem(
-          'calendar',
-          t('show_all_shifts'),
-          '',
-          <Switch
-            value={showAllShifts}
-            onValueChange={handleToggleShowAllShifts}
-            trackColor={{ false: '#767577', true: theme.colors.primaryLight }}
-            thumbColor={showAllShifts ? theme.colors.primary : '#f4f3f4'}
-          />
-        )}
-        
-        {/* About */}
-        {renderSectionHeader(t('about'))}
-        {renderSettingItem(
-          'information-circle',
-          t('app_name'),
-          `${t('version')}: 1.0.0`,
-          null
-        )}
+        {/* Version Info */}
+        <View style={styles.versionInfo}>
+          <Text style={[styles.versionText, { color: theme.colors.textSecondary }]}>
+            {t('version')}: {Constants.expoConfig?.version || '1.0.0'}
+          </Text>
+        </View>
       </ScrollView>
+
+      {/* Language Selection Modal */}
+      <Modal
+        transparent={true}
+        visible={languageModalVisible}
+        animationType="fade"
+        onRequestClose={() => setLanguageModalVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setLanguageModalVisible(false)}
+        >
+          <View 
+            style={[
+              styles.modalContent, 
+              { 
+                backgroundColor: theme.colors.surface,
+                ...theme.elevation.medium
+              }
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+              {t('select_language')}
+            </Text>
+            
+            <TouchableOpacity 
+              style={[
+                styles.modalOption,
+                locale === 'vi' && { backgroundColor: theme.colors.primaryLight }
+              ]}
+              onPress={() => handleChangeLanguage('vi')}
+            >
+              <Text style={[styles.modalOptionText, { color: theme.colors.text }]}>
+                Tiếng Việt
+              </Text>
+              {locale === 'vi' && (
+                <Ionicons name="checkmark" size={22} color={theme.colors.primary} />
+              )}
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[
+                styles.modalOption,
+                locale === 'en' && { backgroundColor: theme.colors.primaryLight }
+              ]}
+              onPress={() => handleChangeLanguage('en')}
+            >
+              <Text style={[styles.modalOptionText, { color: theme.colors.text }]}>
+                English
+              </Text>
+              {locale === 'en' && (
+                <Ionicons name="checkmark" size={22} color={theme.colors.primary} />
+              )}
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      
+      {/* Reminder Type Modal */}
+      <Modal
+        transparent={true}
+        visible={reminderModalVisible}
+        animationType="fade"
+        onRequestClose={() => setReminderModalVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setReminderModalVisible(false)}
+        >
+          <View 
+            style={[
+              styles.modalContent, 
+              { 
+                backgroundColor: theme.colors.surface,
+                ...theme.elevation.medium
+              }
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+              {t('reminder_type')}
+            </Text>
+            
+            <TouchableOpacity 
+              style={[
+                styles.modalOption,
+                reminderType === 'none' && { backgroundColor: theme.colors.primaryLight }
+              ]}
+              onPress={() => handleSelectReminderType('none')}
+            >
+              <Text style={[styles.modalOptionText, { color: theme.colors.text }]}>
+                {t('no_reminder')}
+              </Text>
+              {reminderType === 'none' && (
+                <Ionicons name="checkmark" size={22} color={theme.colors.primary} />
+              )}
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[
+                styles.modalOption,
+                reminderType === 'before_5_min' && { backgroundColor: theme.colors.primaryLight }
+              ]}
+              onPress={() => handleSelectReminderType('before_5_min')}
+            >
+              <Text style={[styles.modalOptionText, { color: theme.colors.text }]}>
+                {t('before_5_min')}
+              </Text>
+              {reminderType === 'before_5_min' && (
+                <Ionicons name="checkmark" size={22} color={theme.colors.primary} />
+              )}
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[
+                styles.modalOption,
+                reminderType === 'before_15_min' && { backgroundColor: theme.colors.primaryLight }
+              ]}
+              onPress={() => handleSelectReminderType('before_15_min')}
+            >
+              <Text style={[styles.modalOptionText, { color: theme.colors.text }]}>
+                {t('before_15_min')}
+              </Text>
+              {reminderType === 'before_15_min' && (
+                <Ionicons name="checkmark" size={22} color={theme.colors.primary} />
+              )}
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[
+                styles.modalOption,
+                reminderType === 'before_30_min' && { backgroundColor: theme.colors.primaryLight }
+              ]}
+              onPress={() => handleSelectReminderType('before_30_min')}
+            >
+              <Text style={[styles.modalOptionText, { color: theme.colors.text }]}>
+                {t('before_30_min')}
+              </Text>
+              {reminderType === 'before_30_min' && (
+                <Ionicons name="checkmark" size={22} color={theme.colors.primary} />
+              )}
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        transparent={true}
+        visible={deleteModalVisible}
+        animationType="fade"
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setDeleteModalVisible(false)}
+        >
+          <View 
+            style={[
+              styles.modalContent, 
+              { 
+                backgroundColor: theme.colors.surface,
+                ...theme.elevation.medium
+              }
+            ]}
+          >
+            <View style={styles.modalIconContainer}>
+              <View style={[styles.modalIcon, { backgroundColor: 'rgba(234, 67, 53, 0.1)' }]}>
+                <Ionicons name="trash" size={28} color={theme.colors.error} />
+              </View>
+            </View>
+            
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+              {t('confirm_delete')}
+            </Text>
+            
+            <Text style={[styles.modalText, { color: theme.colors.textSecondary }]}>
+              {t('delete_shift_confirm')}
+            </Text>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[
+                  styles.modalButton, 
+                  styles.cancelButton, 
+                  { borderColor: theme.colors.border }
+                ]}
+                onPress={() => setDeleteModalVisible(false)}
+              >
+                <Text style={[
+                  styles.modalButtonText, 
+                  { color: theme.colors.textSecondary }
+                ]}>
+                  {t('cancel')}
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.modalButton, 
+                  styles.deleteButton, 
+                  { backgroundColor: theme.colors.error }
+                ]}
+                onPress={confirmDeleteShift}
+              >
+                <Text style={[
+                  styles.modalButtonText,
+                  { color: '#fff' }
+                ]}>
+                  {t('delete')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -148,71 +564,224 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    padding: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
+  },
+  backButton: {
+    padding: 4,
+  },
+  headerRight: {
+    width: 32,
   },
   scrollContent: {
     padding: 16,
+    paddingBottom: 30,
+  },
+  section: {
+    marginBottom: 24,
   },
   sectionHeader: {
-    marginTop: 16,
-    marginBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    paddingBottom: 8,
+    marginBottom: 16,
+    position: 'relative',
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    marginTop: 4,
+    marginLeft: 30,
+  },
+  addButton: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shiftList: {
+    marginTop: 8,
+  },
+  shiftItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+  },
+  shiftItemContent: {
+    flex: 1,
+  },
+  shiftName: {
     fontSize: 16,
     fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  shiftTime: {
+    fontSize: 14,
+  },
+  activeShiftBadge: {
+    marginTop: 8,
+  },
+  activeShiftText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  shiftActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  shiftActionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+    borderWidth: 1,
   },
   settingItem: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    marginBottom: 8,
-    borderRadius: 8,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
+    padding: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+  },
+  settingItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   settingIcon: {
     width: 40,
     height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 20,
+    marginRight: 12,
   },
-  settingContent: {
+  settingTextContainer: {
     flex: 1,
-    marginLeft: 12,
   },
-  settingTitle: {
+  settingLabel: {
     fontSize: 16,
     fontWeight: '500',
+    marginBottom: 4,
   },
-  settingSubtitle: {
+  settingDescription: {
+    fontSize: 12,
+  },
+  settingControl: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  settingValue: {
+    marginRight: 8,
     fontSize: 14,
-    marginTop: 2,
   },
-  languageButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '90%',
+    borderRadius: 16,
+    padding: 24,
+  },
+  modalIconContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 24,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  modalOptionText: {
+    fontSize: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    minWidth: '45%',
+    alignItems: 'center',
+  },
+  cancelButton: {
+    borderWidth: 1,
+  },
+  deleteButton: {
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  emptyState: {
+    padding: 30,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyStateText: {
+    marginTop: 12,
+    fontSize: 16,
+  },
+  versionInfo: {
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 20,
+  },
+  versionText: {
+    fontSize: 14,
+  }
 });
 
 export default SettingsScreen;

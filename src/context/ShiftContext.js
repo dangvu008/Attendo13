@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { format, addDays, parseISO, differenceInMinutes, differenceInHours, subDays } from 'date-fns';
+import { format, addDays, parseISO, differenceInMinutes, differenceInHours, subDays, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import { useLocalization } from './LocalizationContext';
 
 const ShiftContext = createContext();
@@ -14,7 +14,9 @@ export const ShiftProvider = ({ children }) => {
   const [workStatus, setWorkStatus] = useState('inactive'); // inactive, go_work, check_in, check_out, complete
   const [statusHistory, setStatusHistory] = useState([]);
   const [weeklyStatus, setWeeklyStatus] = useState({});
+  const [statusDetails, setStatusDetails] = useState({});
   const [notes, setNotes] = useState([]);
+  const [workEntries, setWorkEntries] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load data from storage on initial render
@@ -71,6 +73,12 @@ export const ShiftProvider = ({ children }) => {
           await AsyncStorage.setItem('weeklyStatus', JSON.stringify(fakeWeeklyStatus));
         }
 
+        // Load status details
+        const statusDetailsData = await AsyncStorage.getItem('statusDetails');
+        if (statusDetailsData) {
+          setStatusDetails(JSON.parse(statusDetailsData));
+        }
+
         // Load notes
         const notesData = await AsyncStorage.getItem('notes');
         if (notesData) {
@@ -80,6 +88,17 @@ export const ShiftProvider = ({ children }) => {
           const fakeNotes = createFakeNotes();
           setNotes(fakeNotes);
           await AsyncStorage.setItem('notes', JSON.stringify(fakeNotes));
+        }
+        
+        // Load work entries for monthly stats
+        const workEntriesData = await AsyncStorage.getItem('workEntries');
+        if (workEntriesData) {
+          setWorkEntries(JSON.parse(workEntriesData));
+        } else {
+          // Create fake work entries if none exist
+          const fakeWorkEntries = createFakeWorkEntries();
+          setWorkEntries(fakeWorkEntries);
+          await AsyncStorage.setItem('workEntries', JSON.stringify(fakeWorkEntries));
         }
       } catch (error) {
         console.error('Error loading data:', error);
@@ -313,6 +332,113 @@ export const ShiftProvider = ({ children }) => {
     ];
   };
 
+  // Create fake work entries for monthly statistics
+  const createFakeWorkEntries = () => {
+    const today = new Date();
+    const entries = [];
+    
+    // Create entries for the past 30 days
+    for (let i = 0; i < 30; i++) {
+      const date = subDays(today, i);
+      const dayOfWeek = getDay(date);
+      
+      // Skip weekends with 80% probability
+      if ((dayOfWeek === 0 || dayOfWeek === 6) && Math.random() < 0.8) {
+        continue;
+      }
+      
+      // Random check-in time between 7:00 and 9:00
+      const checkInHour = 7 + Math.floor(Math.random() * 2);
+      const checkInMinute = Math.floor(Math.random() * 60);
+      
+      // Random check-out time between 17:00 and 19:00
+      const checkOutHour = 17 + Math.floor(Math.random() * 2);
+      const checkOutMinute = Math.floor(Math.random() * 60);
+      
+      // Random OT hours
+      const hasOT = Math.random() < 0.4;
+      
+      const entry = {
+        id: `entry-${date.getTime()}`,
+        date: format(date, 'yyyy-MM-dd'),
+        checkIn: `${checkInHour.toString().padStart(2, '0')}:${checkInMinute.toString().padStart(2, '0')}`,
+        checkOut: `${checkOutHour.toString().padStart(2, '0')}:${checkOutMinute.toString().padStart(2, '0')}`,
+        regularHours: 8,
+        otHours: hasOT ? {
+          ot150: hasOT ? parseFloat((Math.random() * 2).toFixed(1)) : 0,
+          ot200: hasOT && Math.random() < 0.3 ? parseFloat((Math.random() * 1.5).toFixed(1)) : 0,
+          ot300: hasOT && Math.random() < 0.1 ? parseFloat((Math.random() * 1).toFixed(1)) : 0
+        } : null
+      };
+      
+      entries.push(entry);
+    }
+    
+    return entries;
+  };
+
+  // Get work entries for a specific month
+  const getMonthlyWorkEntries = (date) => {
+    const targetMonth = date.getMonth();
+    const targetYear = date.getFullYear();
+    
+    return workEntries.filter(entry => {
+      const entryDate = parseISO(entry.date);
+      return entryDate.getMonth() === targetMonth && entryDate.getFullYear() === targetYear;
+    });
+  };
+
+  // Add a new work entry
+  const addWorkEntry = async (entry) => {
+    try {
+      const newEntry = {
+        id: `entry-${new Date().getTime()}`,
+        ...entry
+      };
+      
+      const updatedEntries = [...workEntries, newEntry];
+      setWorkEntries(updatedEntries);
+      await AsyncStorage.setItem('workEntries', JSON.stringify(updatedEntries));
+      
+      return true;
+    } catch (error) {
+      console.error('Error adding work entry:', error);
+      return false;
+    }
+  };
+
+  // Update a work entry
+  const updateWorkEntry = async (id, updatedData) => {
+    try {
+      const updatedEntries = workEntries.map(entry => 
+        entry.id === id ? { ...entry, ...updatedData } : entry
+      );
+      
+      setWorkEntries(updatedEntries);
+      await AsyncStorage.setItem('workEntries', JSON.stringify(updatedEntries));
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating work entry:', error);
+      return false;
+    }
+  };
+
+  // Delete a work entry
+  const deleteWorkEntry = async (id) => {
+    try {
+      const updatedEntries = workEntries.filter(entry => entry.id !== id);
+      
+      setWorkEntries(updatedEntries);
+      await AsyncStorage.setItem('workEntries', JSON.stringify(updatedEntries));
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting work entry:', error);
+      return false;
+    }
+  };
+
   // Save shifts to storage whenever they change
   useEffect(() => {
     if (!isLoading && shifts.length > 0) {
@@ -348,6 +474,13 @@ export const ShiftProvider = ({ children }) => {
     }
   }, [weeklyStatus, isLoading]);
 
+  // Save status details to storage whenever it changes
+  useEffect(() => {
+    if (!isLoading) {
+      AsyncStorage.setItem('statusDetails', JSON.stringify(statusDetails));
+    }
+  }, [statusDetails, isLoading]);
+
   // Save notes to storage whenever they change
   useEffect(() => {
     if (!isLoading) {
@@ -355,29 +488,168 @@ export const ShiftProvider = ({ children }) => {
     }
   }, [notes, isLoading]);
 
+  // Save work entries to storage whenever they change
+  useEffect(() => {
+    if (!isLoading) {
+      AsyncStorage.setItem('workEntries', JSON.stringify(workEntries));
+    }
+  }, [workEntries, isLoading]);
+
   // Add a new shift
   const addShift = async (newShift) => {
-    const updatedShifts = [...shifts, { ...newShift, id: Date.now().toString() }];
-    setShifts(updatedShifts);
+    try {
+      // Xác thực dữ liệu trước khi thêm
+      if (!validateShiftData(newShift)) {
+        return false;
+      }
+      
+      const shiftToAdd = { 
+        ...newShift, 
+        id: Date.now().toString(),
+        // Đảm bảo các trường mới luôn có giá trị mặc định nếu không có
+        departureTime: newShift.departureTime || '',
+        remindBeforeWork: newShift.remindBeforeWork || 15,
+        remindAfterWork: newShift.remindAfterWork || 15,
+        showSignButton: newShift.showSignButton !== undefined ? newShift.showSignButton : true,
+        appliedDays: newShift.appliedDays || [1, 2, 3, 4, 5]
+      };
+      
+      const updatedShifts = [...shifts, shiftToAdd];
+      setShifts(updatedShifts);
+      await AsyncStorage.setItem('shifts', JSON.stringify(updatedShifts));
+      return true;
+    } catch (error) {
+      console.error('Error adding shift:', error);
+      return false;
+    }
   };
 
   // Update an existing shift
   const updateShift = async (updatedShift) => {
-    const updatedShifts = shifts.map(shift => 
-      shift.id === updatedShift.id ? updatedShift : shift
-    );
-    setShifts(updatedShifts);
+    try {
+      // Xác thực dữ liệu trước khi cập nhật
+      if (!validateShiftData(updatedShift)) {
+        return false;
+      }
+      
+      // Đảm bảo các trường mới luôn có giá trị
+      const shiftToUpdate = {
+        ...updatedShift,
+        departureTime: updatedShift.departureTime || '',
+        remindBeforeWork: updatedShift.remindBeforeWork || 15,
+        remindAfterWork: updatedShift.remindAfterWork || 15,
+        showSignButton: updatedShift.showSignButton !== undefined ? updatedShift.showSignButton : true,
+        appliedDays: updatedShift.appliedDays || [1, 2, 3, 4, 5]
+      };
+      
+      const updatedShifts = shifts.map(shift => 
+        shift.id === shiftToUpdate.id ? shiftToUpdate : shift
+      );
+      
+      setShifts(updatedShifts);
+      await AsyncStorage.setItem('shifts', JSON.stringify(updatedShifts));
+      
+      // Nếu ca làm việc đang cập nhật là ca hiện tại, cập nhật luôn currentShift
+      if (shiftToUpdate.active) {
+        setCurrentShift(shiftToUpdate);
+        await AsyncStorage.setItem('currentShift', JSON.stringify(shiftToUpdate));
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating shift:', error);
+      return false;
+    }
   };
 
   // Delete a shift
   const deleteShift = async (shiftId) => {
-    const updatedShifts = shifts.filter(shift => shift.id !== shiftId);
-    setShifts(updatedShifts);
-    
-    // If the deleted shift was the current one, reset current shift
-    if (currentShift && currentShift.id === shiftId) {
-      setCurrentShift(null);
+    try {
+      // Kiểm tra xem có phải đang xóa ca làm việc hiện tại không
+      const isCurrentShift = shifts.find(shift => shift.id === shiftId && shift.active);
+      
+      const updatedShifts = shifts.filter(shift => shift.id !== shiftId);
+      setShifts(updatedShifts);
+      await AsyncStorage.setItem('shifts', JSON.stringify(updatedShifts));
+      
+      // Nếu xóa ca làm việc hiện tại, đặt ca đầu tiên trong danh sách làm ca hiện tại
+      if (isCurrentShift && updatedShifts.length > 0) {
+        const newCurrentShift = { ...updatedShifts[0], active: true };
+        const finalShifts = updatedShifts.map((shift, index) => 
+          index === 0 ? newCurrentShift : { ...shift, active: false }
+        );
+        
+        setShifts(finalShifts);
+        setCurrentShift(newCurrentShift);
+        await AsyncStorage.setItem('shifts', JSON.stringify(finalShifts));
+        await AsyncStorage.setItem('currentShift', JSON.stringify(newCurrentShift));
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting shift:', error);
+      return false;
     }
+  };
+
+  // Validate shift data
+  const validateShiftData = (shift) => {
+    // Kiểm tra các trường bắt buộc
+    if (!shift.name || !shift.name.trim()) {
+      return false;
+    }
+    
+    if (!shift.startWorkTime || !shift.endWorkTime) {
+      return false;
+    }
+    
+    // Kiểm tra tên ca làm việc (không chứa ký tự đặc biệt)
+    const specialCharsRegex = /[^\p{L}\p{N}\s.,\-_()]/u;
+    if (specialCharsRegex.test(shift.name)) {
+      return false;
+    }
+    
+    // Kiểm tra độ dài tên ca làm việc
+    if (shift.name.length > 200) {
+      return false;
+    }
+    
+    // Kiểm tra tên ca làm việc trùng lặp
+    const existingShift = shifts.find(s => 
+      s.name.toLowerCase() === shift.name.toLowerCase() && s.id !== shift.id
+    );
+    
+    if (existingShift) {
+      return false;
+    }
+    
+    return true;
+  };
+
+  // Kiểm tra ca làm việc trùng lặp
+  const isDuplicateShift = (shift) => {
+    return shifts.some(s => {
+      // Bỏ qua chính nó
+      if (s.id === shift.id) {
+        return false;
+      }
+      
+      // So sánh tất cả các thuộc tính quan trọng
+      const isSameTime = 
+        s.startWorkTime === shift.startWorkTime &&
+        s.endWorkTime === shift.endWorkTime &&
+        s.departureTime === shift.departureTime;
+      
+      const isSameSettings = 
+        s.remindBeforeWork === shift.remindBeforeWork &&
+        s.remindAfterWork === shift.remindAfterWork &&
+        s.showSignButton === shift.showSignButton;
+      
+      const isSameAppliedDays = 
+        JSON.stringify(s.appliedDays || []) === JSON.stringify(shift.appliedDays || []);
+      
+      return isSameTime && isSameSettings && isSameAppliedDays;
+    });
   };
 
   // Apply a shift for the current week
@@ -444,6 +716,105 @@ export const ShiftProvider = ({ children }) => {
       ...prev,
       [date]: newStatus
     }));
+  };
+
+  // Update the weekly status based on status history
+  const updateWeeklyStatusFromHistory = async (history) => {
+    try {
+      const newWeeklyStatus = { ...weeklyStatus };
+      const newStatusDetails = { ...statusDetails };
+      
+      // Process status history
+      history.forEach(entry => {
+        const date = new Date(entry.timestamp);
+        const dateKey = format(date, 'yyyy-MM-dd');
+        
+        // Skip future dates
+        if (date > new Date()) return;
+        
+        // Process depending on status
+        if (entry.status === 'complete') {
+          newWeeklyStatus[dateKey] = '✓'; // Full work day completed
+        } else if (entry.status === 'check_out') {
+          // Check if both check-in and check-out exist
+          const hasCheckIn = history.some(h => 
+            h.status === 'check_in' && 
+            format(new Date(h.timestamp), 'yyyy-MM-dd') === dateKey
+          );
+          
+          if (hasCheckIn) {
+            newWeeklyStatus[dateKey] = '✓'; // Full day
+          } else {
+            newWeeklyStatus[dateKey] = '!'; // Missing check-in
+          }
+        } else if (entry.status === 'check_in') {
+          if (!newWeeklyStatus[dateKey] || newWeeklyStatus[dateKey] === '?') {
+            newWeeklyStatus[dateKey] = 'RV'; // Checked in but not out yet
+          }
+        } else if (entry.status === 'go_work') {
+          if (!newWeeklyStatus[dateKey] || newWeeklyStatus[dateKey] === '?') {
+            newWeeklyStatus[dateKey] = '!'; // Started but incomplete
+          }
+        }
+        
+        // Update status details for this date
+        if (!newStatusDetails[dateKey]) {
+          newStatusDetails[dateKey] = {
+            checkInTime: null,
+            checkOutTime: null,
+            totalHours: null,
+            note: null
+          };
+        }
+        
+        // Update specific time details
+        if (entry.status === 'check_in') {
+          newStatusDetails[dateKey].checkInTime = format(new Date(entry.timestamp), 'HH:mm');
+        } else if (entry.status === 'check_out') {
+          newStatusDetails[dateKey].checkOutTime = format(new Date(entry.timestamp), 'HH:mm');
+          
+          // Calculate total hours if we have both check-in and check-out
+          const checkInEntry = history.find(h => 
+            h.status === 'check_in' && 
+            format(new Date(h.timestamp), 'yyyy-MM-dd') === dateKey
+          );
+          
+          if (checkInEntry) {
+            const checkInTime = new Date(checkInEntry.timestamp);
+            const checkOutTime = new Date(entry.timestamp);
+            const hours = differenceInHours(checkOutTime, checkInTime);
+            const minutes = differenceInMinutes(checkOutTime, checkInTime) % 60;
+            
+            newStatusDetails[dateKey].totalHours = `${hours}h ${minutes}m`;
+          }
+        }
+      });
+      
+      setWeeklyStatus(newWeeklyStatus);
+      setStatusDetails(newStatusDetails);
+      
+      // Save to AsyncStorage
+      await AsyncStorage.setItem('weeklyStatus', JSON.stringify(newWeeklyStatus));
+      await AsyncStorage.setItem('statusDetails', JSON.stringify(newStatusDetails));
+      
+    } catch (error) {
+      console.error('Error updating weekly status:', error);
+    }
+  };
+
+  // Update manual status for a specific date
+  const updateDayStatus = async (date, status) => {
+    try {
+      const newWeeklyStatus = { ...weeklyStatus };
+      newWeeklyStatus[date] = status;
+      
+      setWeeklyStatus(newWeeklyStatus);
+      await AsyncStorage.setItem('weeklyStatus', JSON.stringify(newWeeklyStatus));
+      return true;
+    } catch (error) {
+      console.error('Error updating day status:', error);
+      return false;
+    }
   };
 
   // Add a new note
@@ -530,28 +901,35 @@ export const ShiftProvider = ({ children }) => {
   };
 
   return (
-    <ShiftContext.Provider value={{
-      shifts,
-      currentShift,
-      workStatus,
-      statusHistory,
-      weeklyStatus,
-      notes,
-      isLoading,
-      addShift,
-      updateShift,
-      deleteShift,
-      applyShift,
-      updateWorkStatus,
-      updateWeeklyStatus,
-      manualUpdateWeeklyStatus,
-      addNote,
-      updateNote,
-      deleteNote,
-      resetDayStatus,
-      getTodayStatus,
-      validateAction
-    }}>
+    <ShiftContext.Provider
+      value={{
+        shifts,
+        currentShift,
+        workStatus,
+        statusHistory,
+        weeklyStatus,
+        statusDetails,
+        notes,
+        workEntries,
+        isLoading,
+        setCurrentShift,
+        addShift,
+        updateShift,
+        deleteShift,
+        updateWorkStatus,
+        resetDayStatus,
+        getTodayStatus,
+        validateAction,
+        addNote,
+        updateNote,
+        deleteNote,
+        getMonthlyWorkEntries,
+        addWorkEntry,
+        updateWorkEntry,
+        deleteWorkEntry,
+        updateDayStatus
+      }}
+    >
       {children}
     </ShiftContext.Provider>
   );

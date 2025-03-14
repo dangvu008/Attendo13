@@ -9,13 +9,14 @@ import {
   TextInput,
   ScrollView,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 
-const AddNoteModal = ({ visible, onClose, onSave, initialData }) => {
+const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [reminderDate, setReminderDate] = useState(new Date());
@@ -89,24 +90,55 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData }) => {
   const handleSave = () => {
     // Validation
     if (!title.trim()) {
-      alert('Vui lòng nhập tiêu đề');
+      Alert.alert(t('error'), t('note_title_required'));
       return;
     }
     
     if (!content.trim()) {
-      alert('Vui lòng nhập nội dung');
+      Alert.alert(t('error'), t('note_content_required'));
       return;
     }
     
-    const noteData = {
-      title: title.trim(),
-      content: content.trim(),
-      reminderTime: reminderDate.toISOString(),
-      weekDays: selectedDays
-    };
-    
-    onSave(noteData);
-    resetForm();
+    Alert.alert(
+      t('confirm'),
+      t('save_note_confirm'),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        { 
+          text: t('save'), 
+          onPress: () => {
+            const noteData = {
+              title: title.trim(),
+              content: content.trim(),
+              reminderTime: reminderDate.toISOString(),
+              weekDays: selectedDays
+            };
+            
+            onSave(noteData);
+            resetForm();
+          }
+        }
+      ]
+    );
+  };
+
+  const handleClose = () => {
+    if (title.trim() || content.trim()) {
+      Alert.alert(
+        t('confirm'),
+        t('exit_note_confirm'),
+        [
+          { text: t('continue_editing'), style: 'cancel' },
+          { text: t('exit'), onPress: () => {
+            resetForm();
+            onClose();
+          }}
+        ]
+      );
+    } else {
+      resetForm();
+      onClose();
+    }
   };
 
   return (
@@ -114,9 +146,9 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData }) => {
       transparent={true}
       visible={visible}
       animationType="slide"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
-      <TouchableWithoutFeedback onPress={onClose}>
+      <TouchableWithoutFeedback onPress={handleClose}>
         <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback>
             <KeyboardAvoidingView
@@ -125,9 +157,9 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData }) => {
             >
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>
-                  {initialData ? 'Cập nhật ghi chú' : 'Thêm ghi chú mới'}
+                  {initialData ? t('edit_note') : t('add_note')}
                 </Text>
-                <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
                   <Ionicons name="close" size={24} color="#333" />
                 </TouchableOpacity>
               </View>
@@ -135,12 +167,12 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData }) => {
               <ScrollView style={styles.form}>
                 {/* Title Input */}
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Tiêu đề</Text>
+                  <Text style={styles.inputLabel}>{t('title')}</Text>
                   <TextInput
                     style={styles.input}
                     value={title}
                     onChangeText={setTitle}
-                    placeholder="Nhập tiêu đề (tối đa 100 ký tự)"
+                    placeholder={t('title_placeholder')}
                     maxLength={MAX_TITLE_LENGTH}
                   />
                   <Text style={styles.charCounter}>{title.length}/{MAX_TITLE_LENGTH}</Text>
@@ -148,12 +180,12 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData }) => {
                 
                 {/* Content Input */}
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Nội dung</Text>
+                  <Text style={styles.inputLabel}>{t('content')}</Text>
                   <TextInput
                     style={[styles.input, styles.contentInput]}
                     value={content}
                     onChangeText={setContent}
-                    placeholder="Nhập nội dung (tối đa 300 ký tự)"
+                    placeholder={t('content_placeholder')}
                     multiline={true}
                     maxLength={MAX_CONTENT_LENGTH}
                   />
@@ -162,7 +194,7 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData }) => {
                 
                 {/* Date and Time Pickers */}
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Thời gian nhắc nhở</Text>
+                  <Text style={styles.inputLabel}>{t('reminder_time')}</Text>
                   <View style={styles.dateTimeContainer}>
                     <TouchableOpacity
                       style={styles.dateTimeButton}
@@ -206,7 +238,7 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData }) => {
                 
                 {/* Week days selection */}
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Hiển thị vào các ngày</Text>
+                  <Text style={styles.inputLabel}>{t('show_on_days')}</Text>
                   <View style={styles.daysContainer}>
                     {weekDays.map(day => (
                       <TouchableOpacity
@@ -237,7 +269,7 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData }) => {
                   style={styles.saveButton}
                   onPress={handleSave}
                 >
-                  <Text style={styles.saveButtonText}>Lưu</Text>
+                  <Text style={styles.saveButtonText}>{t('save')}</Text>
                 </TouchableOpacity>
               </View>
             </KeyboardAvoidingView>

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format, parseISO } from 'date-fns';
 
-const NoteItem = ({ note, onEdit, onDelete }) => {
+const NoteItem = ({ note, onEdit, onDelete, theme }) => {
   // Format the reminder time to display
   const formatReminderTime = (dateTimeString) => {
     try {
@@ -11,27 +11,36 @@ const NoteItem = ({ note, onEdit, onDelete }) => {
       
       // Parse the ISO string
       const date = parseISO(dateTimeString);
-      return `Reminder: ${format(date, 'yyyy-MM-ddTHH:mm')}`;
+      return `Nhắc nhở: ${format(date, 'dd/MM/yyyy HH:mm')}`;
     } catch (error) {
       console.error('Error formatting reminder time:', error);
-      return dateTimeString || 'Invalid date';
+      return dateTimeString || 'Thời gian không hợp lệ';
     }
   };
   
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { 
+      backgroundColor: theme.colors.surface,
+      borderLeftColor: theme.colors.primary
+    }]}>
       <View style={styles.contentContainer}>
-        <Text style={styles.title} numberOfLines={1}>{note.title}</Text>
-        <Text style={styles.content} numberOfLines={2}>{note.content}</Text>
-        <Text style={styles.reminderTime}>{formatReminderTime(note.reminderTime)}</Text>
+        <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={1}>
+          {note.title}
+        </Text>
+        <Text style={[styles.content, { color: theme.colors.textSecondary }]} numberOfLines={2}>
+          {note.content}
+        </Text>
+        <Text style={[styles.reminderTime, { color: theme.colors.textTertiary || '#888' }]}>
+          {formatReminderTime(note.reminderTime)}
+        </Text>
       </View>
       
       <View style={styles.actions}>
         <TouchableOpacity style={styles.actionButton} onPress={onEdit}>
-          <Ionicons name="pencil" size={18} color="#2196F3" />
+          <Ionicons name="pencil" size={18} color={theme.colors.primary} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton} onPress={onDelete}>
-          <Ionicons name="trash" size={18} color="#F44336" />
+          <Ionicons name="trash" size={18} color={theme.colors.error} />
         </TouchableOpacity>
       </View>
     </View>
@@ -40,13 +49,16 @@ const NoteItem = ({ note, onEdit, onDelete }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#f9f9f9',
     borderRadius: 8,
     padding: 12,
     marginBottom: 10,
     flexDirection: 'row',
     borderLeftWidth: 4,
-    borderLeftColor: '#6200ee',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
   },
   contentContainer: {
     flex: 1,
@@ -55,17 +67,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 4,
   },
   content: {
     fontSize: 14,
-    color: '#555',
     marginBottom: 4,
   },
   reminderTime: {
     fontSize: 12,
-    color: '#888',
     fontStyle: 'italic',
   },
   actions: {
