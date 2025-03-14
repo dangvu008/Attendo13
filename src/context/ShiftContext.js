@@ -1,8 +1,9 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { format, addDays, parseISO, differenceInMinutes, differenceInHours, subDays, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
-import { useLocalization } from './LocalizationContext';
+import { format, isToday, parseISO, isBefore, isAfter, addMinutes, differenceInMinutes } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import * as NotificationService from '../services/NotificationService';
+import { useLocalization } from './LocalizationContext';
 
 const ShiftContext = createContext();
 
