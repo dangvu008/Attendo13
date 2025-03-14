@@ -54,42 +54,45 @@ const ShiftScreen = () => {
   const [nameError, setNameError] = useState('');
 
   useEffect(() => {
-    if (newShift.name) {
-      setNameCharCount(newShift.name.length);
-      validateShiftName(newShift.name);
-    } else {
-      setNameCharCount(0);
+    const validateName = (name) => {
       setNameError('');
-    }
-  }, [newShift.name, validateShiftName]);
-
-  const validateShiftName = (name) => {
-    setNameError('');
+      setNameCharCount(name.length);
+      
+      // Kiểm tra ký tự đặc biệt
+      const specialCharsRegex = /[^\p{L}\p{N}\s.,\-_()]/u;
+      if (specialCharsRegex.test(name)) {
+        setNameError(t('shift_name_special_chars'));
+        return false;
+      }
+      
+      // Kiểm tra độ dài tên
+      if (name.length > 200) {
+        setNameError(t('shift_name_max_length'));
+        return false;
+      }
+      
+      // Kiểm tra trùng lặp nếu không phải đang chỉnh sửa
+      if (!editingShift && shifts.some(shift => shift.name.toLowerCase() === name.toLowerCase())) {
+        setNameError(t('shift_name_duplicate'));
+        return false;
+      }
+      
+      if (editingShift && name.toLowerCase() !== editingShift.name.toLowerCase() && 
+          shifts.some(shift => shift.name.toLowerCase() === name.toLowerCase())) {
+        setNameError(t('shift_name_duplicate'));
+        return false;
+      }
+      
+      return true;
+    };
     
-    const specialCharsRegex = /[^\p{L}\p{N}\s.,\-_()]/u;
-    if (specialCharsRegex.test(name)) {
-      setNameError(t('shift_name_special_chars'));
-      return false;
+    if (newShift.name) {
+      validateName(newShift.name);
+    } else {
+      setNameError('');
+      setNameCharCount(0);
     }
-    
-    if (name.length > 200) {
-      setNameError(t('shift_name_max_length'));
-      return false;
-    }
-    
-    if (!editingShift && shifts.some(shift => shift.name.toLowerCase() === name.toLowerCase())) {
-      setNameError(t('shift_name_duplicate'));
-      return false;
-    }
-    
-    if (editingShift && name.toLowerCase() !== editingShift.name.toLowerCase() && 
-        shifts.some(shift => shift.name.toLowerCase() === name.toLowerCase())) {
-      setNameError(t('shift_name_duplicate'));
-      return false;
-    }
-    
-    return true;
-  };
+  }, [newShift.name, shifts, editingShift, t]);
 
   const toggleAppliedDay = (day) => {
     let updatedDays = [...newShift.appliedDays];
