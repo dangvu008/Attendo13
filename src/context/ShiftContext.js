@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { format, isToday, parseISO, isBefore, isAfter, addMinutes, differenceInMinutes } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import { format, isToday, parseISO, isBefore, isAfter, addMinutes, differenceInMinutes, addDays, isSameDay, endOfMonth } from 'date-fns';
+import vi from 'date-fns/locale/vi';
 import * as NotificationService from '../services/NotificationService';
 import { useLocalization } from './LocalizationContext';
 
@@ -948,6 +948,27 @@ export const ShiftProvider = ({ children }) => {
     }));
   };
 
+  // New function: getMonthlyWorkStats
+  const getMonthlyWorkStats = (year, month) => {
+    // Calculate statistics for each day of the specified month
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = endOfMonth(startDate);
+    let stats = [];
+    let current = startDate;
+    while (current <= endDate) {
+      // Assuming workEntries is available in the context state and each entry has a 'date' field in ISO format
+      let count = workEntries.filter(entry => {
+        return isSameDay(parseISO(entry.date), current);
+      }).length;
+      stats.push({
+        date: format(current, 'dd/MM/yyyy'),
+        count: count
+      });
+      current = addDays(current, 1);
+    }
+    return stats;
+  };
+
   return (
     <ShiftContext.Provider
       value={{
@@ -977,3 +998,5 @@ export const ShiftProvider = ({ children }) => {
     </ShiftContext.Provider>
   );
 };
+
+export default ShiftProvider;

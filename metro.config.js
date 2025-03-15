@@ -1,15 +1,12 @@
 // Learn more https://docs.expo.io/guides/customizing-metro
-const { getDefaultConfig } = require('expo/metro-config');
+const { getDefaultConfig } = require('@expo/metro-config');
 
-/** @type {import('expo/metro-config').MetroConfig} */
+// Metro configuration
 const config = getDefaultConfig(__dirname);
 
-// Add this to ensure proper resolution of date-fns/locale and other modules
+// Cấu hình bổ sung để giải quyết vấn đề module resolution
 config.resolver.extraNodeModules = {
   'date-fns/locale': require.resolve('date-fns/locale')
 };
-
-// Add file mappings to ensure proper imports
-config.resolver.assetExts.push('js');
 
 module.exports = config;

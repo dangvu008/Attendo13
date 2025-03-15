@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { format, isToday, parseISO, differenceInMinutes, differenceInHours } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import vi from 'date-fns/locale/vi';
 import { useShift } from '../context/ShiftContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocalization } from '../context/LocalizationContext';
@@ -89,7 +89,7 @@ const HomeScreen = () => {
   // Format functions
   const formatDate = (date) => {
     // Check if viLocale is available before using it
-    return format(date, 'EEEE, dd/MM/yyyy', vi ? { locale: vi } : undefined);
+    return format(date, 'EEEE, dd/MM/yyyy', { locale: vi });
   };
 
   const formatTime = (date) => {
