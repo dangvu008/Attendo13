@@ -14,7 +14,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 import { format, isToday, parseISO, differenceInMinutes, differenceInHours } from 'date-fns';
-import vi from 'date-fns/locale/vi';
+import { vi } from '../utils/viLocale';
+
 import { useShift } from '../context/ShiftContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLocalization } from '../context/LocalizationContext';
@@ -36,7 +37,6 @@ const HomeScreen = () => {
     notes,
     updateWorkStatus,
     resetDayStatus,
-    getTodayStatus,
     addNote,
     updateNote,
     deleteNote,
@@ -101,7 +101,9 @@ const HomeScreen = () => {
   };
 
   // Get today's history entries
-  const todayEntries = getTodayStatus();
+  const todayEntries = statusHistory
+    .filter(entry => isToday(parseISO(entry.timestamp)))
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   
   // Find latest entries for different statuses
   const findLatestEntryByStatus = (status) => {

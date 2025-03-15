@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format, isToday, parseISO, isBefore, isAfter, addMinutes, differenceInMinutes, addDays, isSameDay, endOfMonth } from 'date-fns';
-import vi from 'date-fns/locale/vi';
+import { vi } from '../utils/viLocale';
 import * as NotificationService from '../services/NotificationService';
 import { useLocalization } from './LocalizationContext';
 
@@ -730,7 +730,7 @@ export const ShiftProvider = ({ children }) => {
       status: newStatus,
       date: formattedDate,
       time: formattedTime,
-      timestamp: timestamp.getTime()
+      timestamp: timestamp.toISOString()
     };
     
     setStatusHistory(prev => [historyEntry, ...prev]);
@@ -888,38 +888,165 @@ export const ShiftProvider = ({ children }) => {
     setNotes(prev => prev.filter(note => note.id !== noteId));
   };
 
-  // Reset the current day's work status
-  const resetDayStatus = () => {
-    setWorkStatus('inactive');
+  // Cập nhật thông tin chi tiết trạng thái
+  const updateStatusDetails = (date, details) => {
+    try {
+      const formattedDate = typeof date === 'string' ? date : format(date || new Date(), 'yyyy-MM-dd');
+      
+      // Cập nhật trạng thái chi tiết
+      const updatedDetails = {
+        ...(statusDetails[formattedDate] || {}),
+        ...details,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      // Cập nhật state
+      const newStatusDetails = {
+        ...statusDetails,
+        [formattedDate]: updatedDetails
+      };
+      
+      setStatusDetails(newStatusDetails);
+      
+      // Lưu vào storage
+      AsyncStorage.setItem('statusDetails', JSON.stringify(newStatusDetails));
+      
+      return true;
+    } catch (error) {
+      console.error('Lỗi khi cập nhật thông tin chi tiết:', error);
+      return false;
+    }
+  };
+
+  // New function: getMonthlyWorkStats
+  const getMonthlyWorkStats = (year, month) => {
+    // Calculate statistics for each day of the specified month
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = endOfMonth(startDate);
+    let stats = [];
+    let current = startDate;
+    while (current <= endDate) {
+      // Assuming workEntries is available in the context state and each entry has a 'date' field in ISO format
+      let count = workEntries.filter(entry => {
+        return isSameDay(parseISO(entry.date), current);
+      }).length;
+      stats.push({
+        date: format(current, 'dd/MM/yyyy'),
+        count: count
+      });
+      current = addDays(current, 1);
+    }
+    return stats;
+  };
+
+  // Check into shift function
+  const checkIntoShift = () => {
+    const now = new Date();
     
-    // Update the weekly status for today to be a question mark
-    const today = format(new Date(), 'yyyy-MM-dd');
-    setWeeklyStatus(prev => ({
-      ...prev,
-      [today]: '?'
-    }));
+    // Update work status to checked in
+    updateWorkStatus('check_in');
     
-    // Add a reset entry to history
-    const timestamp = new Date();
-    const formattedDate = format(timestamp, 'yyyy-MM-dd');
-    const formattedTime = format(timestamp, 'HH:mm:ss');
-    
-    const historyEntry = {
-      id: Date.now().toString(),
-      status: 'reset',
-      date: formattedDate,
-      time: formattedTime,
-      timestamp: timestamp.getTime()
+    // Create a new entry for the current date
+    const formattedDate = format(now, 'yyyy-MM-dd');
+    const newDetails = {
+      ...(statusDetails[formattedDate] || {}),
+      checkInTime: now.toISOString(),
+      status: 'check_in'
     };
     
-    setStatusHistory(prev => [historyEntry, ...prev]);
+    // Update status details
+    setStatusDetails(prev => ({
+      ...prev,
+      [formattedDate]: newDetails
+    }));
+    
+    // Save to storage
+    AsyncStorage.setItem('statusDetails', JSON.stringify({
+      ...statusDetails,
+      [formattedDate]: newDetails
+    }));
+    
+    return true;
+  };
+  
+  // Check out from shift function
+  const checkOutFromShift = () => {
+    const now = new Date();
+    
+    // Update work status to checked out
+    updateWorkStatus('check_out');
+    
+    // Create a new entry for the current date
+    const formattedDate = format(now, 'yyyy-MM-dd');
+    const todayDetails = statusDetails[formattedDate] || {};
+    
+    const newDetails = {
+      ...todayDetails,
+      checkOutTime: now.toISOString(),
+      status: 'check_out'
+    };
+    
+    // Calculate work duration if check-in time exists
+    if (todayDetails.checkInTime) {
+      const checkInTime = parseISO(todayDetails.checkInTime);
+      const workDurationMinutes = differenceInMinutes(now, checkInTime);
+      newDetails.workDurationMinutes = workDurationMinutes;
+    }
+    
+    // Update status details
+    setStatusDetails(prev => ({
+      ...prev,
+      [formattedDate]: newDetails
+    }));
+    
+    // Save to storage
+    AsyncStorage.setItem('statusDetails', JSON.stringify({
+      ...statusDetails,
+      [formattedDate]: newDetails
+    }));
+    
+    return true;
+  };
+  
+  // Complete the shift (sign off)
+  const completeShift = () => {
+    const now = new Date();
+    
+    // Update work status to complete
+    updateWorkStatus('complete');
+    
+    // Create a new entry for the current date
+    const formattedDate = format(now, 'yyyy-MM-dd');
+    const todayDetails = statusDetails[formattedDate] || {};
+    
+    const newDetails = {
+      ...todayDetails,
+      completeTime: now.toISOString(),
+      status: 'complete'
+    };
+    
+    // Update status details
+    setStatusDetails(prev => ({
+      ...prev,
+      [formattedDate]: newDetails
+    }));
+    
+    // Save to storage
+    AsyncStorage.setItem('statusDetails', JSON.stringify({
+      ...statusDetails,
+      [formattedDate]: newDetails
+    }));
+    
+    return true;
   };
 
   // Get today's status from history
   const getTodayStatus = () => {
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const todayEntries = statusHistory.filter(entry => entry.date === today);
-    return todayEntries;
+    const today = new Date();
+    // Filter status history for today's entries and sort by latest first
+    return statusHistory
+      .filter(entry => isToday(parseISO(entry.timestamp)))
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   };
 
   // Validate actions based on time differences
@@ -948,50 +1075,66 @@ export const ShiftProvider = ({ children }) => {
     }));
   };
 
-  // New function: getMonthlyWorkStats
-  const getMonthlyWorkStats = (year, month) => {
-    // Calculate statistics for each day of the specified month
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = endOfMonth(startDate);
-    let stats = [];
-    let current = startDate;
-    while (current <= endDate) {
-      // Assuming workEntries is available in the context state and each entry has a 'date' field in ISO format
-      let count = workEntries.filter(entry => {
-        return isSameDay(parseISO(entry.date), current);
-      }).length;
-      stats.push({
-        date: format(current, 'dd/MM/yyyy'),
-        count: count
-      });
-      current = addDays(current, 1);
+  // Reset day status
+  const resetDayStatus = (date) => {
+    try {
+      const formattedDate = typeof date === 'string' ? date : format(date || new Date(), 'yyyy-MM-dd');
+      
+      // Remove the status for this day
+      const newStatusDetails = { ...statusDetails };
+      delete newStatusDetails[formattedDate];
+      
+      // Update state
+      setStatusDetails(newStatusDetails);
+      
+      // Remove from weekly status grid
+      const newWeeklyStatus = { ...weeklyStatus };
+      delete newWeeklyStatus[formattedDate];
+      setWeeklyStatus(newWeeklyStatus);
+      
+      // Update storage
+      AsyncStorage.setItem('statusDetails', JSON.stringify(newStatusDetails));
+      AsyncStorage.setItem('weeklyStatus', JSON.stringify(newWeeklyStatus));
+      
+      // If today, also reset work status
+      if (isToday(typeof date === 'string' ? parseISO(date) : (date || new Date()))) {
+        setWorkStatus('inactive');
+        AsyncStorage.setItem('workStatus', 'inactive');
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Lỗi khi reset trạng thái:', error);
+      return false;
     }
-    return stats;
   };
 
   return (
     <ShiftContext.Provider
       value={{
-        shifts,
-        currentShift,
         workStatus,
         statusHistory,
-        weeklyStatus,
         statusDetails,
+        weeklyStatus,
         notes,
-        workEntries,
-        isLoading,
-        setWorkStatus,
+        currentShift,
         updateWorkStatus,
-        addShift,
-        updateShift,
-        deleteShift,
-        setCurrentShift: setCurrentShiftAndScheduleReminders,
+        getTodayStatus,
+        validateAction,
+        getMonthlyWorkStats,
+        checkIntoShift, 
+        checkOutFromShift,
+        completeShift,
+        updateWorkStatus,
+        updateStatusDetails,
+        resetDayStatus,
         addNote,
         updateNote,
         deleteNote,
-        resetWorkStatus,
-        getMonthlyWorkStats,
+        setCurrentShift,
+        manualUpdateWeeklyStatus,
+        workEntries,
+        getTodayStatus
       }}
     >
       {children}

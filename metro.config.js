@@ -1,12 +1,13 @@
-// Learn more https://docs.expo.io/guides/customizing-metro
-const { getDefaultConfig } = require('@expo/metro-config');
+// Simple metro config for Snack environment
+const { getDefaultConfig } = require('expo/metro-config');
 
-// Metro configuration
 const config = getDefaultConfig(__dirname);
 
-// Cấu hình bổ sung để giải quyết vấn đề module resolution
-config.resolver.extraNodeModules = {
-  'date-fns/locale': require.resolve('date-fns/locale')
+// Tùy chỉnh resolver để xử lý đúng các import module
+config.resolver = {
+  ...config.resolver,
+  sourceExts: ['jsx', 'js', 'ts', 'tsx', 'json'],
+  assetExts: ['ttf', 'png', 'jpg', 'jpeg', 'svg'],
 };
 
 module.exports = config;
