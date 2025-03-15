@@ -122,7 +122,10 @@ export const vi = {
         abbreviated: ['CN', 'Th2', 'Th3', 'Th4', 'Th5', 'Th6', 'Th7'],
         long: ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy']
       };
-      return days[width][day];
+      
+      // Ensure day is within the range 0-6 (Sunday=0, Saturday=6)
+      const safeDay = day % 7;
+      return days[width][safeDay];
     },
     dayPeriod: function (dayPeriod, width) {
       const dayPeriods = {
