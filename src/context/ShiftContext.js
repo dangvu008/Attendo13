@@ -20,6 +20,7 @@ export const ShiftProvider = ({ children }) => {
   const [notes, setNotes] = useState([]);
   const [workEntries, setWorkEntries] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeShift, setActiveShift] = useState(null);
 
   // Load data from storage on initial render
   useEffect(() => {
@@ -1128,6 +1129,22 @@ export const ShiftProvider = ({ children }) => {
       console.error('Lỗi khi reset trạng thái:', error);
       return false;
     }
+  };
+
+  // Kiểm tra xem có ca làm việc đang hoạt động không
+  const hasActiveShift = () => {
+    return activeShift !== null;
+  };
+
+  // Kiểm tra xem thời gian hiện tại có nằm trong khung giờ của ca làm việc không
+  const isWithinShiftTime = () => {
+    if (!activeShift) return false;
+    
+    const now = new Date();
+    const startTime = parseISO(activeShift.startWorkTime);
+    const endTime = parseISO(activeShift.endWorkTime);
+    
+    return isAfter(now, startTime) && isBefore(now, endTime);
   };
 
   return (
