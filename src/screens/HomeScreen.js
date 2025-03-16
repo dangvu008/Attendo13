@@ -55,6 +55,7 @@ const HomeScreen = () => {
   const [confirmActionVisible, setConfirmActionVisible] = useState(false);
   const [nextAction, setNextAction] = useState(null);
   const [currentReminders, setCurrentReminders] = useState([]);
+  const [todayEntries, setTodayEntries] = useState([]);
 
   // Lấy thông tin nhắc nhở hiện tại
   useEffect(() => {
@@ -86,6 +87,13 @@ const HomeScreen = () => {
     return () => clearInterval(intervalId);
   }, []);
 
+  // Lấy thông tin ca làm việc và trạng thái khi component được tạo
+  useEffect(() => {
+    // Lấy lịch sử bấm nút ngày hôm nay
+    const today = getTodayStatus();
+    setTodayEntries(today);
+  }, [statusHistory]);
+
   // Format functions
   const formatDate = (date) => {
     // Check if viLocale is available before using it
@@ -101,10 +109,12 @@ const HomeScreen = () => {
   };
 
   // Get today's history entries
-  const todayEntries = statusHistory
-    .filter(entry => isToday(parseISO(entry.timestamp)))
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  
+  const getTodayStatus = () => {
+    return statusHistory
+      .filter(entry => isToday(parseISO(entry.timestamp)))
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  };
+
   // Find latest entries for different statuses
   const findLatestEntryByStatus = (status) => {
     const filtered = todayEntries.filter(entry => entry.status === status);
@@ -177,8 +187,12 @@ const HomeScreen = () => {
   // Xử lý khi nhấn nút đi làm
   const handleGoToWork = async () => {
     try {
-      if (validateAction('goToWork')) {
-        await updateWorkStatus('goToWork');
+      if (validateAction('go_work')) {
+        const result = await updateWorkStatus('go_work');
+        if (result) {
+          // Cập nhật lịch sử ngay lập tức
+          setTodayEntries(getTodayStatus());
+        }
         
         // Tự động lập lịch nhắc nhở dựa trên cài đặt
         const settings = await NotificationService.loadNotificationSettings();
@@ -197,8 +211,13 @@ const HomeScreen = () => {
   // Xử lý khi nhấn nút check in
   const handleCheckIn = async () => {
     try {
-      if (validateAction('checkIn')) {
-        await updateWorkStatus('checkIn');
+      if (validateAction('check_in')) {
+        const result = await updateWorkStatus('check_in');
+        if (result) {
+          // Cập nhật lịch sử ngay lập tức
+          setTodayEntries(getTodayStatus());
+        }
+        
         // Hủy nhắc nhở check-in nếu có
         if (currentReminders.some(r => r.type === 'check_in')) {
           const checkInReminder = currentReminders.find(r => r.type === 'check_in');
@@ -215,8 +234,12 @@ const HomeScreen = () => {
   // Xử lý khi nhấn nút check out
   const handleCheckOut = async () => {
     try {
-      if (validateAction('checkOut')) {
-        await updateWorkStatus('checkOut');
+      if (validateAction('check_out')) {
+        const result = await updateWorkStatus('check_out');
+        if (result) {
+          // Cập nhật lịch sử ngay lập tức
+          setTodayEntries(getTodayStatus());
+        }
       }
     } catch (error) {
       console.error('Error handling check out:', error);
@@ -227,7 +250,12 @@ const HomeScreen = () => {
   const handleComplete = async () => {
     try {
       if (validateAction('complete')) {
-        await updateWorkStatus('complete');
+        const result = await updateWorkStatus('complete');
+        if (result) {
+          // Cập nhật lịch sử ngay lập tức
+          setTodayEntries(getTodayStatus());
+        }
+        
         // Hủy tất cả nhắc nhở liên quan đến ca làm việc hiện tại
         await NotificationService.cancelAllShiftNotifications();
       }

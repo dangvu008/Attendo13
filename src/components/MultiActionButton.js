@@ -29,9 +29,9 @@ const MultiActionButton = ({ status, label, iconName, color, onPress, disabled }
 
 const styles = StyleSheet.create({
   button: {
-    width: 180,
-    height: 180,
-    borderRadius: 90,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 6,

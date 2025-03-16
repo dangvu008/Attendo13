@@ -118,6 +118,11 @@ export const vi = {
   sound_description: 'Phát âm thanh khi có thông báo',
   vibration: 'Rung thông báo',
   vibration_description: 'Rung khi có thông báo',
+  settings_title: 'Cài đặt ứng dụng',
+  work_shift: 'Ca làm việc',
+  manage_work_shifts: 'Quản lý ca làm việc',
+  shift_reminders: 'Nhắc nhở ca làm việc',
+  shift_reminder_description: 'Cài đặt nhắc nhở trước và sau ca làm việc',
   
   // Notifications
   enableNotifications: 'Bật thông báo',
@@ -350,6 +355,11 @@ export const en = {
   sound_description: 'Play sound when notification appears',
   vibration: 'Vibration',
   vibration_description: 'Vibrate when notification appears',
+  settings_title: 'App Settings',
+  work_shift: 'Work Shift',
+  manage_work_shifts: 'Manage Work Shifts',
+  shift_reminders: 'Shift Reminders',
+  shift_reminder_description: 'Set reminders before and after work shifts',
   
   // Notifications
   enableNotifications: 'Enable Notifications',
