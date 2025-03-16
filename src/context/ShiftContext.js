@@ -20,7 +20,7 @@ export const ShiftProvider = ({ children }) => {
   const [notes, setNotes] = useState([]);
   const [workEntries, setWorkEntries] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeShift, setActiveShift] = useState(null);
+  const [activeShift, setActiveShiftState] = useState(null);
 
   // Load data from storage on initial render
   useEffect(() => {
@@ -703,17 +703,34 @@ export const ShiftProvider = ({ children }) => {
 
   // Apply a shift for the current week
   const applyShift = async (shiftId) => {
-    // Set all shifts to inactive
-    const updatedShifts = shifts.map(shift => ({
-      ...shift,
-      isActive: shift.id === shiftId
-    }));
-    
-    setShifts(updatedShifts);
-    
-    // Set the current shift
-    const selectedShift = updatedShifts.find(shift => shift.id === shiftId);
-    setCurrentShift(selectedShift);
+    try {
+      // Set all shifts to inactive
+      const updatedShifts = shifts.map(shift => ({
+        ...shift,
+        isActive: shift.id === shiftId
+      }));
+      
+      setShifts(updatedShifts);
+      
+      // Set the current shift
+      const selectedShift = updatedShifts.find(shift => shift.id === shiftId);
+      if (!selectedShift) return false;
+      
+      setCurrentShift(selectedShift);
+      
+      // Set as active shift
+      setActiveShiftState(selectedShift);
+      
+      // Store in AsyncStorage
+      await AsyncStorage.setItem('shifts', JSON.stringify(updatedShifts));
+      await AsyncStorage.setItem('currentShift', JSON.stringify(selectedShift));
+      await AsyncStorage.setItem('activeShift', JSON.stringify(selectedShift));
+      
+      return true;
+    } catch (error) {
+      console.error('Error applying shift:', error);
+      return false;
+    }
   };
 
   // Update work status and record in history
@@ -1136,7 +1153,7 @@ export const ShiftProvider = ({ children }) => {
     return activeShift !== null;
   };
 
-  // Kiểm tra xem thời gian hiện tại có nằm trong khung giờ của ca làm việc không
+  // Kiểm tra xem thởi gian hiện tại có nằm trong khung giờ của ca làm việc không
   const isWithinShiftTime = () => {
     if (!activeShift) return false;
     
@@ -1145,6 +1162,11 @@ export const ShiftProvider = ({ children }) => {
     const endTime = parseISO(activeShift.endWorkTime);
     
     return isAfter(now, startTime) && isBefore(now, endTime);
+  };
+
+  // Set active shift
+  const setActiveShift = (shift) => {
+    setActiveShiftState(shift);
   };
 
   return (
@@ -1178,7 +1200,8 @@ export const ShiftProvider = ({ children }) => {
         deleteNote,
         setCurrentShift,
         manualUpdateWeeklyStatus,
-        workEntries
+        workEntries,
+        applyShift
       }}
     >
       {children}

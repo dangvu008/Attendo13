@@ -92,7 +92,7 @@ const HomeScreen = () => {
     // Lấy lịch sử bấm nút ngày hôm nay
     const today = getTodayStatus();
     setTodayEntries(today);
-  }, [statusHistory]);
+  }, [statusHistory, getTodayStatus]);
 
   // Format functions
   const formatDate = (date) => {
@@ -305,19 +305,19 @@ const HomeScreen = () => {
     const buttons = {
       inactive: {
         status: 'go_work',
-        label: t('go_work'),
+        label: t('goToWork'),
         icon: 'walk-outline',
         color: theme.colors.goWorkButton
       },
       go_work: {
         status: 'check_in',
-        label: t('check_in'),
+        label: t('checkIn'),
         icon: 'log-in-outline',
         color: theme.colors.checkInButton
       },
       check_in: {
         status: 'check_out',
-        label: t('check_out'),
+        label: t('checkOut'),
         icon: 'log-out-outline',
         color: theme.colors.checkOutButton
       },
@@ -373,17 +373,7 @@ const HomeScreen = () => {
               label={actionButton.label}
               iconName={actionButton.icon}
               color={actionButton.color}
-              onPress={() => {
-                if (actionButton.status === 'go_work') {
-                  handleGoToWork();
-                } else if (actionButton.status === 'check_in') {
-                  handleCheckIn();
-                } else if (actionButton.status === 'check_out') {
-                  handleCheckOut();
-                } else if (actionButton.status === 'complete') {
-                  handleComplete();
-                }
-              }}
+              onPress={() => handleMultiActionPress(actionButton.status)}
               disabled={actionButton.disabled || actionButtonDisabled}
             />
             
@@ -407,51 +397,61 @@ const HomeScreen = () => {
               </TouchableOpacity>
             )}
             
-            {/* Hiển thị lịch sử bấm nút đa năng */}
-            <View style={styles.statusHistoryList}>
-              {todayEntries.map((entry, index) => {
-                let statusLabel = '';
-                let statusIcon = '';
-                let statusTime = format(parseISO(entry.timestamp), 'HH:mm');
-                let statusColor = theme.colors.primary;
-                
-                switch (entry.status) {
-                  case 'go_work':
-                    statusLabel = t('go_work');
-                    statusIcon = 'walk-outline';
-                    statusColor = theme.colors.goWorkButton;
-                    break;
-                  case 'check_in':
-                    statusLabel = t('check_in');
-                    statusIcon = 'log-in-outline';
-                    statusColor = theme.colors.checkInButton;
-                    break;
-                  case 'check_out':
-                    statusLabel = t('check_out');
-                    statusIcon = 'log-out-outline';
-                    statusColor = theme.colors.checkOutButton;
-                    break;
-                  case 'complete':
-                    statusLabel = t('complete');
-                    statusIcon = 'checkmark-circle-outline';
-                    statusColor = theme.colors.completeButton;
-                    break;
-                  default:
-                    break;
-                }
-                
-                return (
-                  <View key={index} style={[styles.statusHistoryItem, {
-                    backgroundColor: isDarkMode ? 'rgba(26, 32, 44, 0.8)' : 'rgba(247, 250, 252, 0.8)'
-                  }]}>
-                    <View style={[styles.statusIconContainer, { backgroundColor: `${statusColor}20` }]}>
-                      <Ionicons name={statusIcon} size={20} color={statusColor} />
-                    </View>
-                    <Text style={[styles.statusActionText, { color: theme.colors.text }]}>{statusLabel}</Text>
-                    <Text style={[styles.statusTimeText, { color: theme.colors.textSecondary }]}>{statusTime}</Text>
-                  </View>
-                );
-              })}
+            {/* Action History Section */}
+            <View style={styles.historySection}>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('action_history')}</Text>
+              </View>
+              <View style={[styles.historyCard, { backgroundColor: theme.colors.card }]}>
+                {todayEntries.length > 0 ? (
+                  todayEntries.slice(0, 3).map((entry, index) => {
+                    let statusText = '';
+                    let icon = '';
+                    
+                    switch(entry.status) {
+                      case 'go_work':
+                        statusText = t('goToWork');
+                        icon = 'walk-outline';
+                        break;
+                      case 'check_in':
+                        statusText = t('checkIn');
+                        icon = 'log-in-outline';
+                        break;
+                      case 'check_out':
+                        statusText = t('checkOut');
+                        icon = 'log-out-outline';
+                        break;
+                      case 'complete':
+                      case 'sign':
+                        statusText = entry.status === 'complete' ? t('complete') : t('sign_work');
+                        icon = 'checkmark-circle-outline';
+                        break;
+                      default:
+                        statusText = entry.status;
+                        icon = 'information-circle-outline';
+                    }
+                    
+                    return (
+                      <View key={entry.id} style={[
+                        styles.historyItem,
+                        index < todayEntries.length - 1 && styles.historyItemBorder
+                      ]}>
+                        <Ionicons name={icon} size={20} color={theme.colors.primary} />
+                        <Text style={[styles.historyText, { color: theme.colors.text }]}>
+                          {statusText}
+                        </Text>
+                        <Text style={[styles.historyTime, { color: theme.colors.textSecondary }]}>
+                          {format(parseISO(entry.timestamp), 'HH:mm')}
+                        </Text>
+                      </View>
+                    );
+                  })
+                ) : (
+                  <Text style={[styles.noHistoryText, { color: theme.colors.textSecondary }]}>
+                    {t('no_history_today')}
+                  </Text>
+                )}
+              </View>
             </View>
           </View>
         </View>
@@ -793,36 +793,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  statusHistoryList: {
-    marginTop: 16,
-    width: '100%',
-    maxWidth: 300,
+  historySection: {
+    marginBottom: 16,
   },
-  statusHistoryItem: {
+  sectionHeader: {
+    marginBottom: 8,
+  },
+  historyCard: {
+    borderRadius: 12,
+    padding: 16,
+  },
+  historyItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    justifyContent: 'space-between',
+    paddingVertical: 8,
   },
-  statusIconContainer: {
-    width: 36,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 18,
-    marginRight: 10,
+  historyItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
   },
-  statusActionText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    flex: 1,
-  },
-  statusTimeText: {
+  historyText: {
     fontSize: 14,
     marginLeft: 8,
-    fontWeight: '500',
+    flex: 1,
+  },
+  historyTime: {
+    fontSize: 14,
+    color: '#666',
+  },
+  noHistoryText: {
+    textAlign: 'center',
+    padding: 20,
+    fontStyle: 'italic',
   },
 });
 

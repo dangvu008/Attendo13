@@ -260,52 +260,7 @@ const SettingsScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Work Shift Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleContainer}>
-              <MaterialCommunityIcons name="clock-time-four-outline" size={22} color={theme.colors.primary} />
-              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                {t('work_shift')}
-              </Text>
-            </View>
-            <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary }]}>
-              {t('manage_work_shifts')}
-            </Text>
-            <TouchableOpacity 
-              style={[
-                styles.addButton, 
-                { 
-                  backgroundColor: theme.colors.primary,
-                  ...theme.elevation.small
-                }
-              ]}
-              onPress={handleAddShift}
-            >
-              <Ionicons name="add" size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.shiftList}>
-            {shifts && shifts.map(renderShiftItem)}
-            {(!shifts || shifts.length === 0) && (
-              <View style={[
-                styles.emptyState, 
-                { 
-                  backgroundColor: theme.colors.surface,
-                  ...theme.elevation.small
-                }
-              ]}>
-                <MaterialCommunityIcons name="calendar-clock" size={48} color={theme.colors.disabled} />
-                <Text style={[styles.emptyStateText, { color: theme.colors.textSecondary }]}>
-                  {t('no_data')}
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Reminder Settings */}
+        {/* Shift Reminder Settings */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleContainer}>

@@ -104,6 +104,11 @@ export const vi = {
   max_content_chars: 'Tối đa 300 ký tự',
   no_notes: 'Chưa có ghi chú nào',
   work_notes: 'Ghi chú công việc',
+  search: 'Tìm kiếm',
+  no_notes_yet: 'Chưa có ghi chú nào',
+  add_new_note_hint: 'Nhấn nút Thêm để tạo ghi chú mới',
+  delete_note_confirm: 'Bạn có chắc chắn muốn xóa ghi chú này?',
+  delete_note_error: 'Không thể xóa ghi chú',
   
   // Settings
   language: 'Ngôn ngữ',
@@ -130,8 +135,19 @@ export const vi = {
   reminder_time: 'Thời gian nhắc nhở',
   reminder_before_work: 'Nhắc nhở trước giờ vào làm',
   reminder_after_work: 'Nhắc nhở sau giờ làm',
-  remind_when_shift_changes: 'Nhắc nhở thay đổi ca',
+  remind_when_shift_changes: 'Nhắc khi thay đổi ca làm việc',
   no_reminder: 'Không nhắc nhở',
+  reminder_type: 'Loại nhắc nhở',
+  notification_settings: 'Cài đặt thông báo',
+  notifications_enabled: 'Bật thông báo',
+  notifications_enabled_description: 'Cho phép ứng dụng gửi thông báo',
+  notification_sound: 'Âm thanh thông báo',
+  notification_sound_description: 'Phát âm thanh khi có thông báo',
+  notification_vibration: 'Rung thông báo',
+  notification_vibration_description: 'Rung khi có thông báo',
+  before_5_min: 'Trước 5 phút',
+  before_15_min: 'Trước 15 phút',
+  before_30_min: 'Trước 30 phút',
   
   // Statistics
   monthlyStats: 'Thống kê tháng',
@@ -341,6 +357,11 @@ export const en = {
   max_content_chars: 'Maximum 300 characters',
   no_notes: 'No notes yet',
   work_notes: 'Work Notes',
+  search: 'Search',
+  no_notes_yet: 'No notes yet',
+  add_new_note_hint: 'Press Add to create a new note',
+  delete_note_confirm: 'Are you sure you want to delete this note?',
+  delete_note_error: 'Cannot delete note',
   
   // Settings
   language: 'Language',
@@ -369,6 +390,17 @@ export const en = {
   reminder_after_work: 'Reminder After Work',
   remind_when_shift_changes: 'Remind When Shift Changes',
   no_reminder: 'No Reminder',
+  reminder_type: 'Reminder Type',
+  notification_settings: 'Notification Settings',
+  notifications_enabled: 'Enable Notifications',
+  notifications_enabled_description: 'Allow app to send notifications',
+  notification_sound: 'Notification Sound',
+  notification_sound_description: 'Play sound when notification appears',
+  notification_vibration: 'Notification Vibration',
+  notification_vibration_description: 'Vibrate when notification appears',
+  before_5_min: 'Before 5 minutes',
+  before_15_min: 'Before 15 minutes',
+  before_30_min: 'Before 30 minutes',
   
   // Statistics
   monthlyStats: 'Monthly Statistics',
