@@ -44,6 +44,7 @@ export const vi = {
   duration: 'Thời lượng',
   date: 'Ngày',
   day_of_week: 'Thứ',
+  total: 'Tổng cộng',
   
   // Shift information
   shift_start_time: 'Giờ bắt đầu',

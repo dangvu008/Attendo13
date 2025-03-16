@@ -272,13 +272,14 @@ const styles = StyleSheet.create({
   },
   grid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
+    alignItems: 'center',
     marginVertical: 8,
     borderRadius: 12,
     padding: 8,
   },
   dayCell: {
-    width: 40,
+    width: 42,
     height: 70,
     borderRadius: 8,
     alignItems: 'center',
@@ -320,14 +321,15 @@ const styles = StyleSheet.create({
   legend: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 8,
-    justifyContent: 'space-between',
+    marginTop: 12,
+    justifyContent: 'space-around',
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
     marginRight: 8,
-    marginBottom: 6,
+    marginBottom: 8,
+    width: '45%',
   },
   legendIcon: {
     width: 18,

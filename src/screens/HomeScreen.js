@@ -41,7 +41,8 @@ const HomeScreen = () => {
     updateNote,
     deleteNote,
     validateAction,
-    updateDayStatus
+    updateDayStatus,
+    manualUpdateWeeklyStatus
   } = useShift();
 
   const { theme, isDarkMode } = useTheme();
@@ -315,7 +316,7 @@ const HomeScreen = () => {
   
   // Handle status change for a specific day
   const handleStatusChange = (date, newStatus) => {
-    updateDayStatus(date, newStatus);
+    manualUpdateWeeklyStatus(date, newStatus);
   };
 
   // Get the appropriate button based on current status
@@ -479,45 +480,6 @@ const HomeScreen = () => {
               </View>
             </View>
           </View>
-        </View>
-
-        {/* Status Information */}
-        <View style={[styles.statusInfoContainer, { backgroundColor: theme.colors.surface }]}>
-          {goWorkEntry && (
-            <View style={styles.statusItem}>
-              <Ionicons name="walk-outline" size={18} color={theme.colors.goWorkButton} />
-              <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
-                {t('go_work')}: {format(new Date(goWorkEntry.timestamp), 'HH:mm')}
-              </Text>
-            </View>
-          )}
-          
-          {checkInEntry && (
-            <View style={styles.statusItem}>
-              <Ionicons name="log-in-outline" size={18} color={theme.colors.checkInButton} />
-              <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
-                {t('check_in')}: {format(new Date(checkInEntry.timestamp), 'HH:mm')}
-              </Text>
-            </View>
-          )}
-          
-          {checkOutEntry && (
-            <View style={styles.statusItem}>
-              <Ionicons name="log-out-outline" size={18} color={theme.colors.checkOutButton} />
-              <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
-                {t('check_out')}: {format(new Date(checkOutEntry.timestamp), 'HH:mm')}
-              </Text>
-            </View>
-          )}
-          
-          {completeEntry && (
-            <View style={styles.statusItem}>
-              <Ionicons name="checkmark-circle-outline" size={18} color={theme.colors.completeButton} />
-              <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
-                {t('complete')}: {format(new Date(completeEntry.timestamp), 'HH:mm')}
-              </Text>
-            </View>
-          )}
         </View>
 
         {/* Weekly Status Grid */}
@@ -728,19 +690,6 @@ const styles = StyleSheet.create({
   },
   signButtonText: {
     color: '#fff',
-    fontSize: 14,
-    marginLeft: 8,
-  },
-  statusInfoContainer: {
-    borderRadius: 8,
-    padding: 12,
-  },
-  statusItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 4,
-  },
-  statusText: {
     fontSize: 14,
     marginLeft: 8,
   },
