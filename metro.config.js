@@ -1,4 +1,4 @@
-// Simple metro config for Snack environment
+// Cấu hình Metro cho Expo
 const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);

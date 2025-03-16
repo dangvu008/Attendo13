@@ -153,65 +153,81 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
           <TouchableWithoutFeedback>
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              style={styles.modalContent}
+              style={[styles.modalContent, { backgroundColor: theme.colors.background || '#1a1a2e' }]}
             >
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
+              <View style={[styles.modalHeader, { borderBottomColor: 'rgba(255, 255, 255, 0.1)' }]}>
+                <Text style={[styles.modalTitle, { color: '#fff' }]}>
                   {initialData ? t('edit_note') : t('add_note')}
                 </Text>
                 <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                  <Ionicons name="close" size={24} color="#333" />
+                  <Ionicons name="close" size={24} color="#fff" />
                 </TouchableOpacity>
               </View>
               
               <ScrollView style={styles.form}>
                 {/* Title Input */}
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>{t('title')}</Text>
+                  <Text style={[styles.inputLabel, { color: '#fff' }]}>{t('title')}</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { 
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)', 
+                      borderColor: 'rgba(255, 255, 255, 0.2)',
+                      color: '#fff'
+                    }]}
                     value={title}
                     onChangeText={setTitle}
                     placeholder={t('title_placeholder')}
+                    placeholderTextColor="rgba(255, 255, 255, 0.5)"
                     maxLength={MAX_TITLE_LENGTH}
                   />
-                  <Text style={styles.charCounter}>{title.length}/{MAX_TITLE_LENGTH}</Text>
+                  <Text style={[styles.charCounter, { color: 'rgba(255, 255, 255, 0.7)' }]}>{title.length}/{MAX_TITLE_LENGTH}</Text>
                 </View>
                 
                 {/* Content Input */}
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>{t('content')}</Text>
+                  <Text style={[styles.inputLabel, { color: '#fff' }]}>{t('content')}</Text>
                   <TextInput
-                    style={[styles.input, styles.contentInput]}
+                    style={[styles.input, styles.contentInput, { 
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)', 
+                      borderColor: 'rgba(255, 255, 255, 0.2)',
+                      color: '#fff'
+                    }]}
                     value={content}
                     onChangeText={setContent}
                     placeholder={t('content_placeholder')}
+                    placeholderTextColor="rgba(255, 255, 255, 0.5)"
                     multiline={true}
                     maxLength={MAX_CONTENT_LENGTH}
                   />
-                  <Text style={styles.charCounter}>{content.length}/{MAX_CONTENT_LENGTH}</Text>
+                  <Text style={[styles.charCounter, { color: 'rgba(255, 255, 255, 0.7)' }]}>{content.length}/{MAX_CONTENT_LENGTH}</Text>
                 </View>
                 
                 {/* Date and Time Pickers */}
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>{t('reminder_time')}</Text>
+                  <Text style={[styles.inputLabel, { color: '#fff' }]}>{t('reminder_time')}</Text>
                   <View style={styles.dateTimeContainer}>
                     <TouchableOpacity
-                      style={styles.dateTimeButton}
+                      style={[styles.dateTimeButton, { 
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)', 
+                        borderColor: 'rgba(255, 255, 255, 0.2)'
+                      }]}
                       onPress={() => setShowDatePicker(true)}
                     >
-                      <Ionicons name="calendar-outline" size={18} color="#6200ee" />
-                      <Text style={styles.dateTimeText}>
+                      <Ionicons name="calendar-outline" size={18} color="#8b5cf6" />
+                      <Text style={[styles.dateTimeText, { color: '#fff' }]}>
                         {format(reminderDate, 'dd/MM/yyyy')}
                       </Text>
                     </TouchableOpacity>
                     
                     <TouchableOpacity
-                      style={styles.dateTimeButton}
+                      style={[styles.dateTimeButton, { 
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)', 
+                        borderColor: 'rgba(255, 255, 255, 0.2)'
+                      }]}
                       onPress={() => setShowTimePicker(true)}
                     >
-                      <Ionicons name="time-outline" size={18} color="#6200ee" />
-                      <Text style={styles.dateTimeText}>
+                      <Ionicons name="time-outline" size={18} color="#8b5cf6" />
+                      <Text style={[styles.dateTimeText, { color: '#fff' }]}>
                         {format(reminderDate, 'HH:mm')}
                       </Text>
                     </TouchableOpacity>
@@ -223,6 +239,7 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                       mode="date"
                       display="default"
                       onChange={handleDateChange}
+                      themeVariant="dark"
                     />
                   )}
                   
@@ -232,27 +249,31 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                       mode="time"
                       display="default"
                       onChange={handleTimeChange}
+                      themeVariant="dark"
                     />
                   )}
                 </View>
                 
                 {/* Week days selection */}
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>{t('show_on_days')}</Text>
+                  <Text style={[styles.inputLabel, { color: '#fff' }]}>{t('show_on_days')}</Text>
                   <View style={styles.daysContainer}>
                     {weekDays.map(day => (
                       <TouchableOpacity
                         key={day.id}
                         style={[
                           styles.dayButton,
-                          selectedDays.includes(day.id) && styles.selectedDayButton
+                          { 
+                            backgroundColor: selectedDays.includes(day.id) ? '#6b46c1' : 'rgba(255, 255, 255, 0.1)',
+                            borderColor: selectedDays.includes(day.id) ? '#8b5cf6' : 'rgba(255, 255, 255, 0.2)'
+                          }
                         ]}
                         onPress={() => toggleDaySelection(day.id)}
                       >
                         <Text
                           style={[
                             styles.dayButtonText,
-                            selectedDays.includes(day.id) && styles.selectedDayText
+                            { color: selectedDays.includes(day.id) ? '#fff' : 'rgba(255, 255, 255, 0.8)' }
                           ]}
                         >
                           {day.name}
@@ -266,7 +287,7 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
               {/* Save Button */}
               <View style={styles.buttonContainer}>
                 <TouchableOpacity
-                  style={styles.saveButton}
+                  style={[styles.saveButton, { backgroundColor: '#6b46c1' }]}
                   onPress={handleSave}
                 >
                   <Text style={styles.saveButtonText}>{t('save')}</Text>

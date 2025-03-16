@@ -16,24 +16,57 @@ export const vi = {
   checkIn: 'Check In',
   checkOut: 'Check Out',
   complete: 'Hoàn thành',
+  current: 'Hiện tại',
+  go_work: 'Đi làm',
+  check_in: 'Check In',
+  check_out: 'Check Out',
+  
+  // Status messages
+  working: 'Đang làm việc',
+  not_started: 'Chưa bắt đầu',
+  gone_to_work: 'Đã đi làm',
+  clocked_in: 'Đã check in',
   
   // Messages
   confirmCheckIn: 'Xác nhận check in?',
   confirmCheckOut: 'Xác nhận check out?',
   confirmComplete: 'Xác nhận hoàn thành ca làm việc?',
   confirmReset: 'Xác nhận đặt lại trạng thái của hôm nay?',
+  confirm_reset_today: 'Bạn có chắc chắn muốn đặt lại trạng thái làm việc hôm nay không?',
+  confirm_apply_shift: 'Bạn có chắc chắn muốn áp dụng ca làm việc này không?',
   
   // Time labels
   today: 'Hôm nay',
   time: 'Thời gian',
   duration: 'Thời lượng',
+  date: 'Ngày',
+  day_of_week: 'Thứ',
   
   // Shift information
-  shift_start_time: 'Thời gian bắt đầu ca',
-  shift_end_time: 'Thời gian kết thúc ca',
+  shift_start_time: 'Giờ bắt đầu',
+  shift_end_time: 'Giờ kết thúc',
   shift_duration: 'Thời lượng ca làm',
   shift_status: 'Trạng thái ca',
   current_shift: 'Ca hiện tại',
+  departure_time: 'Thời gian xuất phát',
+  check_in_time: 'Thời gian check in',
+  check_out_time: 'Thời gian check out',
+  total_hours: 'Tổng số giờ',
+  regular_hours: 'Giờ làm việc chuẩn',
+  overtime_150: 'Tăng ca 150%',
+  overtime_200: 'Tăng ca 200%',
+  overtime_300: 'Tăng ca 300%',
+  
+  // Weekly status
+  weekly_status: 'Trạng thái tuần này',
+  status_full_work: 'Làm việc đủ giờ',
+  status_missing_check: 'Thiếu giờ check',
+  status_early_late: 'Đến sớm/muộn',
+  status_leave: 'Nghỉ phép',
+  status_absent: 'Vắng mặt',
+  status_sick: 'Ốm',
+  status_holiday: 'Ngày lễ',
+  status_unknown: 'Không xác định',
   
   // Buttons
   yes: 'Có',
@@ -43,12 +76,32 @@ export const vi = {
   edit: 'Sửa',
   delete: 'Xóa',
   add: 'Thêm',
+  confirm: 'Xác nhận',
+  reset: 'Đặt lại',
+  apply: 'Áp dụng',
   
   // Notes
   addNote: 'Thêm ghi chú',
   editNote: 'Sửa ghi chú',
   noteTitle: 'Tiêu đề',
   noteContent: 'Nội dung',
+  note: 'Ghi chú',
+  title: 'Tiêu đề',
+  content: 'Nội dung',
+  title_placeholder: 'Nhập tiêu đề ghi chú',
+  content_placeholder: 'Nhập nội dung ghi chú',
+  note_title_required: 'Tiêu đề không được để trống',
+  note_content_required: 'Nội dung không được để trống',
+  save_note_confirm: 'Bạn có chắc chắn muốn lưu ghi chú này?',
+  exit_note_confirm: 'Bạn có muốn thoát? Các thay đổi sẽ không được lưu.',
+  continue_editing: 'Tiếp tục chỉnh sửa',
+  exit: 'Thoát',
+  show_on_days: 'Chọn ngày trong tuần',
+  add_note: 'Thêm ghi chú mới',
+  edit_note: 'Sửa ghi chú',
+  max_title_chars: 'Tối đa 100 ký tự',
+  max_content_chars: 'Tối đa 300 ký tự',
+  no_notes: 'Chưa có ghi chú nào',
   
   // Settings
   language: 'Ngôn ngữ',
@@ -57,15 +110,80 @@ export const vi = {
   darkMode: 'Chế độ tối',
   lightMode: 'Chế độ sáng',
   systemMode: 'Theo hệ thống',
+  dark_mode: 'Chế độ tối',
+  dark_mode_description: 'Bật chế độ tối để có trải nghiệm xem tốt hơn trong điều kiện ánh sáng yếu',
+  sound_notifications: 'Âm thanh thông báo',
+  sound_description: 'Phát âm thanh khi có thông báo',
+  vibration: 'Rung thông báo',
+  vibration_description: 'Rung khi có thông báo',
   
   // Notifications
   enableNotifications: 'Bật thông báo',
   reminderTime: 'Thời gian nhắc nhở',
+  reminder_time: 'Thời gian nhắc nhở',
+  reminder_before_work: 'Nhắc nhở trước giờ vào làm',
+  reminder_after_work: 'Nhắc nhở sau giờ làm',
+  remind_when_shift_changes: 'Nhắc nhở thay đổi ca',
+  no_reminder: 'Không nhắc nhở',
   
   // Statistics
   monthlyStats: 'Thống kê tháng',
+  monthly_stats: 'Thống kê tháng',
   totalShifts: 'Tổng số ca',
   totalHours: 'Tổng số giờ',
+  
+  // Shifts
+  shifts_title: 'Danh sách ca làm việc',
+  no_shifts: 'Chưa có ca làm việc nào',
+  new_shift: 'Thêm ca làm việc mới',
+  edit_shift: 'Chỉnh sửa ca làm việc',
+  shift_name: 'Tên ca làm việc',
+  shift_name_placeholder: 'Nhập tên ca làm việc',
+  character_count: 'ký tự',
+  shift_name_required: 'Tên ca làm việc không được để trống',
+  shift_name_special_chars: 'Tên ca làm việc không được chứa ký tự đặc biệt',
+  shift_name_max_length: 'Tên ca làm việc không được vượt quá 200 ký tự',
+  shift_name_duplicate: 'Tên ca làm việc đã tồn tại',
+  shift_times_required: 'Thời gian bắt đầu và kết thúc không được để trống',
+  shift_duplicate: 'Ca làm việc này đã tồn tại',
+  save_shift: 'Lưu ca làm việc',
+  save_shift_confirm: 'Bạn có chắc chắn muốn lưu ca làm việc này?',
+  save_shift_error: 'Lỗi khi lưu ca làm việc',
+  delete_shift_confirm: 'Bạn có chắc chắn muốn xóa ca làm việc này?',
+  shift_applied: 'Đã áp dụng ca làm việc thành công',
+  reset_confirm: 'Bạn có chắc chắn muốn đặt lại tất cả các thay đổi?',
+  set_as_active: 'Đặt làm ca hiện tại',
+  manage_shifts: 'Quản lý ca làm việc',
+  currently_applied: 'Đang áp dụng cho tuần này',
+  
+  // Reminders
+  remind_before_work: 'Nhắc nhở trước giờ vào làm',
+  remind_after_work: 'Nhắc nhở sau giờ làm',
+  minutes: 'phút',
+  select_reminder: 'Chọn thời gian nhắc nhở',
+  
+  // Time selection
+  select_time: 'Chọn thời gian',
+  time_format_help: 'Định dạng: HH:MM (24h)',
+  
+  // Shift settings
+  show_sign_button: 'Hiển thị nút Ký công',
+  applied_days: 'Ngày áp dụng',
+  
+  // Weekly grid
+  change_status: 'Thay đổi trạng thái',
+  select_status: 'Chọn trạng thái',
+  no_details_available: 'Không có thông tin chi tiết',
+  no_data: 'Không có dữ liệu',
+  
+  // Other UI elements
+  success: 'Thành công',
+  error: 'Lỗi',
+  general_settings: 'Cài đặt chung',
+  shift_settings: 'Ca làm việc',
+  validating: 'Đang xác thực...',
+  time_manager: 'Time Manager',
+  add_note_button: 'Thêm ghi chú',
   
   // Days of week
   monday: 'Thứ Hai',
@@ -75,6 +193,13 @@ export const vi = {
   friday: 'Thứ Sáu',
   saturday: 'Thứ Bảy',
   sunday: 'Chủ Nhật',
+  mon: 'T2',
+  tue: 'T3',
+  wed: 'T4',
+  thu: 'T5',
+  fri: 'T6',
+  sat: 'T7',
+  sun: 'CN',
   
   // Months
   january: 'Tháng 1',
@@ -105,26 +230,59 @@ export const en = {
   // Work status
   goToWork: 'Go to Work',
   checkIn: 'Check In',
-  checkOut: 'Check Out',
+  checkOut: 'Clock Out',
   complete: 'Complete',
+  current: 'Current',
+  go_work: 'Go to Work',
+  check_in: 'Check In',
+  check_out: 'Clock Out',
+  
+  // Status messages
+  working: 'Working',
+  not_started: 'Not started',
+  gone_to_work: 'Gone to Work',
+  clocked_in: 'Clocked In',
   
   // Messages
   confirmCheckIn: 'Confirm check in?',
   confirmCheckOut: 'Confirm check out?',
-  confirmComplete: 'Confirm complete this work shift?',
+  confirmComplete: 'Confirm complete work shift?',
   confirmReset: 'Confirm reset today\'s status?',
+  confirm_reset_today: 'Are you sure you want to reset today\'s work status?',
+  confirm_apply_shift: 'Are you sure you want to apply this shift?',
   
   // Time labels
   today: 'Today',
   time: 'Time',
   duration: 'Duration',
+  date: 'Date',
+  day_of_week: 'Day',
   
   // Shift information
-  shift_start_time: 'Shift Start Time',
-  shift_end_time: 'Shift End Time',
+  shift_start_time: 'Start Time',
+  shift_end_time: 'End Time',
   shift_duration: 'Shift Duration',
   shift_status: 'Shift Status',
   current_shift: 'Current Shift',
+  departure_time: 'Departure Time',
+  check_in_time: 'Check In Time',
+  check_out_time: 'Check Out Time',
+  total_hours: 'Total Hours',
+  regular_hours: 'Regular Hours',
+  overtime_150: 'Overtime 150%',
+  overtime_200: 'Overtime 200%',
+  overtime_300: 'Overtime 300%',
+  
+  // Weekly status
+  weekly_status: 'Weekly Status',
+  status_full_work: 'Full Work',
+  status_missing_check: 'Missing Check',
+  status_early_late: 'Early/Late',
+  status_leave: 'Leave',
+  status_absent: 'Absent',
+  status_sick: 'Sick',
+  status_holiday: 'Holiday',
+  status_unknown: 'Unknown',
   
   // Buttons
   yes: 'Yes',
@@ -134,12 +292,32 @@ export const en = {
   edit: 'Edit',
   delete: 'Delete',
   add: 'Add',
+  confirm: 'Confirm',
+  reset: 'Reset',
+  apply: 'Apply',
   
   // Notes
   addNote: 'Add Note',
   editNote: 'Edit Note',
   noteTitle: 'Title',
   noteContent: 'Content',
+  note: 'Note',
+  title: 'Title',
+  content: 'Content',
+  title_placeholder: 'Enter note title',
+  content_placeholder: 'Enter note content',
+  note_title_required: 'Title is required',
+  note_content_required: 'Content is required',
+  save_note_confirm: 'Are you sure you want to save this note?',
+  exit_note_confirm: 'Do you want to exit? Changes will not be saved.',
+  continue_editing: 'Continue Editing',
+  exit: 'Exit',
+  show_on_days: 'Select days of week',
+  add_note: 'Add New Note',
+  edit_note: 'Edit Note',
+  max_title_chars: 'Maximum 100 characters',
+  max_content_chars: 'Maximum 300 characters',
+  no_notes: 'No notes yet',
   
   // Settings
   language: 'Language',
@@ -148,15 +326,80 @@ export const en = {
   darkMode: 'Dark Mode',
   lightMode: 'Light Mode',
   systemMode: 'System Default',
+  dark_mode: 'Dark Mode',
+  dark_mode_description: 'Enable dark mode for better viewing experience in low light conditions',
+  sound_notifications: 'Sound Notifications',
+  sound_description: 'Play sound when notification appears',
+  vibration: 'Vibration',
+  vibration_description: 'Vibrate when notification appears',
   
   // Notifications
   enableNotifications: 'Enable Notifications',
   reminderTime: 'Reminder Time',
+  reminder_time: 'Reminder Time',
+  reminder_before_work: 'Reminder Before Work',
+  reminder_after_work: 'Reminder After Work',
+  remind_when_shift_changes: 'Remind When Shift Changes',
+  no_reminder: 'No Reminder',
   
   // Statistics
   monthlyStats: 'Monthly Statistics',
+  monthly_stats: 'Monthly Statistics',
   totalShifts: 'Total Shifts',
   totalHours: 'Total Hours',
+  
+  // Shifts
+  shifts_title: 'Shift List',
+  no_shifts: 'No shifts available',
+  new_shift: 'Add New Shift',
+  edit_shift: 'Edit Shift',
+  shift_name: 'Shift Name',
+  shift_name_placeholder: 'Enter shift name',
+  character_count: 'characters',
+  shift_name_required: 'Shift name is required',
+  shift_name_special_chars: 'Shift name cannot contain special characters',
+  shift_name_max_length: 'Shift name cannot exceed 200 characters',
+  shift_name_duplicate: 'Shift name already exists',
+  shift_times_required: 'Start and end times are required',
+  shift_duplicate: 'This shift already exists',
+  save_shift: 'Save Shift',
+  save_shift_confirm: 'Are you sure you want to save this shift?',
+  save_shift_error: 'Error saving shift',
+  delete_shift_confirm: 'Are you sure you want to delete this shift?',
+  shift_applied: 'Shift applied successfully',
+  reset_confirm: 'Are you sure you want to reset all changes?',
+  set_as_active: 'Set as active',
+  manage_shifts: 'Manage Work Shifts',
+  currently_applied: 'Currently applied for this week',
+  
+  // Reminders
+  remind_before_work: 'Reminder Before Work',
+  remind_after_work: 'Reminder After Work',
+  minutes: 'minutes',
+  select_reminder: 'Select reminder time',
+  
+  // Time selection
+  select_time: 'Select Time',
+  time_format_help: 'Format: HH:MM (24h)',
+  
+  // Shift settings
+  show_sign_button: 'Show Sign Button',
+  applied_days: 'Applied Days',
+  
+  // Weekly grid
+  change_status: 'Change Status',
+  select_status: 'Select Status',
+  no_details_available: 'No details available',
+  no_data: 'No data',
+  
+  // Other UI elements
+  success: 'Success',
+  error: 'Error',
+  general_settings: 'General Settings',
+  shift_settings: 'Work Shifts',
+  validating: 'Validating...',
+  time_manager: 'Time Manager',
+  add_note_button: 'Add Note',
   
   // Days of week
   monday: 'Monday',
@@ -166,6 +409,13 @@ export const en = {
   friday: 'Friday',
   saturday: 'Saturday',
   sunday: 'Sunday',
+  mon: 'Mon',
+  tue: 'Tue',
+  wed: 'Wed',
+  thu: 'Thu',
+  fri: 'Fri',
+  sat: 'Sat',
+  sun: 'Sun',
   
   // Months
   january: 'January',

@@ -123,9 +123,13 @@ export const vi = {
         long: ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy']
       };
       
-      // Ensure day is within the range 0-6 (Sunday=0, Saturday=6)
-      const safeDay = day % 7;
-      return days[width][safeDay];
+      // Đảm bảo width là hợp lệ
+      const validWidth = width && days[width] ? width : 'long';
+      
+      // Đảm bảo day trong phạm vi 0-6 (Chủ Nhật=0, Thứ Bảy=6)
+      const safeDay = (day == null || day < 0) ? 0 : (day % 7);
+      
+      return days[validWidth][safeDay];
     },
     dayPeriod: function (dayPeriod, width) {
       const dayPeriods = {

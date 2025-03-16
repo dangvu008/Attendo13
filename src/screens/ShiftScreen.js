@@ -395,7 +395,7 @@ const ShiftScreen = () => {
       >
         <View style={[styles.modalContainer, { backgroundColor: theme.colors.background || '#1a1a2e' }]}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
+            <Text style={[styles.modalTitle, {color: '#fff'}]}>
               {editingShift ? t('edit_shift') : t('new_shift')}
             </Text>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -405,103 +405,122 @@ const ShiftScreen = () => {
           
           <ScrollView style={styles.modalBody}>
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>{t('shift_name')}</Text>
+              <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('shift_name')}</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                  color: '#fff'
+                }]}
                 value={newShift.name}
                 onChangeText={(text) => setNewShift({...newShift, name: text})}
                 placeholder={t('shift_name_placeholder')}
-                placeholderTextColor="#757575"
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
                 maxLength={200}
               />
               <View style={styles.nameInputFooter}>
                 {nameError ? (
                   <Text style={styles.errorText}>{nameError}</Text>
                 ) : null}
-                <Text style={styles.charCountText}>{nameCharCount}/200 {t('character_count')}</Text>
+                <Text style={[styles.charCountText, {color: 'rgba(255, 255, 255, 0.7)'}]}>{nameCharCount}/200 {t('character_count')}</Text>
               </View>
             </View>
             
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>{t('departure_time')}</Text>
+              <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('departure_time')}</Text>
               <TouchableOpacity 
-                style={styles.timePickerButton}
+                style={[styles.timePickerButton, {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderColor: 'rgba(255, 255, 255, 0.2)'
+                }]}
                 onPress={() => handleOpenTimePicker('departureTime')}
               >
-                <Text style={styles.timePickerText}>
+                <Text style={[styles.timePickerText, {color: '#fff'}]}>
                   {newShift.departureTime || '--:--'}
                 </Text>
-                <Ionicons name="time-outline" size={24} color="#757575" />
+                <Ionicons name="time-outline" size={24} color="rgba(255, 255, 255, 0.7)" />
               </TouchableOpacity>
             </View>
             
             <View style={styles.timeRow}>
               <View style={[styles.inputGroup, styles.halfInput]}>
-                <Text style={styles.inputLabel}>{t('shift_start_time')}</Text>
+                <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('shift_start_time')}</Text>
                 <TouchableOpacity 
-                  style={styles.timePickerButton}
+                  style={[styles.timePickerButton, {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    borderColor: 'rgba(255, 255, 255, 0.2)'
+                  }]}
                   onPress={() => handleOpenTimePicker('startWorkTime')}
                 >
-                  <Text style={styles.timePickerText}>
+                  <Text style={[styles.timePickerText, {color: '#fff'}]}>
                     {newShift.startWorkTime || '--:--'}
                   </Text>
-                  <Ionicons name="time-outline" size={24} color="#757575" />
+                  <Ionicons name="time-outline" size={24} color="rgba(255, 255, 255, 0.7)" />
                 </TouchableOpacity>
               </View>
               
               <View style={[styles.inputGroup, styles.halfInput]}>
-                <Text style={styles.inputLabel}>{t('shift_end_time')}</Text>
+                <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('shift_end_time')}</Text>
                 <TouchableOpacity 
-                  style={styles.timePickerButton}
+                  style={[styles.timePickerButton, {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    borderColor: 'rgba(255, 255, 255, 0.2)'
+                  }]}
                   onPress={() => handleOpenTimePicker('endWorkTime')}
                 >
-                  <Text style={styles.timePickerText}>
+                  <Text style={[styles.timePickerText, {color: '#fff'}]}>
                     {newShift.endWorkTime || '--:--'}
                   </Text>
-                  <Ionicons name="time-outline" size={24} color="#757575" />
+                  <Ionicons name="time-outline" size={24} color="rgba(255, 255, 255, 0.7)" />
                 </TouchableOpacity>
               </View>
             </View>
             
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>{t('remind_before_work')}</Text>
+              <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('remind_before_work')}</Text>
               <TouchableOpacity 
-                style={styles.dropdownButton}
+                style={[styles.dropdownButton, {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderColor: 'rgba(255, 255, 255, 0.2)'
+                }]}
                 onPress={() => handleOpenReminderOptions('before')}
               >
-                <Text style={styles.dropdownText}>
+                <Text style={[styles.dropdownText, {color: '#fff'}]}>
                   {newShift.remindBeforeWork} {t('minutes')}
                 </Text>
-                <Ionicons name="chevron-down" size={24} color="#757575" />
+                <Ionicons name="chevron-down" size={24} color="rgba(255, 255, 255, 0.7)" />
               </TouchableOpacity>
             </View>
             
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>{t('remind_after_work')}</Text>
+              <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('remind_after_work')}</Text>
               <TouchableOpacity 
-                style={styles.dropdownButton}
+                style={[styles.dropdownButton, {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderColor: 'rgba(255, 255, 255, 0.2)'
+                }]}
                 onPress={() => handleOpenReminderOptions('after')}
               >
-                <Text style={styles.dropdownText}>
+                <Text style={[styles.dropdownText, {color: '#fff'}]}>
                   {newShift.remindAfterWork} {t('minutes')}
                 </Text>
-                <Ionicons name="chevron-down" size={24} color="#757575" />
+                <Ionicons name="chevron-down" size={24} color="rgba(255, 255, 255, 0.7)" />
               </TouchableOpacity>
             </View>
             
             <View style={styles.switchGroup}>
-              <Text style={styles.switchLabel}>{t('show_sign_button')}</Text>
+              <Text style={[styles.switchLabel, {color: '#fff'}]}>{t('show_sign_button')}</Text>
               <Switch
                 value={newShift.showSignButton}
                 onValueChange={(value) => setNewShift({ ...newShift, showSignButton: value })}
-                trackColor={{ false: '#3e3e42', true: '#6200ee50' }}
-                thumbColor={newShift.showSignButton ? '#6200ee' : '#f4f3f4'}
+                trackColor={{ false: '#3e3e42', true: '#8b5cf6' }}
+                thumbColor={newShift.showSignButton ? '#6b46c1' : '#f4f3f4'}
                 ios_backgroundColor="#3e3e42"
               />
             </View>
             
             <View style={styles.appliedDaysGroup}>
-              <Text style={styles.inputLabel}>{t('applied_days')}</Text>
+              <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('applied_days')}</Text>
               <View style={styles.appliedDaysList}>
                 {[0, 1, 2, 3, 4, 5, 6].map((day) => (
                   <TouchableOpacity
