@@ -211,12 +211,28 @@ const ShiftScreen = () => {
     );
   };
 
-  const handleApplyShift = (shift) => {
-    applyShift(shift);
-    Alert.alert(
-      t('success'),
-      t('shift_applied')
-    );
+  const handleApplyShift = async (shift) => {
+    try {
+      const success = await applyShift(shift.id);
+      
+      if (success) {
+        Alert.alert(
+          t('success'),
+          t('shift_applied')
+        );
+      } else {
+        Alert.alert(
+          t('error'),
+          t('shift_apply_error')
+        );
+      }
+    } catch (error) {
+      console.error('Error applying shift:', error);
+      Alert.alert(
+        t('error'),
+        t('shift_apply_error')
+      );
+    }
   };
 
   const handleOpenTimePicker = (field) => {

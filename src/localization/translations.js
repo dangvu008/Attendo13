@@ -38,6 +38,12 @@ export const vi = {
   confirm_reset_today: 'Bạn có chắc chắn muốn đặt lại trạng thái làm việc hôm nay không?',
   confirm_apply_shift: 'Bạn có chắc chắn muốn áp dụng ca làm việc này không?',
   
+  // Success and Error messages
+  success: 'Thành công',
+  error: 'Lỗi',
+  shift_applied: 'Đã áp dụng ca làm việc thành công',
+  shift_apply_error: 'Có lỗi xảy ra khi áp dụng ca làm việc',
+  
   // Time labels
   today: 'Hôm nay',
   time: 'Thời gian',
@@ -298,6 +304,12 @@ export const en = {
   confirmReset: 'Confirm reset today\'s status?',
   confirm_reset_today: 'Are you sure you want to reset today\'s work status?',
   confirm_apply_shift: 'Are you sure you want to apply this shift?',
+  
+  // Success and Error messages
+  success: 'Success',
+  error: 'Error',
+  shift_applied: 'Shift applied successfully',
+  shift_apply_error: 'Error applying shift',
   
   // Time labels
   today: 'Today',
