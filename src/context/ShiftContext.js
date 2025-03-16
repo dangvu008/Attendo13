@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { format, isToday, parseISO, isBefore, isAfter, addMinutes, differenceInMinutes, addDays, isSameDay, endOfMonth } from 'date-fns';
+import { format, isToday, parseISO, isBefore, isAfter, addMinutes, differenceInMinutes, addDays, isSameDay, endOfMonth, differenceInHours } from 'date-fns';
 import { vi } from '../utils/viLocale';
 import * as NotificationService from '../services/NotificationService';
 import { useLocalization } from './LocalizationContext';
@@ -1050,18 +1050,39 @@ export const ShiftProvider = ({ children }) => {
   };
 
   // Validate actions based on time differences
-  const validateAction = (action, lastActionTimestamp) => {
-    if (!lastActionTimestamp) return true;
-    
+  const validateAction = (action, lastActionTimestamp = null) => {
+    // Nếu không có timestamp, sử dụng timestamp từ lịch sử
+    if (!lastActionTimestamp) {
+      if (action === 'check_in') {
+        const goWorkEntry = statusHistory.find(entry => entry.status === 'go_work' && isToday(parseISO(entry.timestamp)));
+        if (goWorkEntry) {
+          lastActionTimestamp = goWorkEntry.timestamp;
+        }
+      } else if (action === 'check_out') {
+        const checkInEntry = statusHistory.find(entry => entry.status === 'check_in' && isToday(parseISO(entry.timestamp)));
+        if (checkInEntry) {
+          lastActionTimestamp = checkInEntry.timestamp;
+        }
+      }
+    }
+
+    if (!lastActionTimestamp) {
+      return true; // Không có hành động trước đó để so sánh
+    }
+
     const now = new Date();
-    const lastTime = new Date(lastActionTimestamp);
+    const lastActionTime = new Date(lastActionTimestamp);
     
-    if (action === 'check_in' && differenceInMinutes(now, lastTime) < 5) {
-      return false; // Less than 5 minutes since last action
+    // Giữa đi làm và chấm công vào cần ít nhất 5 phút
+    if (action === 'check_in') {
+      const diffMinutes = differenceInMinutes(now, lastActionTime);
+      return diffMinutes >= 5;
     }
     
-    if (action === 'check_out' && differenceInHours(now, lastTime) < 2) {
-      return false; // Less than 2 hours since check in
+    // Giữa chấm công vào và chấm công ra cần ít nhất 2 giờ
+    if (action === 'check_out') {
+      const diffHours = differenceInHours(now, lastActionTime);
+      return diffHours >= 2;
     }
     
     return true;
@@ -1112,6 +1133,14 @@ export const ShiftProvider = ({ children }) => {
   return (
     <ShiftContext.Provider
       value={{
+        shifts,
+        addShift,
+        updateShift,
+        deleteShift,
+        setActiveShift,
+        activeShift,
+        hasActiveShift,
+        isWithinShiftTime,
         workStatus,
         statusHistory,
         statusDetails,
@@ -1125,7 +1154,6 @@ export const ShiftProvider = ({ children }) => {
         checkIntoShift, 
         checkOutFromShift,
         completeShift,
-        updateWorkStatus,
         updateStatusDetails,
         resetDayStatus,
         addNote,
@@ -1133,8 +1161,7 @@ export const ShiftProvider = ({ children }) => {
         deleteNote,
         setCurrentShift,
         manualUpdateWeeklyStatus,
-        workEntries,
-        getTodayStatus
+        workEntries
       }}
     >
       {children}

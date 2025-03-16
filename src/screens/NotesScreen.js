@@ -129,7 +129,8 @@ const NotesScreen = () => {
         style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
         onPress={handleAddNote}
       >
-        <Ionicons name="add" size={24} color="#fff" />
+        <Text style={styles.addButtonText}>{t('add_note')}</Text>
+        <Ionicons name="add" size={20} color="#fff" style={styles.addButtonIcon} />
       </TouchableOpacity>
       
       {/* Add/Edit Note Modal */}
@@ -200,12 +201,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 20,
     bottom: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    paddingHorizontal: 16,
+    height: 50,
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
+    flexDirection: 'row',
+  },
+  addButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginRight: 4,
+  },
+  addButtonIcon: {
+    marginLeft: 4,
   },
 });
 

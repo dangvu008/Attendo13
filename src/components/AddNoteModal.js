@@ -395,17 +395,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
   },
-  selectedDayButton: {
-    backgroundColor: '#6200ee',
-    borderColor: '#6200ee',
-  },
   dayButtonText: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#555',
-  },
-  selectedDayText: {
-    color: '#fff',
   },
   buttonContainer: {
     padding: 16,

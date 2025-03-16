@@ -287,8 +287,8 @@ const SettingsScreen = () => {
           </View>
           
           <View style={styles.shiftList}>
-            {shifts.map(renderShiftItem)}
-            {shifts.length === 0 && (
+            {shifts && shifts.map(renderShiftItem)}
+            {(!shifts || shifts.length === 0) && (
               <View style={[
                 styles.emptyState, 
                 { 

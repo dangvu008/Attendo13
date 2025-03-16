@@ -116,27 +116,37 @@ const HomeScreen = () => {
   const checkOutEntry = findLatestEntryByStatus('check_out');
   const completeEntry = findLatestEntryByStatus('complete');
 
-  // Button action handlers
+  // Check if action needs validation
   const handleMultiActionPress = (action) => {
-    // Check if action needs validation
+    // Validate action based on time rules
+    let isValidAction = true;
     let lastActionTimestamp = null;
     
     if (action === 'check_in' && goWorkEntry) {
       lastActionTimestamp = goWorkEntry.timestamp;
+      isValidAction = validateAction('check_in', lastActionTimestamp);
     } else if (action === 'check_out' && checkInEntry) {
       lastActionTimestamp = checkInEntry.timestamp;
+      isValidAction = validateAction('check_out', lastActionTimestamp);
     }
     
-    // Validate time difference
-    if (lastActionTimestamp && !validateAction(action, lastActionTimestamp)) {
-      // Show confirmation dialog
+    // Show confirmation dialog if validation fails
+    if (!isValidAction) {
       setNextAction(action);
       setConfirmActionVisible(true);
       return;
     }
     
     // Execute action if validation passes
-    updateWorkStatus(action);
+    if (action === 'go_work') {
+      handleGoToWork();
+    } else if (action === 'check_in') {
+      handleCheckIn();
+    } else if (action === 'check_out') {
+      handleCheckOut();
+    } else if (action === 'complete') {
+      handleComplete();
+    }
   };
 
   const handleResetPress = () => {
@@ -150,7 +160,15 @@ const HomeScreen = () => {
 
   const confirmAction = () => {
     if (nextAction) {
-      updateWorkStatus(nextAction);
+      if (nextAction === 'go_work') {
+        handleGoToWork();
+      } else if (nextAction === 'check_in') {
+        handleCheckIn();
+      } else if (nextAction === 'check_out') {
+        handleCheckOut();
+      } else if (nextAction === 'complete') {
+        handleComplete();
+      }
       setNextAction(null);
     }
     setConfirmActionVisible(false);
@@ -349,46 +367,104 @@ const HomeScreen = () => {
                 <Ionicons name="refresh" size={20} color="#fff" />
               </TouchableOpacity>
             )}
+            
+            {/* Nút Ký Công - Hiển thị sau khi chấm công vào */}
+            {workStatus === 'check_in' && currentShift && currentShift.showSignButton && (
+              <TouchableOpacity 
+                style={[styles.signButton, { backgroundColor: theme.colors.completeButton }]}
+                onPress={handleComplete}
+              >
+                <Ionicons name="document-text-outline" size={22} color="#fff" />
+                <Text style={styles.signButtonText}>{t('sign_work')}</Text>
+              </TouchableOpacity>
+            )}
+            
+            {/* Hiển thị lịch sử bấm nút đa năng */}
+            <View style={styles.statusHistoryList}>
+              {todayEntries.map((entry, index) => {
+                let statusLabel = '';
+                let statusIcon = '';
+                let statusTime = format(parseISO(entry.timestamp), 'HH:mm');
+                let statusColor = theme.colors.primary;
+                
+                switch (entry.status) {
+                  case 'go_work':
+                    statusLabel = t('go_work');
+                    statusIcon = 'walk-outline';
+                    statusColor = theme.colors.goWorkButton;
+                    break;
+                  case 'check_in':
+                    statusLabel = t('check_in');
+                    statusIcon = 'log-in-outline';
+                    statusColor = theme.colors.checkInButton;
+                    break;
+                  case 'check_out':
+                    statusLabel = t('check_out');
+                    statusIcon = 'log-out-outline';
+                    statusColor = theme.colors.checkOutButton;
+                    break;
+                  case 'complete':
+                    statusLabel = t('complete');
+                    statusIcon = 'checkmark-circle-outline';
+                    statusColor = theme.colors.completeButton;
+                    break;
+                  default:
+                    break;
+                }
+                
+                return (
+                  <View key={index} style={[styles.statusHistoryItem, {
+                    backgroundColor: isDarkMode ? 'rgba(26, 32, 44, 0.8)' : 'rgba(247, 250, 252, 0.8)'
+                  }]}>
+                    <View style={[styles.statusIconContainer, { backgroundColor: `${statusColor}20` }]}>
+                      <Ionicons name={statusIcon} size={20} color={statusColor} />
+                    </View>
+                    <Text style={[styles.statusActionText, { color: theme.colors.text }]}>{statusLabel}</Text>
+                    <Text style={[styles.statusTimeText, { color: theme.colors.textSecondary }]}>{statusTime}</Text>
+                  </View>
+                );
+              })}
+            </View>
           </View>
+        </View>
 
-          {/* Status Information */}
-          <View style={[styles.statusInfoContainer, { backgroundColor: theme.colors.surface }]}>
-            {goWorkEntry && (
-              <View style={styles.statusItem}>
-                <Ionicons name="walk-outline" size={18} color={theme.colors.goWorkButton} />
-                <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
-                  {t('go_work')}: {format(new Date(goWorkEntry.timestamp), 'HH:mm')}
-                </Text>
-              </View>
-            )}
-            
-            {checkInEntry && (
-              <View style={styles.statusItem}>
-                <Ionicons name="log-in-outline" size={18} color={theme.colors.checkInButton} />
-                <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
-                  {t('check_in')}: {format(new Date(checkInEntry.timestamp), 'HH:mm')}
-                </Text>
-              </View>
-            )}
-            
-            {checkOutEntry && (
-              <View style={styles.statusItem}>
-                <Ionicons name="log-out-outline" size={18} color={theme.colors.checkOutButton} />
-                <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
-                  {t('check_out')}: {format(new Date(checkOutEntry.timestamp), 'HH:mm')}
-                </Text>
-              </View>
-            )}
-            
-            {completeEntry && (
-              <View style={styles.statusItem}>
-                <Ionicons name="checkmark-circle-outline" size={18} color={theme.colors.completeButton} />
-                <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
-                  {t('complete')}: {format(new Date(completeEntry.timestamp), 'HH:mm')}
-                </Text>
-              </View>
-            )}
-          </View>
+        {/* Status Information */}
+        <View style={[styles.statusInfoContainer, { backgroundColor: theme.colors.surface }]}>
+          {goWorkEntry && (
+            <View style={styles.statusItem}>
+              <Ionicons name="walk-outline" size={18} color={theme.colors.goWorkButton} />
+              <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
+                {t('go_work')}: {format(new Date(goWorkEntry.timestamp), 'HH:mm')}
+              </Text>
+            </View>
+          )}
+          
+          {checkInEntry && (
+            <View style={styles.statusItem}>
+              <Ionicons name="log-in-outline" size={18} color={theme.colors.checkInButton} />
+              <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
+                {t('check_in')}: {format(new Date(checkInEntry.timestamp), 'HH:mm')}
+              </Text>
+            </View>
+          )}
+          
+          {checkOutEntry && (
+            <View style={styles.statusItem}>
+              <Ionicons name="log-out-outline" size={18} color={theme.colors.checkOutButton} />
+              <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
+                {t('check_out')}: {format(new Date(checkOutEntry.timestamp), 'HH:mm')}
+              </Text>
+            </View>
+          )}
+          
+          {completeEntry && (
+            <View style={styles.statusItem}>
+              <Ionicons name="checkmark-circle-outline" size={18} color={theme.colors.completeButton} />
+              <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
+                {t('complete')}: {format(new Date(completeEntry.timestamp), 'HH:mm')}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Weekly Status Grid */}
@@ -440,30 +516,32 @@ const HomeScreen = () => {
         t={t}
       />
 
-      {/* Reset Confirmation Modal */}
+      {/* Xác nhận Reset Trạng Thái */}
       <Modal
-        transparent={true}
         visible={confirmResetVisible}
+        transparent={true}
         animationType="fade"
         onRequestClose={() => setConfirmResetVisible(false)}
       >
         <TouchableWithoutFeedback onPress={() => setConfirmResetVisible(false)}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
-              <View style={[styles.confirmDialog, { backgroundColor: theme.colors.surface }]}>
-                <Text style={[styles.confirmTitle, { color: theme.colors.text }]}>{t('confirm')}</Text>
-                <Text style={[styles.confirmText, { color: theme.colors.textSecondary }]}>
-                  {t('reset_day_confirm')}
+              <View style={[styles.confirmModalContainer, { backgroundColor: theme.colors.surface }]}>
+                <Text style={[styles.confirmModalTitle, { color: theme.colors.text }]}>
+                  {t('confirm_reset_title')}
                 </Text>
-                <View style={styles.confirmButtons}>
+                <Text style={[styles.confirmModalMessage, { color: theme.colors.textSecondary }]}>
+                  {t('confirm_reset_message')}
+                </Text>
+                <View style={styles.confirmButtonsContainer}>
                   <TouchableOpacity
-                    style={[styles.confirmButton, styles.cancelButton, { backgroundColor: theme.colors.disabled }]}
+                    style={[styles.confirmButton, { backgroundColor: theme.colors.cancelButton }]}
                     onPress={() => setConfirmResetVisible(false)}
                   >
                     <Text style={styles.confirmButtonText}>{t('cancel')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.confirmButton, styles.okButton, { backgroundColor: theme.colors.primary }]}
+                    style={[styles.confirmButton, { backgroundColor: theme.colors.resetButton }]}
                     onPress={confirmReset}
                   >
                     <Text style={styles.confirmButtonText}>{t('reset')}</Text>
@@ -475,30 +553,36 @@ const HomeScreen = () => {
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* Action Confirmation Modal */}
+      {/* Xác nhận Hành Động Khi Không Đủ Thời Gian */}
       <Modal
-        transparent={true}
         visible={confirmActionVisible}
+        transparent={true}
         animationType="fade"
         onRequestClose={() => setConfirmActionVisible(false)}
       >
         <TouchableWithoutFeedback onPress={() => setConfirmActionVisible(false)}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
-              <View style={[styles.confirmDialog, { backgroundColor: theme.colors.surface }]}>
-                <Text style={[styles.confirmTitle, { color: theme.colors.text }]}>{t('confirm')}</Text>
-                <Text style={[styles.confirmText, { color: theme.colors.textSecondary }]}>
-                  {nextAction === 'check_in' ? t('time_validation_check_in') : t('time_validation_check_out')}
+              <View style={[styles.confirmModalContainer, { backgroundColor: theme.colors.surface }]}>
+                <Text style={[styles.confirmModalTitle, { color: theme.colors.text }]}>
+                  {t('confirm_action_title')}
                 </Text>
-                <View style={styles.confirmButtons}>
+                <Text style={[styles.confirmModalMessage, { color: theme.colors.textSecondary }]}>
+                  {nextAction === 'check_in' 
+                    ? t('confirm_early_check_in') 
+                    : nextAction === 'check_out'
+                    ? t('confirm_early_check_out')
+                    : t('confirm_action_message')}
+                </Text>
+                <View style={styles.confirmButtonsContainer}>
                   <TouchableOpacity
-                    style={[styles.confirmButton, styles.cancelButton, { backgroundColor: theme.colors.disabled }]}
+                    style={[styles.confirmButton, { backgroundColor: theme.colors.cancelButton }]}
                     onPress={() => setConfirmActionVisible(false)}
                   >
                     <Text style={styles.confirmButtonText}>{t('cancel')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.confirmButton, styles.okButton, { backgroundColor: theme.colors.primary }]}
+                    style={[styles.confirmButton, { backgroundColor: theme.colors.primary }]}
                     onPress={confirmAction}
                   >
                     <Text style={styles.confirmButtonText}>{t('continue')}</Text>
@@ -554,17 +638,45 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   multiActionContainer: {
-    flexDirection: 'row',
+    position: 'relative',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   resetButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    position: 'absolute',
+    right: -10,
+    top: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 10,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  signButton: {
+    position: 'absolute',
+    right: -60,
+    top: 10,
+    width: 100,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  signButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    marginLeft: 8,
   },
   statusInfoContainer: {
     borderRadius: 8,
@@ -620,23 +732,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  confirmDialog: {
+  confirmModalContainer: {
     width: '90%',
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
   },
-  confirmTitle: {
+  confirmModalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 16,
   },
-  confirmText: {
+  confirmModalMessage: {
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 24,
   },
-  confirmButtons: {
+  confirmButtonsContainer: {
     flexDirection: 'row',
     width: '100%',
     justifyContent: 'space-between',
@@ -653,10 +765,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  cancelButton: {
+  statusHistoryList: {
+    marginTop: 16,
+    width: '100%',
+    maxWidth: 300,
+  },
+  statusHistoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    justifyContent: 'space-between',
+  },
+  statusIconContainer: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 18,
     marginRight: 10,
   },
-  okButton: {
+  statusActionText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    flex: 1,
+  },
+  statusTimeText: {
+    fontSize: 14,
+    marginLeft: 8,
+    fontWeight: '500',
   },
 });
 

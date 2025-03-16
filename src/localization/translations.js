@@ -81,6 +81,7 @@ export const vi = {
   apply: 'Áp dụng',
   
   // Notes
+  notes_title: 'Ghi chú công việc',
   addNote: 'Thêm ghi chú',
   editNote: 'Sửa ghi chú',
   noteTitle: 'Tiêu đề',
@@ -102,6 +103,7 @@ export const vi = {
   max_title_chars: 'Tối đa 100 ký tự',
   max_content_chars: 'Tối đa 300 ký tự',
   no_notes: 'Chưa có ghi chú nào',
+  work_notes: 'Ghi chú công việc',
   
   // Settings
   language: 'Ngôn ngữ',
@@ -213,7 +215,21 @@ export const vi = {
   september: 'Tháng 9',
   october: 'Tháng 10',
   november: 'Tháng 11',
-  december: 'Tháng 12'
+  december: 'Tháng 12',
+  
+  // Chuỗi mới cho Nút Đa Năng và xác nhận
+  completed: 'Đã hoàn thành',
+  sign_work: 'Ký công',
+  confirm_reset_title: 'Xác nhận đặt lại',
+  confirm_reset_message: 'Bạn có chắc muốn đặt lại trạng thái làm việc của ngày hôm nay không?',
+  confirm_action_title: 'Cần xác nhận',
+  confirm_early_check_in: 'Bạn đang check-in sớm hơn thời gian quy định (cần ít nhất 5 phút sau khi bấm Đi làm). Bạn có chắc chắn muốn tiếp tục?',
+  confirm_early_check_out: 'Bạn đang check-out sớm hơn thời gian quy định (cần ít nhất 2 giờ sau khi check-in). Bạn có chắc chắn muốn tiếp tục?',
+  confirm_action_message: 'Bạn có chắc chắn muốn thực hiện hành động này?',
+  continue: 'Tiếp tục',
+  reset_day_confirm: 'Bạn có chắc chắn muốn đặt lại trạng thái làm việc của ngày hôm nay?',
+  time_validation_check_in: 'Bạn đang thực hiện check-in quá sớm sau khi bấm nút "Đi làm". Bạn có muốn tiếp tục?',
+  time_validation_check_out: 'Bạn đang thực hiện check-out quá sớm sau khi check-in. Bạn có muốn tiếp tục?',
 };
 
 export const en = {
@@ -297,6 +313,7 @@ export const en = {
   apply: 'Apply',
   
   // Notes
+  notes_title: 'Work Notes',
   addNote: 'Add Note',
   editNote: 'Edit Note',
   noteTitle: 'Title',
@@ -318,6 +335,7 @@ export const en = {
   max_title_chars: 'Maximum 100 characters',
   max_content_chars: 'Maximum 300 characters',
   no_notes: 'No notes yet',
+  work_notes: 'Work Notes',
   
   // Settings
   language: 'Language',
@@ -429,5 +447,19 @@ export const en = {
   september: 'September',
   october: 'October',
   november: 'November',
-  december: 'December'
+  december: 'December',
+  
+  // Chuỗi mới cho Nút Đa Năng và xác nhận
+  completed: 'Completed',
+  sign_work: 'Sign Work',
+  confirm_reset_title: 'Confirm Reset',
+  confirm_reset_message: 'Are you sure you want to reset today\'s work status?',
+  confirm_action_title: 'Confirm Action',
+  confirm_early_check_in: 'You are checking in earlier than the scheduled time (at least 5 minutes after going to work). Are you sure you want to continue?',
+  confirm_early_check_out: 'You are checking out earlier than the scheduled time (at least 2 hours after checking in). Are you sure you want to continue?',
+  confirm_action_message: 'Are you sure you want to perform this action?',
+  continue: 'Continue',
+  reset_day_confirm: 'Are you sure you want to reset today\'s work status?',
+  time_validation_check_in: 'You are checking in too early after going to work. Do you want to continue?',
+  time_validation_check_out: 'You are checking out too early after checking in. Do you want to continue?',
 };

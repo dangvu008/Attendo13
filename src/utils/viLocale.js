@@ -113,7 +113,14 @@ export const vi = {
         short: ['Th1', 'Th2', 'Th3', 'Th4', 'Th5', 'Th6', 'Th7', 'Th8', 'Th9', 'Th10', 'Th11', 'Th12'],
         long: ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12']
       };
-      return months[width][month];
+      
+      // Đảm bảo width là hợp lệ
+      const validWidth = width && months[width] ? width : 'long';
+      
+      // Trong date-fns, tháng được đánh số từ 0-11
+      const monthIndex = (month === undefined || month === null) ? 0 : Math.min(month, 11);
+      
+      return months[validWidth][monthIndex];
     },
     day: function (day, width) {
       const days = {

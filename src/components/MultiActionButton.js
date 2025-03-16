@@ -3,6 +3,11 @@ import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const MultiActionButton = ({ status, label, iconName, color, onPress, disabled }) => {
+  // Chọn icon phù hợp dựa trên trạng thái
+  const getIconComponent = () => {
+    return <Ionicons name={iconName} size={32} color="#fff" />;
+  };
+
   return (
     <TouchableOpacity
       style={[
@@ -15,7 +20,7 @@ const MultiActionButton = ({ status, label, iconName, color, onPress, disabled }
       activeOpacity={0.8}
     >
       <View style={styles.buttonContent}>
-        <Ionicons name={iconName} size={28} color="#fff" />
+        {getIconComponent()}
         <Text style={styles.buttonText}>{label}</Text>
       </View>
     </TouchableOpacity>
@@ -24,16 +29,16 @@ const MultiActionButton = ({ status, label, iconName, color, onPress, disabled }
 
 const styles = StyleSheet.create({
   button: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
+    elevation: 6,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.5,
   },
   buttonContent: {
     alignItems: 'center',
@@ -41,9 +46,10 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginTop: 8,
+    marginTop: 10,
+    textAlign: 'center',
   },
   disabledButton: {
     opacity: 0.6,
