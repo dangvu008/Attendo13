@@ -26,6 +26,9 @@ export const vi = {
   not_started: 'Chưa bắt đầu',
   gone_to_work: 'Đã đi làm',
   clocked_in: 'Đã check in',
+  clocked_out: 'Đã tan làm',
+  action_history: 'Lịch sử hoạt động',
+  no_history_today: 'Không có hoạt động nào hôm nay',
   
   // Messages
   confirmCheckIn: 'Xác nhận check in?',
@@ -238,6 +241,10 @@ export const vi = {
   november: 'Tháng 11',
   december: 'Tháng 12',
   
+  // App Info
+  current_version: 'Phiên bản hiện tại',
+  version: 'Phiên bản',
+  
   // Chuỗi mới cho Nút Đa Năng và xác nhận
   completed: 'Đã hoàn thành',
   sign_work: 'Ký công',
@@ -277,8 +284,11 @@ export const en = {
   // Status messages
   working: 'Working',
   not_started: 'Not started',
-  gone_to_work: 'Gone to Work',
-  clocked_in: 'Clocked In',
+  gone_to_work: 'Gone to work',
+  clocked_in: 'Clocked in',
+  clocked_out: 'Clocked out',
+  action_history: 'Action History',
+  no_history_today: 'No actions today',
   
   // Messages
   confirmCheckIn: 'Confirm check in?',
@@ -490,6 +500,10 @@ export const en = {
   october: 'October',
   november: 'November',
   december: 'December',
+  
+  // App Info
+  current_version: 'Current Version',
+  version: 'Version',
   
   // Chuỗi mới cho Nút Đa Năng và xác nhận
   completed: 'Completed',

@@ -110,9 +110,27 @@ const HomeScreen = () => {
 
   // Get today's history entries
   const getTodayStatus = () => {
-    return statusHistory
+    // Lọc các mục của ngày hôm nay
+    const todayEntries = statusHistory
       .filter(entry => isToday(parseISO(entry.timestamp)))
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    // Tạo map để lưu trữ mục mới nhất cho mỗi loại trạng thái
+    const uniqueStatusMap = new Map();
+    
+    // Duyệt qua để lấy mục mới nhất cho mỗi trạng thái
+    todayEntries.forEach(entry => {
+      if (!uniqueStatusMap.has(entry.status) || 
+          new Date(entry.timestamp) > new Date(uniqueStatusMap.get(entry.status).timestamp)) {
+        uniqueStatusMap.set(entry.status, entry);
+      }
+    });
+    
+    // Chuyển đổi map thành mảng và sắp xếp theo thứ tự thời gian
+    const uniqueEntries = Array.from(uniqueStatusMap.values())
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    return uniqueEntries;
   };
 
   // Find latest entries for different statuses
@@ -402,29 +420,34 @@ const HomeScreen = () => {
               <View style={styles.sectionHeader}>
                 <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('action_history')}</Text>
               </View>
-              <View style={[styles.historyCard, { backgroundColor: theme.colors.card }]}>
+              <View style={[styles.historyCard, { backgroundColor: theme.colors.surface }]}>
                 {todayEntries.length > 0 ? (
-                  todayEntries.slice(0, 3).map((entry, index) => {
+                  todayEntries.map((entry, index) => {
                     let statusText = '';
                     let icon = '';
+                    let iconColor = theme.colors.primary;
                     
                     switch(entry.status) {
                       case 'go_work':
                         statusText = t('goToWork');
                         icon = 'walk-outline';
+                        iconColor = theme.colors.goWorkButton;
                         break;
                       case 'check_in':
                         statusText = t('checkIn');
                         icon = 'log-in-outline';
+                        iconColor = theme.colors.checkInButton;
                         break;
                       case 'check_out':
                         statusText = t('checkOut');
                         icon = 'log-out-outline';
+                        iconColor = theme.colors.checkOutButton;
                         break;
                       case 'complete':
                       case 'sign':
                         statusText = entry.status === 'complete' ? t('complete') : t('sign_work');
                         icon = 'checkmark-circle-outline';
+                        iconColor = theme.colors.completeButton;
                         break;
                       default:
                         statusText = entry.status;
@@ -436,10 +459,12 @@ const HomeScreen = () => {
                         styles.historyItem,
                         index < todayEntries.length - 1 && styles.historyItemBorder
                       ]}>
-                        <Ionicons name={icon} size={20} color={theme.colors.primary} />
-                        <Text style={[styles.historyText, { color: theme.colors.text }]}>
-                          {statusText}
-                        </Text>
+                        <View style={styles.historyItemLeft}>
+                          <Ionicons name={icon} size={20} color={iconColor} />
+                          <Text style={[styles.historyText, { color: theme.colors.text }]}>
+                            {statusText}
+                          </Text>
+                        </View>
                         <Text style={[styles.historyTime, { color: theme.colors.textSecondary }]}>
                           {format(parseISO(entry.timestamp), 'HH:mm')}
                         </Text>
@@ -812,10 +837,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
   },
+  historyItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
   historyText: {
     fontSize: 14,
     marginLeft: 8,
-    flex: 1,
   },
   historyTime: {
     fontSize: 14,
