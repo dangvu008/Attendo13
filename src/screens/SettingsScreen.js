@@ -103,11 +103,15 @@ const SettingsScreen = () => {
     setDeleteModalVisible(true);
   };
 
-  const confirmDeleteShift = () => {
+  const confirmDeleteShift = async () => {
     if (selectedShift) {
-      deleteShift(selectedShift.id);
-      setDeleteModalVisible(false);
-      setSelectedShift(null);
+      const success = await deleteShift(selectedShift.id);
+      if (success) {
+        setDeleteModalVisible(false);
+        setSelectedShift(null);
+      } else {
+        Alert.alert(t('error'), t('delete_shift_error'));
+      }
     }
   };
 

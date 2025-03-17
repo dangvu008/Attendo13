@@ -21,7 +21,6 @@ const MultiActionButton = ({ status, label, iconName, color, onPress, disabled }
     >
       <View style={styles.buttonContent}>
         {getIconComponent()}
-        <Text style={styles.buttonText}>{label}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -29,12 +28,12 @@ const MultiActionButton = ({ status, label, iconName, color, onPress, disabled }
 
 const styles = StyleSheet.create({
   button: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 6,
+    elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
@@ -43,13 +42,6 @@ const styles = StyleSheet.create({
   buttonContent: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 10,
-    textAlign: 'center',
   },
   disabledButton: {
     opacity: 0.6,

@@ -147,60 +147,51 @@ const HomeScreen = () => {
 
   // Check if action needs validation
   const handleMultiActionPress = (action) => {
-    // Validate action based on time rules
-    let isValidAction = true;
-    let lastActionTimestamp = null;
-    
-    if (action === 'check_in' && goWorkEntry) {
-      lastActionTimestamp = goWorkEntry.timestamp;
-      isValidAction = validateAction('check_in', lastActionTimestamp);
-    } else if (action === 'check_out' && checkInEntry) {
-      lastActionTimestamp = checkInEntry.timestamp;
-      isValidAction = validateAction('check_out', lastActionTimestamp);
-    }
-    
-    // Show confirmation dialog if validation fails
-    if (!isValidAction) {
-      setNextAction(action);
-      setConfirmActionVisible(true);
-      return;
-    }
-    
-    // Execute action if validation passes
-    if (action === 'go_work') {
-      handleGoToWork();
-    } else if (action === 'check_in') {
-      handleCheckIn();
-    } else if (action === 'check_out') {
-      handleCheckOut();
-    } else if (action === 'complete') {
-      handleComplete();
-    }
+    // Lưu hành động tiếp theo và hiển thị xác nhận
+    setNextAction(action);
+    setConfirmActionVisible(true);
   };
 
   const handleResetPress = () => {
     setConfirmResetVisible(true);
   };
 
-  const confirmReset = () => {
-    resetDayStatus();
+  const confirmReset = async () => {
+    const success = await resetDayStatus();
+    if (success) {
+      console.log('Reset thành công trạng thái ngày hôm nay');
+    } else {
+      console.error('Có lỗi khi reset trạng thái');
+    }
     setConfirmResetVisible(false);
   };
 
-  const confirmAction = () => {
-    if (nextAction) {
-      if (nextAction === 'go_work') {
-        handleGoToWork();
-      } else if (nextAction === 'check_in') {
-        handleCheckIn();
-      } else if (nextAction === 'check_out') {
-        handleCheckOut();
-      } else if (nextAction === 'complete') {
-        handleComplete();
+  const confirmAction = async () => {
+    try {
+      if (nextAction) {
+        // Log để debug
+        console.log('Thực hiện hành động:', nextAction);
+        
+        if (nextAction === 'go_work') {
+          await handleGoToWork();
+        } else if (nextAction === 'check_in') {
+          await handleCheckIn();
+        } else if (nextAction === 'check_out') {
+          await handleCheckOut();
+        } else if (nextAction === 'complete') {
+          await handleComplete();
+        }
+        
+        // Log kết quả
+        console.log('Đã hoàn thành hành động:', nextAction);
+        setNextAction(null);
       }
-      setNextAction(null);
+      setConfirmActionVisible(false);
+    } catch (error) {
+      console.error('Lỗi khi xác nhận hành động:', error);
+      // Vẫn đóng modal ngay cả khi có lỗi
+      setConfirmActionVisible(false);
     }
-    setConfirmActionVisible(false);
   };
 
   // Xử lý khi nhấn nút đi làm
@@ -412,7 +403,6 @@ const HomeScreen = () => {
                 onPress={handleComplete}
               >
                 <Ionicons name="document-text-outline" size={22} color="#fff" />
-                <Text style={styles.signButtonText}>{t('sign_work')}</Text>
               </TouchableOpacity>
             )}
             
@@ -594,13 +584,22 @@ const HomeScreen = () => {
                     style={[styles.confirmButton, { backgroundColor: theme.colors.cancelButton }]}
                     onPress={() => setConfirmActionVisible(false)}
                   >
-                    <Text style={styles.confirmButtonText}>{t('cancel')}</Text>
+                    <Ionicons name="close-circle-outline" size={24} color="#fff" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.confirmButton, { backgroundColor: theme.colors.resetButton }]}
+                    onPress={() => {
+                      setNextAction(null);
+                      setConfirmActionVisible(false);
+                    }}
+                  >
+                    <Ionicons name="arrow-forward-circle-outline" size={24} color="#fff" />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.confirmButton, { backgroundColor: theme.colors.primary }]}
                     onPress={confirmAction}
                   >
-                    <Text style={styles.confirmButtonText}>{t('continue')}</Text>
+                    <Ionicons name="checkmark-circle-outline" size={24} color="#fff" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -676,22 +675,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: -60,
     top: 10,
-    width: 100,
+    width: 40,
     height: 40,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'row',
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-  },
-  signButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    marginLeft: 8,
   },
   weeklyStatusSection: {
     borderRadius: 12,

@@ -99,14 +99,16 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
       return;
     }
     
+    // Xác nhận trước khi lưu
     Alert.alert(
       t('confirm'),
       t('save_note_confirm'),
       [
         { text: t('cancel'), style: 'cancel' },
         { 
-          text: t('save'), 
+          text: t('confirm'), 
           onPress: () => {
+            // Thực hiện lưu ghi chú
             const noteData = {
               title: title.trim(),
               content: content.trim(),

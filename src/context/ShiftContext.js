@@ -641,6 +641,92 @@ export const ShiftProvider = ({ children }) => {
     }
   };
 
+  // Apply a shift
+  const applyShift = async (shiftId) => {
+    try {
+      // First, deactivate all shifts
+      const updatedShifts = shifts.map(shift => ({
+        ...shift,
+        active: shift.id === shiftId
+      }));
+      
+      // Set the active shift
+      const activeShift = updatedShifts.find(shift => shift.id === shiftId);
+      if (!activeShift) {
+        return false;
+      }
+      
+      // Update shifts state and storage
+      setShifts(updatedShifts);
+      await AsyncStorage.setItem('shifts', JSON.stringify(updatedShifts));
+      
+      // Set current shift
+      setCurrentShift(activeShift);
+      await AsyncStorage.setItem('currentShift', JSON.stringify(activeShift));
+      
+      // Cancel existing reminders and schedule new ones for the active shift
+      await NotificationService.cancelAllShiftNotifications();
+      await scheduleShiftReminders(activeShift);
+      
+      // Reset work status if needed
+      if (workStatus !== 'inactive') {
+        setWorkStatus('inactive');
+        await AsyncStorage.setItem('workStatus', 'inactive');
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error applying shift:', error);
+      return false;
+    }
+  };
+
+  // Schedule reminders for a shift
+  const scheduleShiftReminders = async (shift) => {
+    try {
+      if (!shift) return false;
+      
+      const settings = await NotificationService.loadNotificationSettings();
+      if (settings.reminderType === 'none') {
+        return true; // No reminders if disabled
+      }
+      
+      // Get applied days from the shift
+      const appliedDays = shift.appliedDays || [1, 2, 3, 4, 5]; // Default Mon-Fri
+      
+      // Schedule departure reminder
+      if (shift.departureTime) {
+        await NotificationService.scheduleShiftDepartureReminders(
+          shift.departureTime,
+          appliedDays,
+          shift.id,
+          shift.remindBeforeWork || 15
+        );
+      }
+      
+      // Schedule check-in reminder
+      await NotificationService.scheduleShiftStartReminders(
+        shift.startWorkTime,
+        appliedDays,
+        shift.id,
+        shift.remindBeforeWork || 15
+      );
+      
+      // Schedule check-out reminder
+      await NotificationService.scheduleShiftEndReminders(
+        shift.endWorkTime,
+        appliedDays,
+        shift.id,
+        shift.remindAfterWork || 15
+      );
+      
+      return true;
+    } catch (error) {
+      console.error('Error scheduling shift reminders:', error);
+      return false;
+    }
+  };
+
   // Validate shift data
   const validateShiftData = (shift) => {
     // Kiểm tra các trường bắt buộc
@@ -701,60 +787,140 @@ export const ShiftProvider = ({ children }) => {
     });
   };
 
-  // Apply a shift for the current week
-  const applyShift = async (shiftId) => {
+  // Update work status and record in history
+  const updateWorkStatus = async (newStatus) => {
     try {
-      // Set all shifts to inactive
-      const updatedShifts = shifts.map(shift => ({
-        ...shift,
-        isActive: shift.id === shiftId
-      }));
+      const timestamp = new Date();
+      const formattedDate = format(timestamp, 'yyyy-MM-dd');
+      const formattedTime = format(timestamp, 'HH:mm:ss');
       
-      setShifts(updatedShifts);
+      // Update status
+      setWorkStatus(newStatus);
+      await AsyncStorage.setItem('workStatus', newStatus);
       
-      // Set the current shift
-      const selectedShift = updatedShifts.find(shift => shift.id === shiftId);
-      if (!selectedShift) return false;
+      // Record in history
+      const historyEntry = {
+        id: Date.now().toString(),
+        status: newStatus,
+        date: formattedDate,
+        time: formattedTime,
+        timestamp: timestamp.toISOString()
+      };
       
-      setCurrentShift(selectedShift);
+      // Add to history and save
+      const updatedHistory = [historyEntry, ...statusHistory];
+      setStatusHistory(updatedHistory);
+      await AsyncStorage.setItem('statusHistory', JSON.stringify(updatedHistory));
       
-      // Set as active shift - sử dụng trực tiếp state setter để tránh lỗi reference
-      setActiveShiftState(selectedShift);
+      // Update status details for today
+      const updatedStatusDetails = { ...statusDetails };
+      updatedStatusDetails[formattedDate] = {
+        status: newStatus,
+        timestamp: timestamp.toISOString()
+      };
+      setStatusDetails(updatedStatusDetails);
+      await AsyncStorage.setItem('statusDetails', JSON.stringify(updatedStatusDetails));
       
-      // Store in AsyncStorage
-      await AsyncStorage.setItem('shifts', JSON.stringify(updatedShifts));
-      await AsyncStorage.setItem('currentShift', JSON.stringify(selectedShift));
-      await AsyncStorage.setItem('activeShift', JSON.stringify(selectedShift));
+      // Update weekly status
+      updateWeeklyStatus(newStatus, formattedDate);
+      
+      // Cancel reminders based on status
+      await cancelRemindersByStatus(newStatus);
+      
+      // Calculate and store work time if checking out
+      if (newStatus === 'check_out' || newStatus === 'complete') {
+        await calculateAndStoreWorkTime(formattedDate, timestamp);
+      }
       
       return true;
     } catch (error) {
-      console.error('Error applying shift:', error);
+      console.error('Error updating work status:', error);
       return false;
     }
   };
-
-  // Update work status and record in history
-  const updateWorkStatus = (newStatus) => {
-    const timestamp = new Date();
-    const formattedDate = format(timestamp, 'yyyy-MM-dd');
-    const formattedTime = format(timestamp, 'HH:mm:ss');
-    
-    // Update status
-    setWorkStatus(newStatus);
-    
-    // Record in history
-    const historyEntry = {
-      id: Date.now().toString(),
-      status: newStatus,
-      date: formattedDate,
-      time: formattedTime,
-      timestamp: timestamp.toISOString()
-    };
-    
-    setStatusHistory(prev => [historyEntry, ...prev]);
-    
-    // Update weekly status
-    updateWeeklyStatus(newStatus, formattedDate);
+  
+  // Cancel reminders based on current status
+  const cancelRemindersByStatus = async (status) => {
+    try {
+      const settings = await NotificationService.loadNotificationSettings();
+      if (settings.reminderType === 'none') return true;
+      
+      // Get all current reminders
+      const storedNotifications = await NotificationService.getScheduledNotifications();
+      
+      // Check what to cancel based on status
+      switch (status) {
+        case 'go_work':
+          // Cancel "go to work" reminders for today
+          for (const [id, info] of Object.entries(storedNotifications)) {
+            if (info.type === 'departure' && isToday(parseISO(info.scheduledTime))) {
+              await NotificationService.cancelNotification(id);
+            }
+          }
+          break;
+          
+        case 'check_in':
+          // Cancel "check in" reminders for today
+          for (const [id, info] of Object.entries(storedNotifications)) {
+            if (info.type === 'start' && isToday(parseISO(info.scheduledTime))) {
+              await NotificationService.cancelNotification(id);
+            }
+          }
+          break;
+          
+        case 'check_out':
+        case 'complete':
+          // Cancel all reminders for today as the workday is done
+          for (const [id, info] of Object.entries(storedNotifications)) {
+            if (isToday(parseISO(info.scheduledTime))) {
+              await NotificationService.cancelNotification(id);
+            }
+          }
+          break;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error canceling reminders:', error);
+      return false;
+    }
+  };
+  
+  // Calculate and store work time
+  const calculateAndStoreWorkTime = async (dateStr, checkOutTime) => {
+    try {
+      // Get the check-in entry for today
+      const checkInEntry = statusHistory.find(entry => 
+        entry.status === 'check_in' && 
+        entry.date === dateStr
+      );
+      
+      if (!checkInEntry) return false;
+      
+      // Calculate work duration in minutes
+      const checkInTimestamp = parseISO(checkInEntry.timestamp);
+      const durationMinutes = differenceInMinutes(checkOutTime, checkInTimestamp);
+      
+      // Store work time
+      const workTimeEntry = {
+        id: Date.now().toString(),
+        date: dateStr,
+        checkInTime: format(checkInTimestamp, 'HH:mm'),
+        checkOutTime: format(checkOutTime, 'HH:mm'),
+        durationMinutes: durationMinutes,
+        shiftId: currentShift ? currentShift.id : null
+      };
+      
+      // Add to work entries
+      const updatedEntries = [...workEntries, workTimeEntry];
+      setWorkEntries(updatedEntries);
+      await AsyncStorage.setItem('workEntries', JSON.stringify(updatedEntries));
+      
+      return true;
+    } catch (error) {
+      console.error('Error calculating work time:', error);
+      return false;
+    }
   };
 
   // Update the weekly status grid
@@ -1115,7 +1281,7 @@ export const ShiftProvider = ({ children }) => {
   };
 
   // Reset day status
-  const resetDayStatus = (date) => {
+  const resetDayStatus = async (date) => {
     try {
       const formattedDate = typeof date === 'string' ? date : format(date || new Date(), 'yyyy-MM-dd');
       
@@ -1132,13 +1298,28 @@ export const ShiftProvider = ({ children }) => {
       setWeeklyStatus(newWeeklyStatus);
       
       // Update storage
-      AsyncStorage.setItem('statusDetails', JSON.stringify(newStatusDetails));
-      AsyncStorage.setItem('weeklyStatus', JSON.stringify(newWeeklyStatus));
+      await AsyncStorage.setItem('statusDetails', JSON.stringify(newStatusDetails));
+      await AsyncStorage.setItem('weeklyStatus', JSON.stringify(newWeeklyStatus));
+      
+      // Reset status history for today
+      const filteredHistory = statusHistory.filter(entry => 
+        !isToday(parseISO(entry.timestamp))
+      );
+      setStatusHistory(filteredHistory);
+      await AsyncStorage.setItem('statusHistory', JSON.stringify(filteredHistory));
       
       // If today, also reset work status
       if (isToday(typeof date === 'string' ? parseISO(date) : (date || new Date()))) {
         setWorkStatus('inactive');
-        AsyncStorage.setItem('workStatus', 'inactive');
+        await AsyncStorage.setItem('workStatus', 'inactive');
+        
+        // Re-enable all today's reminders by canceling any existing ones first
+        await NotificationService.cancelAllShiftNotifications();
+        
+        // If there is a current shift, reschedule its reminders
+        if (currentShift) {
+          await scheduleShiftReminders(currentShift);
+        }
       }
       
       return true;

@@ -314,10 +314,26 @@ const ShiftScreen = () => {
     return (
       <View style={[
         styles.shiftItem,
-        { backgroundColor: theme.colors.surface }
+        { 
+          backgroundColor: isCurrentShift ? theme.colors.primaryLight : theme.colors.surface,
+          borderLeftWidth: isCurrentShift ? 4 : 0,
+          borderLeftColor: isCurrentShift ? theme.colors.primary : 'transparent',
+          shadowColor: isCurrentShift ? theme.colors.primary : '#000',
+          shadowOffset: { width: 0, height: isCurrentShift ? 4 : 2 },
+          shadowOpacity: isCurrentShift ? 0.4 : 0.1,
+          shadowRadius: isCurrentShift ? 8 : 3,
+          elevation: isCurrentShift ? 10 : 3,
+        }
       ]}>
         <View style={styles.shiftHeader}>
-          <Text style={[styles.shiftName, { color: theme.colors.text }]}>{item.name}</Text>
+          <Text style={[
+            styles.shiftName, 
+            { 
+              color: isCurrentShift ? theme.colors.primary : theme.colors.text,
+              fontWeight: isCurrentShift ? 'bold' : 'normal',
+              fontSize: isCurrentShift ? 18 : 16
+            }
+          ]}>{item.name}</Text>
           {isCurrentShift && (
             <View style={[styles.currentBadge, { backgroundColor: theme.colors.primary }]}>
               <Text style={styles.currentBadgeText}>{t('current')}</Text>
@@ -347,13 +363,19 @@ const ShiftScreen = () => {
           )}
         </View>
         
+        {isCurrentShift && (
+          <Text style={[styles.appliedWeekText, { color: theme.colors.success }]}>
+            {t('currently_applied')}
+          </Text>
+        )}
+        
         <View style={styles.shiftActions}>
           {!isCurrentShift && (
             <TouchableOpacity 
               style={[styles.applyButton, { backgroundColor: theme.colors.primary }]}
               onPress={() => handleApplyShift(item)}
             >
-              <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
+              <Ionicons name="checkmark-circle" size={20} color="#fff" />
             </TouchableOpacity>
           )}
           
@@ -424,14 +446,14 @@ const ShiftScreen = () => {
               <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('shift_name')}</Text>
               <TextInput
                 style={[styles.textInput, {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                  backgroundColor: 'rgba(30, 30, 50, 0.8)',
+                  borderColor: 'rgba(100, 100, 255, 0.5)',
                   color: '#fff'
                 }]}
                 value={newShift.name}
                 onChangeText={(text) => setNewShift({...newShift, name: text})}
                 placeholder={t('shift_name_placeholder')}
-                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                placeholderTextColor="rgba(200, 200, 255, 0.6)"
                 maxLength={200}
               />
               <View style={styles.nameInputFooter}>
@@ -446,15 +468,15 @@ const ShiftScreen = () => {
               <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('departure_time')}</Text>
               <TouchableOpacity 
                 style={[styles.timePickerButton, {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  borderColor: 'rgba(255, 255, 255, 0.2)'
+                  backgroundColor: 'rgba(30, 30, 50, 0.8)',
+                  borderColor: 'rgba(100, 100, 255, 0.5)'
                 }]}
                 onPress={() => handleOpenTimePicker('departureTime')}
               >
                 <Text style={[styles.timePickerText, {color: '#fff'}]}>
                   {newShift.departureTime || '--:--'}
                 </Text>
-                <Ionicons name="time-outline" size={24} color="rgba(255, 255, 255, 0.7)" />
+                <Ionicons name="time-outline" size={24} color="rgba(200, 200, 255, 0.7)" />
               </TouchableOpacity>
             </View>
             
@@ -463,15 +485,15 @@ const ShiftScreen = () => {
                 <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('shift_start_time')}</Text>
                 <TouchableOpacity 
                   style={[styles.timePickerButton, {
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    borderColor: 'rgba(255, 255, 255, 0.2)'
+                    backgroundColor: 'rgba(30, 30, 50, 0.8)',
+                    borderColor: 'rgba(100, 100, 255, 0.5)'
                   }]}
                   onPress={() => handleOpenTimePicker('startWorkTime')}
                 >
                   <Text style={[styles.timePickerText, {color: '#fff'}]}>
                     {newShift.startWorkTime || '--:--'}
                   </Text>
-                  <Ionicons name="time-outline" size={24} color="rgba(255, 255, 255, 0.7)" />
+                  <Ionicons name="time-outline" size={24} color="rgba(200, 200, 255, 0.7)" />
                 </TouchableOpacity>
               </View>
               
@@ -479,15 +501,15 @@ const ShiftScreen = () => {
                 <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('shift_end_time')}</Text>
                 <TouchableOpacity 
                   style={[styles.timePickerButton, {
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    borderColor: 'rgba(255, 255, 255, 0.2)'
+                    backgroundColor: 'rgba(30, 30, 50, 0.8)',
+                    borderColor: 'rgba(100, 100, 255, 0.5)'
                   }]}
                   onPress={() => handleOpenTimePicker('endWorkTime')}
                 >
                   <Text style={[styles.timePickerText, {color: '#fff'}]}>
                     {newShift.endWorkTime || '--:--'}
                   </Text>
-                  <Ionicons name="time-outline" size={24} color="rgba(255, 255, 255, 0.7)" />
+                  <Ionicons name="time-outline" size={24} color="rgba(200, 200, 255, 0.7)" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -496,15 +518,15 @@ const ShiftScreen = () => {
               <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('remind_before_work')}</Text>
               <TouchableOpacity 
                 style={[styles.dropdownButton, {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  borderColor: 'rgba(255, 255, 255, 0.2)'
+                  backgroundColor: 'rgba(30, 30, 50, 0.8)',
+                  borderColor: 'rgba(100, 100, 255, 0.5)'
                 }]}
                 onPress={() => handleOpenReminderOptions('before')}
               >
                 <Text style={[styles.dropdownText, {color: '#fff'}]}>
                   {newShift.remindBeforeWork} {t('minutes')}
                 </Text>
-                <Ionicons name="chevron-down" size={24} color="rgba(255, 255, 255, 0.7)" />
+                <Ionicons name="chevron-down" size={24} color="rgba(200, 200, 255, 0.7)" />
               </TouchableOpacity>
             </View>
             
@@ -512,15 +534,15 @@ const ShiftScreen = () => {
               <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('remind_after_work')}</Text>
               <TouchableOpacity 
                 style={[styles.dropdownButton, {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  borderColor: 'rgba(255, 255, 255, 0.2)'
+                  backgroundColor: 'rgba(30, 30, 50, 0.8)',
+                  borderColor: 'rgba(100, 100, 255, 0.5)'
                 }]}
                 onPress={() => handleOpenReminderOptions('after')}
               >
                 <Text style={[styles.dropdownText, {color: '#fff'}]}>
                   {newShift.remindAfterWork} {t('minutes')}
                 </Text>
-                <Ionicons name="chevron-down" size={24} color="rgba(255, 255, 255, 0.7)" />
+                <Ionicons name="chevron-down" size={24} color="rgba(200, 200, 255, 0.7)" />
               </TouchableOpacity>
             </View>
             
@@ -940,6 +962,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 4,
+  },
+  appliedWeekText: {
+    fontSize: 14,
+    marginBottom: 8,
   },
 });
 

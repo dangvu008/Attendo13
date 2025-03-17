@@ -67,12 +67,35 @@ const NotesScreen = () => {
   };
 
   const handleSaveNote = (note) => {
-    if (selectedNote) {
-      updateNote({ ...selectedNote, ...note });
-    } else {
-      addNote(note);
+    if (!note.title.trim() || !note.content.trim()) {
+      Alert.alert(t('error'), t('note_fields_required'));
+      return;
     }
-    setIsAddNoteModalVisible(false);
+    
+    Alert.alert(
+      t('confirm'),
+      t('save_note_confirm'),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        { 
+          text: t('confirm'), 
+          onPress: async () => {
+            let success = false;
+            if (selectedNote) {
+              success = await updateNote({ ...selectedNote, ...note });
+            } else {
+              success = await addNote(note);
+            }
+            
+            if (success) {
+              setIsAddNoteModalVisible(false);
+            } else {
+              Alert.alert(t('error'), t('save_note_error'));
+            }
+          }
+        }
+      ]
+    );
   };
 
   const renderEmptyComponent = () => (

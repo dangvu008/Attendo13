@@ -37,6 +37,8 @@ export const vi = {
   confirmReset: 'Xác nhận đặt lại trạng thái của hôm nay?',
   confirm_reset_today: 'Bạn có chắc chắn muốn đặt lại trạng thái làm việc hôm nay không?',
   confirm_apply_shift: 'Bạn có chắc chắn muốn áp dụng ca làm việc này không?',
+  confirm_reset_title: 'Xác nhận đặt lại',
+  confirm_reset_message: 'Bạn có chắc chắn muốn reset dữ liệu chấm công ngày hôm nay không?',
   
   // Success and Error messages
   success: 'Thành công',
@@ -256,7 +258,7 @@ export const vi = {
   completed: 'Đã hoàn thành',
   sign_work: 'Ký công',
   confirm_reset_title: 'Xác nhận đặt lại',
-  confirm_reset_message: 'Bạn có chắc muốn đặt lại trạng thái làm việc của ngày hôm nay không?',
+  confirm_reset_message: 'Bạn có chắc chắn muốn reset dữ liệu chấm công ngày hôm nay không?',
   confirm_action_title: 'Cần xác nhận',
   confirm_early_check_in: 'Bạn đang check-in sớm hơn thời gian quy định (cần ít nhất 5 phút sau khi bấm Đi làm). Bạn có chắc chắn muốn tiếp tục?',
   confirm_early_check_out: 'Bạn đang check-out sớm hơn thời gian quy định (cần ít nhất 2 giờ sau khi check-in). Bạn có chắc chắn muốn tiếp tục?',
