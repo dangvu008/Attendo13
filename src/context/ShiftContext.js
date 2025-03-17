@@ -718,7 +718,7 @@ export const ShiftProvider = ({ children }) => {
       
       setCurrentShift(selectedShift);
       
-      // Set as active shift
+      // Set as active shift - sử dụng trực tiếp state setter để tránh lỗi reference
       setActiveShiftState(selectedShift);
       
       // Store in AsyncStorage
@@ -1164,7 +1164,8 @@ export const ShiftProvider = ({ children }) => {
     return isAfter(now, startTime) && isBefore(now, endTime);
   };
 
-  // Set active shift
+  // Set active shift - chỉ sử dụng hàm này để cập nhật trạng thái của ca làm việc hiện tại
+  // và đảm bảo sử dụng đúng hàm setState đã được định nghĩa
   const setActiveShift = (shift) => {
     setActiveShiftState(shift);
   };

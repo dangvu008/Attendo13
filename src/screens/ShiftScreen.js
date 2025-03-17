@@ -353,7 +353,7 @@ const ShiftScreen = () => {
               style={[styles.applyButton, { backgroundColor: theme.colors.primary }]}
               onPress={() => handleApplyShift(item)}
             >
-              <Text style={styles.applyButtonText}>{t('set_as_active')}</Text>
+              <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
             </TouchableOpacity>
           )}
           
