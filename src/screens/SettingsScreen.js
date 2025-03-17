@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Alert, Modal, TouchableWithoutFeedback } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -410,220 +410,128 @@ const SettingsScreen = () => {
 
       {/* Language Selection Modal */}
       <Modal
-        transparent={true}
         visible={languageModalVisible}
+        transparent={true}
         animationType="fade"
         onRequestClose={() => setLanguageModalVisible(false)}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setLanguageModalVisible(false)}
-        >
-          <View 
-            style={[
-              styles.modalContent, 
-              { 
-                backgroundColor: theme.colors.surface,
-                ...theme.elevation.medium
-              }
-            ]}
-          >
-            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-              {t('select_language')}
-            </Text>
-            
-            <TouchableOpacity 
-              style={[
-                styles.modalOption,
-                locale === 'vi' && { backgroundColor: theme.colors.primaryLight }
-              ]}
-              onPress={() => handleChangeLanguage('vi')}
-            >
-              <Text style={[styles.modalOptionText, { color: theme.colors.text }]}>
-                Tiếng Việt
-              </Text>
-              {locale === 'vi' && (
-                <Ionicons name="checkmark" size={22} color={theme.colors.primary} />
-              )}
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[
-                styles.modalOption,
-                locale === 'en' && { backgroundColor: theme.colors.primaryLight }
-              ]}
-              onPress={() => handleChangeLanguage('en')}
-            >
-              <Text style={[styles.modalOptionText, { color: theme.colors.text }]}>
-                English
-              </Text>
-              {locale === 'en' && (
-                <Ionicons name="checkmark" size={22} color={theme.colors.primary} />
-              )}
-            </TouchableOpacity>
+        <TouchableWithoutFeedback onPress={() => setLanguageModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('select_language')}</Text>
+                <TouchableOpacity onPress={() => setLanguageModalVisible(false)} style={styles.closeButton}>
+                  <Ionicons name="close" size={24} color={theme.colors.text} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={styles.modalBody}>
+                {['en', 'vi'].map((lang) => (
+                  <TouchableOpacity
+                    key={lang}
+                    style={[
+                      styles.languageOption,
+                      locale === lang && { backgroundColor: theme.colors.primaryLight }
+                    ]}
+                    onPress={() => handleChangeLanguage(lang)}
+                  >
+                    <Text style={[styles.languageText, { color: theme.colors.text }]}>
+                      {lang === 'en' ? 'English' : 'Tiếng Việt'}
+                    </Text>
+                    {locale === lang && (
+                      <Ionicons name="checkmark" size={24} color={theme.colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
           </View>
-        </TouchableOpacity>
+        </TouchableWithoutFeedback>
       </Modal>
-      
+
       {/* Reminder Type Modal */}
       <Modal
-        transparent={true}
         visible={reminderModalVisible}
+        transparent={true}
         animationType="fade"
         onRequestClose={() => setReminderModalVisible(false)}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setReminderModalVisible(false)}
-        >
-          <View 
-            style={[
-              styles.modalContent, 
-              { 
-                backgroundColor: theme.colors.surface,
-                ...theme.elevation.medium
-              }
-            ]}
-          >
-            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-              {t('reminder_type')}
-            </Text>
-            
-            <TouchableOpacity 
-              style={[
-                styles.modalOption,
-                reminderType === 'none' && { backgroundColor: theme.colors.primaryLight }
-              ]}
-              onPress={() => handleSelectReminderType('none')}
-            >
-              <Text style={[styles.modalOptionText, { color: theme.colors.text }]}>
-                {t('no_reminder')}
-              </Text>
-              {reminderType === 'none' && (
-                <Ionicons name="checkmark" size={22} color={theme.colors.primary} />
-              )}
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[
-                styles.modalOption,
-                reminderType === 'before_5_min' && { backgroundColor: theme.colors.primaryLight }
-              ]}
-              onPress={() => handleSelectReminderType('before_5_min')}
-            >
-              <Text style={[styles.modalOptionText, { color: theme.colors.text }]}>
-                {t('before_5_min')}
-              </Text>
-              {reminderType === 'before_5_min' && (
-                <Ionicons name="checkmark" size={22} color={theme.colors.primary} />
-              )}
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[
-                styles.modalOption,
-                reminderType === 'before_15_min' && { backgroundColor: theme.colors.primaryLight }
-              ]}
-              onPress={() => handleSelectReminderType('before_15_min')}
-            >
-              <Text style={[styles.modalOptionText, { color: theme.colors.text }]}>
-                {t('before_15_min')}
-              </Text>
-              {reminderType === 'before_15_min' && (
-                <Ionicons name="checkmark" size={22} color={theme.colors.primary} />
-              )}
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[
-                styles.modalOption,
-                reminderType === 'before_30_min' && { backgroundColor: theme.colors.primaryLight }
-              ]}
-              onPress={() => handleSelectReminderType('before_30_min')}
-            >
-              <Text style={[styles.modalOptionText, { color: theme.colors.text }]}>
-                {t('before_30_min')}
-              </Text>
-              {reminderType === 'before_30_min' && (
-                <Ionicons name="checkmark" size={22} color={theme.colors.primary} />
-              )}
-            </TouchableOpacity>
+        <TouchableWithoutFeedback onPress={() => setReminderModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('select_reminder_type')}</Text>
+                <TouchableOpacity onPress={() => setReminderModalVisible(false)} style={styles.closeButton}>
+                  <Ionicons name="close" size={24} color={theme.colors.text} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={styles.modalBody}>
+                {['none', 'beforeDeparture', 'beforeWork', 'afterWork', 'all'].map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[
+                      styles.reminderOption,
+                      reminderType === type && { backgroundColor: theme.colors.primaryLight }
+                    ]}
+                    onPress={() => handleSelectReminderType(type)}
+                  >
+                    <Text style={[styles.reminderText, { color: theme.colors.text }]}>
+                      {t(`reminder_type_${type}`)}
+                    </Text>
+                    {reminderType === type && (
+                      <Ionicons name="checkmark" size={24} color={theme.colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
           </View>
-        </TouchableOpacity>
+        </TouchableWithoutFeedback>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Shift Confirmation Modal */}
       <Modal
-        transparent={true}
         visible={deleteModalVisible}
+        transparent={true}
         animationType="fade"
         onRequestClose={() => setDeleteModalVisible(false)}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setDeleteModalVisible(false)}
-        >
-          <View 
-            style={[
-              styles.modalContent, 
-              { 
-                backgroundColor: theme.colors.surface,
-                ...theme.elevation.medium
-              }
-            ]}
-          >
-            <View style={styles.modalIconContainer}>
-              <View style={[styles.modalIcon, { backgroundColor: 'rgba(234, 67, 53, 0.1)' }]}>
-                <Ionicons name="trash" size={28} color={theme.colors.error} />
+        <TouchableWithoutFeedback onPress={() => setDeleteModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.deleteModalContent, { backgroundColor: theme.colors.surface }]}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('confirm_delete')}</Text>
+                <TouchableOpacity onPress={() => setDeleteModalVisible(false)} style={styles.closeButton}>
+                  <Ionicons name="close" size={24} color={theme.colors.text} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.deleteModalBody}>
+                <Text style={[styles.deleteText, { color: theme.colors.text }]}>
+                  {t('delete_shift_confirm')}
+                </Text>
+                {selectedShift && (
+                  <Text style={[styles.shiftName, { color: theme.colors.text, marginTop: 8 }]}>
+                    {selectedShift.name}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.deleteModalActions}>
+                <TouchableOpacity 
+                  style={[styles.deleteModalButton, styles.cancelButton, { borderColor: theme.colors.border }]} 
+                  onPress={() => setDeleteModalVisible(false)}
+                >
+                  <Text style={[styles.buttonText, { color: theme.colors.text }]}>{t('cancel')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.deleteModalButton, styles.deleteButton, { backgroundColor: theme.colors.error }]} 
+                  onPress={confirmDeleteShift}
+                >
+                  <Ionicons name="trash-outline" size={18} color="#fff" style={styles.buttonIcon} />
+                  <Text style={[styles.buttonText, { color: '#fff' }]}>{t('delete')}</Text>
+                </TouchableOpacity>
               </View>
             </View>
-            
-            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-              {t('confirm_delete')}
-            </Text>
-            
-            <Text style={[styles.modalText, { color: theme.colors.textSecondary }]}>
-              {t('delete_shift_confirm')}
-            </Text>
-            
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[
-                  styles.modalButton, 
-                  styles.cancelButton, 
-                  { borderColor: theme.colors.border }
-                ]}
-                onPress={() => setDeleteModalVisible(false)}
-              >
-                <Text style={[
-                  styles.modalButtonText, 
-                  { color: theme.colors.textSecondary }
-                ]}>
-                  {t('cancel')}
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[
-                  styles.modalButton, 
-                  styles.deleteButton, 
-                  { backgroundColor: theme.colors.error }
-                ]}
-                onPress={confirmDeleteShift}
-              >
-                <Text style={[
-                  styles.modalButtonText,
-                  { color: '#fff' }
-                ]}>
-                  {t('delete')}
-                </Text>
-              </TouchableOpacity>
-            </View>
           </View>
-        </TouchableOpacity>
+        </TouchableWithoutFeedback>
       </Modal>
     </SafeAreaView>
   );
@@ -779,30 +687,23 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
   },
-  modalIconContainer: {
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
-  },
-  modalIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
   },
-  modalText: {
-    fontSize: 16,
-    marginBottom: 24,
-    textAlign: 'center',
-    lineHeight: 22,
+  closeButton: {
+    padding: 8,
   },
-  modalOption: {
+  modalBody: {
+    maxHeight: '80%',
+  },
+  languageOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -811,14 +712,38 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 8,
   },
-  modalOptionText: {
+  languageText: {
     fontSize: 16,
   },
-  modalButtons: {
+  reminderOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  reminderText: {
+    fontSize: 16,
+  },
+  deleteModalContent: {
+    width: '90%',
+    borderRadius: 16,
+    padding: 24,
+  },
+  deleteModalBody: {
+    marginBottom: 24,
+  },
+  deleteText: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  deleteModalActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  modalButton: {
+  deleteModalButton: {
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 12,
@@ -830,9 +755,12 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
   },
-  modalButtonText: {
+  buttonText: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  buttonIcon: {
+    marginRight: 8,
   },
   emptyState: {
     padding: 30,

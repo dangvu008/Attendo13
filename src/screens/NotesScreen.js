@@ -148,14 +148,6 @@ const NotesScreen = () => {
         ListEmptyComponent={renderEmptyComponent}
       />
       
-      <TouchableOpacity
-        style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
-        onPress={handleAddNote}
-      >
-        <Text style={styles.addButtonText}>{t('add_note')}</Text>
-        <Ionicons name="add" size={20} color="#fff" style={styles.addButtonIcon} />
-      </TouchableOpacity>
-      
       {/* Add/Edit Note Modal */}
       <AddNoteModal
         visible={isAddNoteModalVisible}
@@ -165,6 +157,13 @@ const NotesScreen = () => {
         theme={theme}
         t={t}
       />
+      
+      <TouchableOpacity
+        style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
+        onPress={handleAddNote}
+      >
+        <Ionicons name="add" size={24} color="#fff" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };

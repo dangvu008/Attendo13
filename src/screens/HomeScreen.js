@@ -491,6 +491,7 @@ const HomeScreen = () => {
               style={[styles.addNoteButton, { backgroundColor: theme.colors.primary }]}
               onPress={handleAddNote}
             >
+              <Ionicons name="add-outline" size={18} color="#fff" />
               <Text style={styles.addNoteButtonText}>{t('add_note')}</Text>
             </TouchableOpacity>
           </View>

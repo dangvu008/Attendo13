@@ -268,41 +268,31 @@ const ShiftScreen = () => {
     setDisplayReminderOptions(false);
   };
 
-  const handleResetForm = () => {
+  const handleResetShiftForm = () => {
     Alert.alert(
-      t('confirm'),
-      t('reset_confirm'),
+      t('confirm_reset'),
+      t('confirm_reset_form_message'),
       [
-        { text: t('cancel'), style: 'cancel' },
-        { 
-          text: t('confirm'), 
+        {
+          text: t('cancel'),
+          style: 'cancel'
+        },
+        {
+          text: t('reset'),
           onPress: () => {
-            if (editingShift) {
-              setNewShift({
-                name: editingShift.name,
-                startWorkTime: editingShift.startWorkTime || '',
-                endWorkTime: editingShift.endWorkTime || '',
-                departureTime: editingShift.departureTime || '',
-                remindBeforeWork: editingShift.remindBeforeWork || 15,
-                remindAfterWork: editingShift.remindAfterWork || 15,
-                showSignButton: editingShift.showSignButton !== undefined ? editingShift.showSignButton : true,
-                appliedDays: editingShift.appliedDays || [1, 2, 3, 4, 5], 
-                active: editingShift.active
-              });
-            } else {
-              setNewShift({
-                name: '',
-                startWorkTime: '',
-                endWorkTime: '',
-                departureTime: '',
-                remindBeforeWork: 15,
-                remindAfterWork: 15,
-                showSignButton: true,
-                appliedDays: [1, 2, 3, 4, 5], 
-                active: true
-              });
-            }
-          }
+            setNewShift({
+              name: '',
+              startWorkTime: '',
+              endWorkTime: '',
+              departureTime: '',
+              remindBeforeWork: 15,
+              remindAfterWork: 15,
+              showSignButton: true,
+              appliedDays: [1, 2, 3, 4, 5], // Monday to Friday by default
+            });
+            setNameError('');
+          },
+          style: 'destructive'
         }
       ]
     );
@@ -372,7 +362,10 @@ const ShiftScreen = () => {
         <View style={styles.shiftActions}>
           {!isCurrentShift && (
             <TouchableOpacity 
-              style={[styles.applyButton, { backgroundColor: theme.colors.primary }]}
+              style={[
+                styles.applyButton, 
+                { backgroundColor: theme.colors.primary }
+              ]}
               onPress={() => handleApplyShift(item)}
             >
               <Ionicons name="checkmark-circle" size={20} color="#fff" />
@@ -380,14 +373,20 @@ const ShiftScreen = () => {
           )}
           
           <TouchableOpacity 
-            style={[styles.actionButton, { borderColor: theme.colors.primary }]}
+            style={[
+              styles.actionButton, 
+              { borderColor: theme.colors.primary }
+            ]}
             onPress={() => handleEditShift(item)}
           >
             <Ionicons name="create-outline" size={16} color={theme.colors.primary} />
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.actionButton, { borderColor: theme.colors.error }]}
+            style={[
+              styles.actionButton, 
+              { borderColor: theme.colors.error }
+            ]}
             onPress={() => handleDeleteShift(item.id)}
           >
             <Ionicons name="trash-outline" size={16} color={theme.colors.error} />
@@ -426,176 +425,242 @@ const ShiftScreen = () => {
       </TouchableOpacity>
       
       <Modal
-        transparent={true}
         visible={modalVisible}
+        transparent={true}
         animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={[styles.modalContainer, { backgroundColor: theme.colors.background || '#1a1a2e' }]}>
-          <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, {color: '#fff'}]}>
-              {editingShift ? t('edit_shift') : t('new_shift')}
-            </Text>
-            <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <Ionicons name="close" size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
-          
-          <ScrollView style={styles.modalBody}>
-            <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('shift_name')}</Text>
-              <TextInput
-                style={[styles.textInput, {
-                  backgroundColor: 'rgba(30, 30, 50, 0.8)',
-                  borderColor: 'rgba(100, 100, 255, 0.5)',
-                  color: '#fff'
-                }]}
-                value={newShift.name}
-                onChangeText={(text) => setNewShift({...newShift, name: text})}
-                placeholder={t('shift_name_placeholder')}
-                placeholderTextColor="rgba(200, 200, 255, 0.6)"
-                maxLength={200}
-              />
-              <View style={styles.nameInputFooter}>
-                {nameError ? (
-                  <Text style={styles.errorText}>{nameError}</Text>
-                ) : null}
-                <Text style={[styles.charCountText, {color: 'rgba(255, 255, 255, 0.7)'}]}>{nameCharCount}/200 {t('character_count')}</Text>
-              </View>
-            </View>
-            
-            <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('departure_time')}</Text>
+        <View style={styles.modalContainer}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+                {editingShift ? t('edit_shift') : t('add_shift')}
+              </Text>
               <TouchableOpacity 
-                style={[styles.timePickerButton, {
-                  backgroundColor: 'rgba(30, 30, 50, 0.8)',
-                  borderColor: 'rgba(100, 100, 255, 0.5)'
-                }]}
-                onPress={() => handleOpenTimePicker('departureTime')}
+                onPress={() => setModalVisible(false)}
+                style={styles.closeButton}
               >
-                <Text style={[styles.timePickerText, {color: '#fff'}]}>
-                  {newShift.departureTime || '--:--'}
-                </Text>
-                <Ionicons name="time-outline" size={24} color="rgba(200, 200, 255, 0.7)" />
+                <Ionicons name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
             
-            <View style={styles.timeRow}>
-              <View style={[styles.inputGroup, styles.halfInput]}>
-                <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('shift_start_time')}</Text>
-                <TouchableOpacity 
-                  style={[styles.timePickerButton, {
-                    backgroundColor: 'rgba(30, 30, 50, 0.8)',
-                    borderColor: 'rgba(100, 100, 255, 0.5)'
+            <ScrollView style={styles.formContainer}>
+              {/* Shift Name */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: theme.colors.text }]}>{t('shift_name')}</Text>
+                <TextInput
+                  style={[styles.input, { 
+                    color: theme.colors.text,
+                    backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f5f5f5',
+                    borderColor: theme.colors.border 
                   }]}
-                  onPress={() => handleOpenTimePicker('startWorkTime')}
+                  placeholder={t('shift_name_placeholder')}
+                  placeholderTextColor={theme.colors.placeholder}
+                  value={newShift.name}
+                  onChangeText={(text) => setNewShift({...newShift, name: text})}
+                />
+                {nameError && <Text style={styles.errorText}>{nameError}</Text>}
+              </View>
+              
+              {/* Work Time */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: theme.colors.text }]}>{t('work_time')}</Text>
+                <View style={styles.timeContainer}>
+                  <TouchableOpacity 
+                    style={[
+                      styles.timeButton, 
+                      { 
+                        backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f5f5f5',
+                        borderColor: theme.colors.border 
+                      }
+                    ]}
+                    onPress={() => handleOpenTimePicker('startWorkTime')}
+                  >
+                    <Ionicons name="time-outline" size={18} color={theme.colors.primary} />
+                    <Text style={[styles.timeText, { color: theme.colors.text }]}>
+                      {newShift.startWorkTime || t('select_time')}
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <Text style={[styles.timeSeparator, { color: theme.colors.text }]}>-</Text>
+                  
+                  <TouchableOpacity 
+                    style={[
+                      styles.timeButton, 
+                      { 
+                        backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f5f5f5',
+                        borderColor: theme.colors.border 
+                      }
+                    ]}
+                    onPress={() => handleOpenTimePicker('endWorkTime')}
+                  >
+                    <Ionicons name="time-outline" size={18} color={theme.colors.primary} />
+                    <Text style={[styles.timeText, { color: theme.colors.text }]}>
+                      {newShift.endWorkTime || t('select_time')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              
+              {/* Departure Time */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: theme.colors.text }]}>{t('departure_time')}</Text>
+                <TouchableOpacity 
+                  style={[
+                    styles.departureButton, 
+                    { 
+                      backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f5f5f5',
+                      borderColor: theme.colors.border 
+                    }
+                  ]}
+                  onPress={() => handleOpenTimePicker('departureTime')}
                 >
-                  <Text style={[styles.timePickerText, {color: '#fff'}]}>
-                    {newShift.startWorkTime || '--:--'}
+                  <Ionicons name="time-outline" size={18} color={theme.colors.primary} />
+                  <Text style={[styles.timeText, { color: theme.colors.text }]}>
+                    {newShift.departureTime || t('select_time')}
                   </Text>
-                  <Ionicons name="time-outline" size={24} color="rgba(200, 200, 255, 0.7)" />
                 </TouchableOpacity>
               </View>
               
-              <View style={[styles.inputGroup, styles.halfInput]}>
-                <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('shift_end_time')}</Text>
-                <TouchableOpacity 
-                  style={[styles.timePickerButton, {
-                    backgroundColor: 'rgba(30, 30, 50, 0.8)',
-                    borderColor: 'rgba(100, 100, 255, 0.5)'
-                  }]}
-                  onPress={() => handleOpenTimePicker('endWorkTime')}
-                >
-                  <Text style={[styles.timePickerText, {color: '#fff'}]}>
-                    {newShift.endWorkTime || '--:--'}
-                  </Text>
-                  <Ionicons name="time-outline" size={24} color="rgba(200, 200, 255, 0.7)" />
-                </TouchableOpacity>
-              </View>
-            </View>
-            
-            <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('remind_before_work')}</Text>
-              <TouchableOpacity 
-                style={[styles.dropdownButton, {
-                  backgroundColor: 'rgba(30, 30, 50, 0.8)',
-                  borderColor: 'rgba(100, 100, 255, 0.5)'
-                }]}
-                onPress={() => handleOpenReminderOptions('before')}
-              >
-                <Text style={[styles.dropdownText, {color: '#fff'}]}>
-                  {newShift.remindBeforeWork} {t('minutes')}
-                </Text>
-                <Ionicons name="chevron-down" size={24} color="rgba(200, 200, 255, 0.7)" />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('remind_after_work')}</Text>
-              <TouchableOpacity 
-                style={[styles.dropdownButton, {
-                  backgroundColor: 'rgba(30, 30, 50, 0.8)',
-                  borderColor: 'rgba(100, 100, 255, 0.5)'
-                }]}
-                onPress={() => handleOpenReminderOptions('after')}
-              >
-                <Text style={[styles.dropdownText, {color: '#fff'}]}>
-                  {newShift.remindAfterWork} {t('minutes')}
-                </Text>
-                <Ionicons name="chevron-down" size={24} color="rgba(200, 200, 255, 0.7)" />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.switchGroup}>
-              <Text style={[styles.switchLabel, {color: '#fff'}]}>{t('show_sign_button')}</Text>
-              <Switch
-                value={newShift.showSignButton}
-                onValueChange={(value) => setNewShift({ ...newShift, showSignButton: value })}
-                trackColor={{ false: '#3e3e42', true: '#8b5cf6' }}
-                thumbColor={newShift.showSignButton ? '#6b46c1' : '#f4f3f4'}
-                ios_backgroundColor="#3e3e42"
-              />
-            </View>
-            
-            <View style={styles.appliedDaysGroup}>
-              <Text style={[styles.inputLabel, {color: '#fff'}]}>{t('applied_days')}</Text>
-              <View style={styles.appliedDaysList}>
-                {[0, 1, 2, 3, 4, 5, 6].map((day) => (
-                  <TouchableOpacity
-                    key={day}
-                    style={[
-                      styles.dayButton,
-                      newShift.appliedDays.includes(day) ? styles.dayButtonSelected : styles.dayButtonUnselected
-                    ]}
-                    onPress={() => toggleAppliedDay(day)}
-                  >
-                    <Text 
+              {/* Week Days Selection */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: theme.colors.text }]}>{t('apply_to_days')}</Text>
+                <View style={styles.daysContainer}>
+                  {[0, 1, 2, 3, 4, 5, 6].map((day) => (
+                    <TouchableOpacity
+                      key={day}
                       style={[
-                        styles.dayButtonText,
-                        newShift.appliedDays.includes(day) ? styles.dayButtonTextSelected : styles.dayButtonTextUnselected
+                        styles.dayButton,
+                        { 
+                          backgroundColor: newShift.appliedDays?.includes(day) 
+                            ? theme.colors.primary 
+                            : theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f5f5f5',
+                          borderColor: newShift.appliedDays?.includes(day)
+                            ? theme.colors.primary
+                            : theme.colors.border
+                        }
                       ]}
+                      onPress={() => toggleAppliedDay(day)}
                     >
-                      {t(`day_${day}`)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        style={[
+                          styles.dayText,
+                          { 
+                            color: newShift.appliedDays?.includes(day) 
+                              ? '#fff' 
+                              : theme.colors.text
+                          }
+                        ]}
+                      >
+                        {t(`day_${day}`)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
+              
+              {/* Reminder Options */}
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: theme.colors.text }]}>{t('reminder_options')}</Text>
+                
+                <View style={styles.reminderOption}>
+                  <Text style={[styles.reminderText, { color: theme.colors.text }]}>{t('remind_before_work')}</Text>
+                  <View style={styles.reminderValue}>
+                    <TextInput
+                      style={[
+                        styles.reminderInput, 
+                        { 
+                          color: theme.colors.text,
+                          backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f5f5f5',
+                          borderColor: theme.colors.border 
+                        }
+                      ]}
+                      keyboardType="number-pad"
+                      value={String(newShift.remindBeforeWork || '15')}
+                      onChangeText={(text) => setNewShift({...newShift, remindBeforeWork: text ? parseInt(text) : 15})}
+                    />
+                    <Text style={[styles.reminderUnit, { color: theme.colors.text }]}>{t('minutes')}</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.reminderOption}>
+                  <Text style={[styles.reminderText, { color: theme.colors.text }]}>{t('remind_after_work')}</Text>
+                  <View style={styles.reminderValue}>
+                    <TextInput
+                      style={[
+                        styles.reminderInput, 
+                        { 
+                          color: theme.colors.text,
+                          backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f5f5f5',
+                          borderColor: theme.colors.border 
+                        }
+                      ]}
+                      keyboardType="number-pad"
+                      value={String(newShift.remindAfterWork || '15')}
+                      onChangeText={(text) => setNewShift({...newShift, remindAfterWork: text ? parseInt(text) : 15})}
+                    />
+                    <Text style={[styles.reminderUnit, { color: theme.colors.text }]}>{t('minutes')}</Text>
+                  </View>
+                </View>
+              </View>
+              
+              {/* Show Sign Button Option */}
+              <View style={styles.inputGroup}>
+                <View style={styles.switchContainer}>
+                  <Text style={[styles.switchLabel, { color: theme.colors.text }]}>{t('show_sign_button')}</Text>
+                  <Switch
+                    value={newShift.showSignButton}
+                    onValueChange={(value) => setNewShift({ ...newShift, showSignButton: value })}
+                    trackColor={{ false: theme.colors.disabled, true: theme.colors.primary }}
+                    thumbColor={newShift.showSignButton ? theme.colors.primaryLight : '#f4f3f4'}
+                  />
+                </View>
+                <Text style={[styles.switchHint, { color: theme.colors.textSecondary }]}>
+                  {t('sign_button_hint')}
+                </Text>
+              </View>
+              <TouchableOpacity 
+                style={[
+                  styles.resetButton, 
+                  { 
+                    backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f5f5f5',
+                    borderColor: theme.colors.border 
+                  }
+                ]}
+                onPress={handleResetShiftForm}
+              >
+                <Ionicons name="refresh-outline" size={20} color={theme.colors.text} />
+                <Text style={[styles.resetButtonText, { color: theme.colors.text }]}>{t('reset')}</Text>
+              </TouchableOpacity>
+            </ScrollView>
+            
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={[
+                  styles.footerButton, 
+                  styles.cancelButton,
+                  { borderColor: theme.colors.border }
+                ]} 
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={[styles.cancelButtonText, { color: theme.colors.text }]}>
+                  {t('cancel')}
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.footerButton, 
+                  styles.saveButton,
+                  { backgroundColor: theme.colors.primary }
+                ]} 
+                onPress={handleSaveShift}
+              >
+                <Text style={styles.saveButtonText}>
+                  {t('save')}
+                </Text>
+              </TouchableOpacity>
             </View>
-          </ScrollView>
-          
-          <View style={styles.modalFooter}>
-            <TouchableOpacity 
-              style={[styles.footerButton, styles.cancelButton]} 
-              onPress={handleResetForm}
-            >
-              <Text style={styles.buttonText}>{t('reset')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.footerButton, styles.saveButton]} 
-              onPress={handleSaveShift}
-            >
-              <Text style={styles.buttonText}>{t('save_shift')}</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -966,6 +1031,132 @@ const styles = StyleSheet.create({
   appliedWeekText: {
     fontSize: 14,
     marginBottom: 8,
+  },
+  input: {
+    height: 48,
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    fontSize: 16,
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  timeButton: {
+    height: 48,
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flex: 1,
+  },
+  timeText: {
+    fontSize: 16,
+  },
+  timeSeparator: {
+    fontSize: 16,
+    marginHorizontal: 8,
+  },
+  departureButton: {
+    height: 48,
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  daysContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  reminderOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  reminderText: {
+    fontSize: 16,
+  },
+  reminderValue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  reminderInput: {
+    height: 48,
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    width: 80,
+  },
+  reminderUnit: {
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  switchLabel: {
+    fontSize: 16,
+  },
+  switchHint: {
+    fontSize: 14,
+    color: '#757575',
+    marginTop: 4,
+  },
+  formContainer: {
+    padding: 16,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  footerButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#3e3e42',
+  },
+  saveButton: {
+    backgroundColor: '#6200ee',
+    marginLeft: 8,
+  },
+  cancelButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  resetButton: {
+    height: 48,
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  resetButtonText: {
+    fontSize: 16,
   },
 });
 
