@@ -19,8 +19,6 @@ const SettingsScreen = () => {
   const [notificationVibration, setNotificationVibration] = useState(true);
   const [reminderType, setReminderType] = useState('none');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [languageModalVisible, setLanguageModalVisible] = useState(false);
-  const [reminderModalVisible, setReminderModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedShift, setSelectedShift] = useState(null);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
@@ -125,12 +123,10 @@ const SettingsScreen = () => {
 
   const handleChangeLanguage = (newLocale) => {
     changeLocale(newLocale);
-    setLanguageModalVisible(false);
   };
   
   const handleSelectReminderType = async (type) => {
     setReminderType(type);
-    setReminderModalVisible(false);
     
     // Schedule or cancel reminders based on the new type
     if (type !== 'none' && notificationsEnabled && currentShift) {
@@ -282,30 +278,41 @@ const SettingsScreen = () => {
             <MaterialIcons name="access-time" size={20} color={theme.colors.primary} />,
             t('reminder_type'),
             null,
-            <TouchableOpacity 
-              style={styles.settingControl}
-              onPress={() => setReminderModalVisible(true)}
-              disabled={!notificationsEnabled}
-            >
-              <Text style={[
-                styles.settingValue, 
-                { 
-                  color: notificationsEnabled 
-                    ? theme.colors.textSecondary 
-                    : theme.colors.disabled 
-                }
-              ]}>
-                {reminderType === 'none' ? t('no_reminder') : 
-                 reminderType === 'before_5_min' ? t('before_5_min') :
-                 reminderType === 'before_15_min' ? t('before_15_min') : 
-                 t('before_30_min')}
-              </Text>
-              <Ionicons 
-                name="chevron-forward" 
-                size={20} 
-                color={notificationsEnabled ? theme.colors.textSecondary : theme.colors.disabled} 
-              />
-            </TouchableOpacity>
+            <View style={styles.reminderSelector}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.reminderSelectorContainer}
+              >
+                {['none', 'before_5_min', 'before_15_min', 'before_30_min'].map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[
+                      styles.reminderChip,
+                      reminderType === type ? 
+                        { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary } : 
+                        { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }
+                    ]}
+                    onPress={() => handleSelectReminderType(type)}
+                    disabled={!notificationsEnabled}
+                  >
+                    <Text style={[
+                      styles.reminderChipText, 
+                      { 
+                        color: reminderType === type ? '#fff' : 
+                          notificationsEnabled ? theme.colors.text : theme.colors.disabled,
+                        fontWeight: reminderType === type ? 'bold' : 'normal'
+                      }
+                    ]}>
+                      {t(`reminder_type_${type}`)}
+                    </Text>
+                    {reminderType === type && (
+                      <Ionicons name="checkmark" size={16} color="#fff" style={styles.chipIcon} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
           )}
         </View>
 
@@ -388,15 +395,37 @@ const SettingsScreen = () => {
             <Ionicons name="language-outline" size={20} color={theme.colors.primary} />,
             t('language'),
             null,
-            <TouchableOpacity 
-              style={styles.settingControl}
-              onPress={() => setLanguageModalVisible(true)}
-            >
-              <Text style={[styles.settingValue, { color: theme.colors.textSecondary }]}>
-                {locale === 'vi' ? 'Tiếng Việt' : 'English'}
-              </Text>
-              <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
+            <View style={styles.languageSelector}>
+              {['en', 'vi'].map((lang) => (
+                <TouchableOpacity
+                  key={lang}
+                  style={[
+                    styles.languageOption,
+                    locale === lang ? { 
+                      backgroundColor: theme.colors.primaryLight,
+                      borderColor: theme.colors.primary,
+                    } : {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border,
+                    }
+                  ]}
+                  onPress={() => handleChangeLanguage(lang)}
+                >
+                  <Text style={[
+                    styles.languageText, 
+                    { 
+                      color: locale === lang ? theme.colors.primary : theme.colors.text,
+                      fontWeight: locale === lang ? 'bold' : 'normal'
+                    }
+                  ]}>
+                    {lang === 'en' ? 'English' : 'Tiếng Việt'}
+                  </Text>
+                  {locale === lang && (
+                    <Ionicons name="checkmark" size={18} color={theme.colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
           )}
         </View>
         
@@ -407,86 +436,6 @@ const SettingsScreen = () => {
           </Text>
         </View>
       </ScrollView>
-
-      {/* Language Selection Modal */}
-      <Modal
-        visible={languageModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setLanguageModalVisible(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setLanguageModalVisible(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
-              <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('select_language')}</Text>
-                <TouchableOpacity onPress={() => setLanguageModalVisible(false)} style={styles.closeButton}>
-                  <Ionicons name="close" size={24} color={theme.colors.text} />
-                </TouchableOpacity>
-              </View>
-              <ScrollView style={styles.modalBody}>
-                {['en', 'vi'].map((lang) => (
-                  <TouchableOpacity
-                    key={lang}
-                    style={[
-                      styles.languageOption,
-                      locale === lang && { backgroundColor: theme.colors.primaryLight }
-                    ]}
-                    onPress={() => handleChangeLanguage(lang)}
-                  >
-                    <Text style={[styles.languageText, { color: theme.colors.text }]}>
-                      {lang === 'en' ? 'English' : 'Tiếng Việt'}
-                    </Text>
-                    {locale === lang && (
-                      <Ionicons name="checkmark" size={24} color={theme.colors.primary} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-
-      {/* Reminder Type Modal */}
-      <Modal
-        visible={reminderModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setReminderModalVisible(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setReminderModalVisible(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
-              <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('select_reminder_type')}</Text>
-                <TouchableOpacity onPress={() => setReminderModalVisible(false)} style={styles.closeButton}>
-                  <Ionicons name="close" size={24} color={theme.colors.text} />
-                </TouchableOpacity>
-              </View>
-              <ScrollView style={styles.modalBody}>
-                {['none', 'beforeDeparture', 'beforeWork', 'afterWork', 'all'].map((type) => (
-                  <TouchableOpacity
-                    key={type}
-                    style={[
-                      styles.reminderOption,
-                      reminderType === type && { backgroundColor: theme.colors.primaryLight }
-                    ]}
-                    onPress={() => handleSelectReminderType(type)}
-                  >
-                    <Text style={[styles.reminderText, { color: theme.colors.text }]}>
-                      {t(`reminder_type_${type}`)}
-                    </Text>
-                    {reminderType === type && (
-                      <Ionicons name="checkmark" size={24} color={theme.colors.primary} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
 
       {/* Delete Shift Confirmation Modal */}
       <Modal
@@ -666,66 +615,28 @@ const styles = StyleSheet.create({
   settingDescription: {
     fontSize: 12,
   },
-  settingControl: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  settingValue: {
-    marginRight: 8,
-    fontSize: 14,
-  },
-  modalOverlay: {
+  reminderSelector: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  reminderSelectorContainer: {
+    paddingVertical: 5,
+  },
+  reminderChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginHorizontal: 4,
   },
-  modalContent: {
-    width: '90%',
-    borderRadius: 16,
-    padding: 24,
+  reminderChipText: {
+    fontSize: 13,
+    marginRight: 4,
   },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  closeButton: {
-    padding: 8,
-  },
-  modalBody: {
-    maxHeight: '80%',
-  },
-  languageOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  languageText: {
-    fontSize: 16,
-  },
-  reminderOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  reminderText: {
-    fontSize: 16,
+  chipIcon: {
+    marginLeft: 4,
   },
   deleteModalContent: {
     width: '90%',
@@ -779,7 +690,26 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 14,
-  }
+  },
+  languageSelector: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '60%',
+  },
+  languageOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    minWidth: 100,
+  },
+  languageText: {
+    fontSize: 14,
+    marginRight: 4,
+  },
 });
 
 export default SettingsScreen;

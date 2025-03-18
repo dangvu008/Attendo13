@@ -41,13 +41,13 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
 
   // Week days options
   const weekDays = [
-    { id: 1, name: 'T2' },
-    { id: 2, name: 'T3' },
-    { id: 3, name: 'T4' },
-    { id: 4, name: 'T5' },
-    { id: 5, name: 'T6' },
-    { id: 6, name: 'T7' },
-    { id: 0, name: 'CN' },
+    { id: 1, name: t('mon_short') || 'T2' },
+    { id: 2, name: t('tue_short') || 'T3' },
+    { id: 3, name: t('wed_short') || 'T4' },
+    { id: 4, name: t('thu_short') || 'T5' },
+    { id: 5, name: t('fri_short') || 'T6' },
+    { id: 6, name: t('sat_short') || 'T7' },
+    { id: 0, name: t('sun_short') || 'CN' },
   ];
 
   const MAX_TITLE_LENGTH = 100;
@@ -115,7 +115,7 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
     const currentDate = selectedDate || reminderDate;
     setShowDatePicker(Platform.OS === 'ios'); // Only hide the picker on Android
     
-    // Chỉ cập nhật ngày, giữ nguyên thời gian
+    // Chỉ cập nhật ngày, giữ nguyên thởi gian
     const updatedDate = new Date(currentDate);
     updatedDate.setHours(reminderDate.getHours());
     updatedDate.setMinutes(reminderDate.getMinutes());
@@ -381,17 +381,20 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                 {/* Week Days Selection */}
                 <View style={styles.inputContainer}>
                   <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-                    {t('applied_days')}
+                    {t('repeat_on')}
+                  </Text>
+                  <Text style={[styles.inputSubLabel, { color: theme.colors.textSecondary }]}>
+                    {t('note_days')}
                   </Text>
                   <View style={styles.daysContainer}>
-                    {weekDays.map(day => (
+                    {weekDays.map((day) => (
                       <TouchableOpacity
                         key={day.id}
                         style={[
                           styles.dayButton,
                           selectedDays.includes(day.id) 
                             ? { backgroundColor: theme.colors.primary } 
-                            : { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }
+                            : { backgroundColor: 'transparent', borderColor: theme.colors.border }
                         ]}
                         onPress={() => toggleDaySelection(day.id)}
                       >
@@ -646,6 +649,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '500',
+  },
+  inputSubLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
   },
 });
 
