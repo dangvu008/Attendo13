@@ -1050,26 +1050,89 @@ export const ShiftProvider = ({ children }) => {
   };
 
   // Add a new note
-  const addNote = (note) => {
-    const newNote = {
-      id: Date.now().toString(),
-      ...note,
-      createdAt: new Date().toISOString()
-    };
-    
-    setNotes(prev => [newNote, ...prev]);
+  const addNote = async (note) => {
+    try {
+      // Validate note data
+      if (!note.title.trim() || !note.content.trim()) {
+        return false;
+      }
+      
+      // Check for duplicate title
+      const titleExists = notes.some(n => 
+        n.title.trim().toLowerCase() === note.title.trim().toLowerCase()
+      );
+      
+      if (titleExists) {
+        return false;
+      }
+      
+      const newNote = {
+        id: Date.now().toString(),
+        ...note,
+        createdAt: new Date().toISOString()
+      };
+      
+      const updatedNotes = [newNote, ...notes];
+      setNotes(updatedNotes);
+      
+      // Save to storage
+      await AsyncStorage.setItem('notes', JSON.stringify(updatedNotes));
+      
+      return true;
+    } catch (error) {
+      console.error('Error adding note:', error);
+      return false;
+    }
   };
 
   // Update an existing note
-  const updateNote = (updatedNote) => {
-    setNotes(prev => 
-      prev.map(note => note.id === updatedNote.id ? updatedNote : note)
-    );
+  const updateNote = async (updatedNote) => {
+    try {
+      // Validate note data
+      if (!updatedNote.title.trim() || !updatedNote.content.trim()) {
+        return false;
+      }
+      
+      // Check for duplicate title (excluding the current note)
+      const titleExists = notes.some(n => 
+        n.id !== updatedNote.id && 
+        n.title.trim().toLowerCase() === updatedNote.title.trim().toLowerCase()
+      );
+      
+      if (titleExists) {
+        return false;
+      }
+      
+      const updatedNotes = notes.map(note => 
+        note.id === updatedNote.id ? { ...note, ...updatedNote, updatedAt: new Date().toISOString() } : note
+      );
+      
+      setNotes(updatedNotes);
+      
+      // Save to storage
+      await AsyncStorage.setItem('notes', JSON.stringify(updatedNotes));
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating note:', error);
+      return false;
+    }
   };
 
   // Delete a note
-  const deleteNote = (noteId) => {
-    setNotes(prev => prev.filter(note => note.id !== noteId));
+  const deleteNote = async (noteId) => {
+    try {
+      const updatedNotes = notes.filter(note => note.id !== noteId);
+      setNotes(updatedNotes);
+      
+      // Save to storage
+      await AsyncStorage.setItem('notes', JSON.stringify(updatedNotes));
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      return false;
+    }
   };
 
   // Cập nhật thông tin chi tiết trạng thái

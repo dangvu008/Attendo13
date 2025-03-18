@@ -66,12 +66,39 @@ const NotesScreen = () => {
     );
   };
 
-  const handleSaveNote = (note) => {
+  const handleSaveNote = async (note) => {
+    // Check for empty fields
     if (!note.title.trim() || !note.content.trim()) {
       Alert.alert(t('error'), t('note_fields_required'));
-      return;
+      return false;
     }
     
+    // Check title length
+    if (note.title.trim().length > 100) {
+      Alert.alert(t('error'), t('note_title_too_long', { max: 100 }));
+      return false;
+    }
+    
+    // Check content length
+    if (note.content.trim().length > 300) {
+      Alert.alert(t('error'), t('note_content_too_long', { max: 300 }));
+      return false;
+    }
+    
+    // Check for duplicate title (only for new notes or if title has changed)
+    if (!selectedNote || selectedNote.title !== note.title) {
+      const titleExists = notes.some(n => 
+        (selectedNote ? n.id !== selectedNote.id : true) && 
+        n.title.trim().toLowerCase() === note.title.trim().toLowerCase()
+      );
+      
+      if (titleExists) {
+        Alert.alert(t('error'), t('note_title_duplicate'));
+        return false;
+      }
+    }
+    
+    // Confirmation dialog
     Alert.alert(
       t('confirm'),
       t('save_note_confirm'),
@@ -81,6 +108,7 @@ const NotesScreen = () => {
           text: t('confirm'), 
           onPress: async () => {
             let success = false;
+            
             if (selectedNote) {
               success = await updateNote({ ...selectedNote, ...note });
             } else {
@@ -96,6 +124,8 @@ const NotesScreen = () => {
         }
       ]
     );
+    
+    return true;
   };
 
   const renderEmptyComponent = () => (

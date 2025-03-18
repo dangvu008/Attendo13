@@ -25,6 +25,8 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
   const [selectedDays, setSelectedDays] = useState([1, 2, 3, 4, 5]); // Monday to Friday by default
   const [selectedColor, setSelectedColor] = useState('#4285F4');
   const [selectedTags, setSelectedTags] = useState([]);
+  const [titleError, setTitleError] = useState('');
+  const [contentError, setContentError] = useState('');
 
   const colors = ['#4285F4', '#34A853', '#FBBC04', '#EA4335', '#9C27B0', '#009688'];
   const note = initialData;
@@ -62,8 +64,11 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
       setSelectedColor(initialData.color || '#4285F4');
       setSelectedTags(initialData.tags || []);
     } else {
-      handleConfirmReset();
+      resetForm();
     }
+    // Clear validation errors when opening modal
+    setTitleError('');
+    setContentError('');
   }, [initialData, visible]);
 
   const resetForm = () => {
@@ -73,9 +78,17 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
     setSelectedDays([1, 2, 3, 4, 5]);
     setSelectedColor('#4285F4');
     setSelectedTags([]);
+    setTitleError('');
+    setContentError('');
   };
 
   const handleConfirmReset = () => {
+    // Skip confirmation if form is empty
+    if (!title.trim() && !content.trim() && selectedTags.length === 0) {
+      resetForm();
+      return;
+    }
+    
     Alert.alert(
       t('confirm_reset'),
       t('confirm_reset_message'),
@@ -122,19 +135,51 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
     }
   };
 
-  const handleSave = () => {
-    // Validation
+  const validateNote = () => {
+    let isValid = true;
+    
+    // Validate title
     if (!title.trim()) {
-      Alert.alert(t('error'), t('note_title_required'));
-      return;
+      setTitleError(t('note_title_required'));
+      isValid = false;
+    } else if (title.trim().length > MAX_TITLE_LENGTH) {
+      setTitleError(t('note_title_too_long', { max: MAX_TITLE_LENGTH }));
+      isValid = false;
+    } else {
+      setTitleError('');
     }
     
+    // Validate content
     if (!content.trim()) {
-      Alert.alert(t('error'), t('note_content_required'));
+      setContentError(t('note_content_required'));
+      isValid = false;
+    } else if (content.trim().length > MAX_CONTENT_LENGTH) {
+      setContentError(t('note_content_too_long', { max: MAX_CONTENT_LENGTH }));
+      isValid = false;
+    } else {
+      setContentError('');
+    }
+    
+    return isValid;
+  };
+
+  const handleSave = () => {
+    // Validate form
+    if (!validateNote()) {
       return;
     }
     
-    // Xác nhận trước khi lưu
+    // Prepare note data
+    const noteData = {
+      title: title.trim(),
+      content: content.trim(),
+      reminderTime: reminderDate.toISOString(),
+      weekDays: selectedDays,
+      color: selectedColor,
+      tags: selectedTags
+    };
+    
+    // Show confirmation dialog
     Alert.alert(
       t('confirm'),
       t('save_note_confirm'),
@@ -143,18 +188,7 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
         { 
           text: t('confirm'), 
           onPress: () => {
-            // Thực hiện lưu ghi chú
-            const noteData = {
-              title: title.trim(),
-              content: content.trim(),
-              reminderTime: reminderDate.toISOString(),
-              weekDays: selectedDays,
-              color: selectedColor,
-              tags: selectedTags
-            };
-            
             onSave(noteData);
-            handleConfirmReset();
           }
         }
       ]
@@ -162,20 +196,20 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
   };
 
   const handleClose = () => {
-    if (title.trim() || content.trim()) {
+    if (title.trim() || content.trim() || selectedTags.length > 0) {
       Alert.alert(
         t('confirm'),
         t('exit_note_confirm'),
         [
           { text: t('continue_editing'), style: 'cancel' },
           { text: t('exit'), onPress: () => {
-            handleConfirmReset();
+            resetForm();
             onClose();
           }}
         ]
       );
     } else {
-      handleConfirmReset();
+      resetForm();
       onClose();
     }
   };
@@ -202,70 +236,92 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                   <Ionicons name="close" size={24} color={theme.colors.text} />
                 </TouchableOpacity>
               </View>
-              
-              <ScrollView style={styles.form}>
+
+              <ScrollView style={styles.modalBody}>
                 {/* Title Input */}
                 <View style={styles.inputContainer}>
-                  <Text style={[styles.inputLabel, { color: theme.colors.text }]}>{t('title')}</Text>
+                  <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
+                    {t('note_title')} <Text style={styles.requiredStar}>*</Text>
+                  </Text>
                   <TextInput
-                    style={[styles.input, { 
-                      backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f5f5f5', 
-                      borderColor: theme.colors.border,
-                      color: theme.colors.text
-                    }]}
+                    style={[
+                      styles.input,
+                      { color: theme.colors.text, borderColor: titleError ? theme.colors.error : theme.colors.border }
+                    ]}
+                    placeholder={t('note_title_placeholder')}
+                    placeholderTextColor={theme.colors.textSecondary}
                     value={title}
-                    onChangeText={setTitle}
-                    placeholder={t('title_placeholder')}
-                    placeholderTextColor={theme.isDarkMode ? 'rgba(255, 255, 255, 0.5)' : '#ccc'}
+                    onChangeText={(text) => {
+                      setTitle(text);
+                      if (text.trim()) {
+                        setTitleError('');
+                      }
+                    }}
                     maxLength={MAX_TITLE_LENGTH}
                   />
-                  <Text style={[styles.charCounter, { color: theme.colors.text }]}>{title.length}/{MAX_TITLE_LENGTH}</Text>
+                  {titleError ? (
+                    <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                      {titleError}
+                    </Text>
+                  ) : null}
+                  <Text style={[styles.charCount, { color: theme.colors.textSecondary }]}>
+                    {title.length}/{MAX_TITLE_LENGTH}
+                  </Text>
                 </View>
-                
+
                 {/* Content Input */}
                 <View style={styles.inputContainer}>
-                  <Text style={[styles.inputLabel, { color: theme.colors.text }]}>{t('content')}</Text>
+                  <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
+                    {t('note_content')} <Text style={styles.requiredStar}>*</Text>
+                  </Text>
                   <TextInput
-                    style={[styles.input, styles.contentInput, { 
-                      backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f5f5f5', 
-                      borderColor: theme.colors.border,
-                      color: theme.colors.text
-                    }]}
+                    style={[
+                      styles.textArea,
+                      { color: theme.colors.text, borderColor: contentError ? theme.colors.error : theme.colors.border }
+                    ]}
+                    placeholder={t('note_content_placeholder')}
+                    placeholderTextColor={theme.colors.textSecondary}
                     value={content}
-                    onChangeText={setContent}
-                    placeholder={t('content_placeholder')}
-                    placeholderTextColor={theme.isDarkMode ? 'rgba(255, 255, 255, 0.5)' : '#ccc'}
+                    onChangeText={(text) => {
+                      setContent(text);
+                      if (text.trim()) {
+                        setContentError('');
+                      }
+                    }}
                     multiline={true}
                     maxLength={MAX_CONTENT_LENGTH}
                   />
-                  <Text style={[styles.charCounter, { color: theme.colors.text }]}>{content.length}/{MAX_CONTENT_LENGTH}</Text>
+                  {contentError ? (
+                    <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                      {contentError}
+                    </Text>
+                  ) : null}
+                  <Text style={[styles.charCount, { color: theme.colors.textSecondary }]}>
+                    {content.length}/{MAX_CONTENT_LENGTH}
+                  </Text>
                 </View>
-                
-                {/* Date and Time Pickers */}
+
+                {/* Reminder Time */}
                 <View style={styles.inputContainer}>
-                  <Text style={[styles.inputLabel, { color: theme.colors.text }]}>{t('reminder_time')}</Text>
+                  <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
+                    {t('reminder_time')}
+                  </Text>
                   <View style={styles.dateTimeContainer}>
-                    <TouchableOpacity
-                      style={[styles.dateTimeButton, { 
-                        backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f5f5f5', 
-                        borderColor: theme.colors.border
-                      }]}
+                    <TouchableOpacity 
+                      style={[styles.dateTimeButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
                       onPress={() => setShowDatePicker(true)}
                     >
-                      <Ionicons name="calendar-outline" size={18} color={theme.colors.text} />
+                      <Ionicons name="calendar-outline" size={18} color={theme.colors.primary} />
                       <Text style={[styles.dateTimeText, { color: theme.colors.text }]}>
                         {format(reminderDate, 'dd/MM/yyyy')}
                       </Text>
                     </TouchableOpacity>
                     
-                    <TouchableOpacity
-                      style={[styles.dateTimeButton, { 
-                        backgroundColor: theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f5f5f5', 
-                        borderColor: theme.colors.border
-                      }]}
+                    <TouchableOpacity 
+                      style={[styles.dateTimeButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
                       onPress={() => setShowTimePicker(true)}
                     >
-                      <Ionicons name="time-outline" size={18} color={theme.colors.text} />
+                      <Ionicons name="time-outline" size={18} color={theme.colors.primary} />
                       <Text style={[styles.dateTimeText, { color: theme.colors.text }]}>
                         {format(reminderDate, 'HH:mm')}
                       </Text>
@@ -273,45 +329,44 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                   </View>
                   
                   {showDatePicker && (
-                    <DateTimePicker
+                    <DateTimePicker 
                       value={reminderDate}
                       mode="date"
                       display="default"
                       onChange={handleDateChange}
-                      themeVariant="dark"
                     />
                   )}
                   
                   {showTimePicker && (
-                    <DateTimePicker
+                    <DateTimePicker 
                       value={reminderDate}
                       mode="time"
                       display="default"
                       onChange={handleTimeChange}
-                      themeVariant="dark"
                     />
                   )}
                 </View>
-                
-                {/* Week days selection */}
+
+                {/* Week Days Selection */}
                 <View style={styles.inputContainer}>
-                  <Text style={[styles.inputLabel, { color: theme.colors.text }]}>{t('show_on_days')}</Text>
+                  <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
+                    {t('applied_days')}
+                  </Text>
                   <View style={styles.daysContainer}>
                     {weekDays.map(day => (
                       <TouchableOpacity
                         key={day.id}
                         style={[
                           styles.dayButton,
-                          { 
-                            backgroundColor: selectedDays.includes(day.id) ? theme.colors.primary : 'rgba(255, 255, 255, 0.1)',
-                            borderColor: selectedDays.includes(day.id) ? theme.colors.primary : theme.colors.border
-                          }
+                          selectedDays.includes(day.id) 
+                            ? { backgroundColor: theme.colors.primary } 
+                            : { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }
                         ]}
                         onPress={() => toggleDaySelection(day.id)}
                       >
-                        <Text
+                        <Text 
                           style={[
-                            styles.dayButtonText,
+                            styles.dayText, 
                             { color: selectedDays.includes(day.id) ? '#fff' : theme.colors.text }
                           ]}
                         >
@@ -321,40 +376,41 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                     ))}
                   </View>
                 </View>
-                
-                {/* Color selection */}
+
+                {/* Color Selection */}
                 <View style={styles.inputContainer}>
-                  <Text style={[styles.inputLabel, { color: theme.colors.text }]}>{t('color')}</Text>
+                  <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
+                    {t('note_color')}
+                  </Text>
                   <View style={styles.colorsContainer}>
                     {colors.map(color => (
                       <TouchableOpacity
                         key={color}
                         style={[
                           styles.colorButton,
-                          { 
-                            backgroundColor: color,
-                            borderColor: selectedColor === color ? theme.colors.primary : theme.colors.border
-                          }
+                          { backgroundColor: color },
+                          selectedColor === color && styles.selectedColorButton
                         ]}
                         onPress={() => setSelectedColor(color)}
                       />
                     ))}
                   </View>
                 </View>
-                
-                {/* Tag selection */}
+
+                {/* Tags Selection */}
                 <View style={styles.inputContainer}>
-                  <Text style={[styles.inputLabel, { color: theme.colors.text }]}>{t('tags')}</Text>
+                  <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
+                    {t('note_tags')}
+                  </Text>
                   <View style={styles.tagsContainer}>
                     {tagOptions.map(tag => (
                       <TouchableOpacity
                         key={tag.id}
                         style={[
                           styles.tagButton,
-                          { 
-                            backgroundColor: selectedTags.includes(tag.id) ? theme.colors.primary : 'rgba(255, 255, 255, 0.1)',
-                            borderColor: selectedTags.includes(tag.id) ? theme.colors.primary : theme.colors.border
-                          }
+                          selectedTags.includes(tag.id) 
+                            ? { backgroundColor: theme.colors.primary } 
+                            : { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }
                         ]}
                         onPress={() => {
                           if (selectedTags.includes(tag.id)) {
@@ -364,9 +420,9 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                           }
                         }}
                       >
-                        <Text
+                        <Text 
                           style={[
-                            styles.tagButtonText,
+                            styles.tagText, 
                             { color: selectedTags.includes(tag.id) ? '#fff' : theme.colors.text }
                           ]}
                         >
@@ -377,23 +433,20 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                   </View>
                 </View>
               </ScrollView>
-              
-              {/* Save Button */}
-              <View style={styles.buttonContainer}>
+
+              <View style={[styles.modalFooter, { borderTopColor: theme.colors.border }]}>
                 <TouchableOpacity
-                  style={[styles.resetButton, { borderColor: theme.colors.border }]}
+                  style={[styles.resetButton, { backgroundColor: theme.colors.error }]}
                   onPress={handleConfirmReset}
                 >
-                  <Ionicons name="refresh-outline" size={20} color={theme.colors.text} />
-                  <Text style={[styles.resetButtonText, { color: theme.colors.text }]}>{t('reset')}</Text>
+                  <Text style={styles.buttonText}>{t('reset')}</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity
                   style={[styles.saveButton, { backgroundColor: theme.colors.primary }]}
                   onPress={handleSave}
                 >
-                  <Ionicons name="save-outline" size={20} color="#fff" />
-                  <Text style={styles.saveButtonText}>{t('save')}</Text>
+                  <Text style={styles.buttonText}>{t('save')}</Text>
                 </TouchableOpacity>
               </View>
             </KeyboardAvoidingView>
@@ -408,14 +461,15 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: theme => theme.colors.surface,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingBottom: 20,
-    maxHeight: '90%',
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 10,
+    elevation: 5,
+    overflow: 'hidden',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -423,45 +477,58 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: theme => theme.colors.border,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: theme => theme.colors.text,
   },
   closeButton: {
     padding: 4,
   },
-  form: {
+  modalBody: {
     padding: 16,
+    maxHeight: 400,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderTopWidth: 1,
   },
   inputContainer: {
     marginBottom: 16,
   },
   inputLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: theme => theme.colors.text,
-    marginBottom: 8,
+    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  requiredStar: {
+    color: 'red',
   },
   input: {
-    backgroundColor: theme => theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f5f5f5',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: theme => theme.colors.text,
+    height: 40,
     borderWidth: 1,
-    borderColor: theme => theme.colors.border,
+    borderRadius: 5,
+    paddingHorizontal: 8,
+    fontSize: 16,
   },
-  contentInput: {
-    minHeight: 100,
+  textArea: {
+    height: 100,
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    fontSize: 16,
     textAlignVertical: 'top',
   },
-  charCounter: {
+  errorText: {
     fontSize: 12,
-    color: theme => theme.colors.text,
-    textAlign: 'right',
+    marginTop: 4,
+  },
+  charCount: {
+    fontSize: 12,
+    alignSelf: 'flex-end',
     marginTop: 4,
   },
   dateTimeContainer: {
@@ -471,103 +538,86 @@ const styles = StyleSheet.create({
   dateTimeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme => theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f5f5f5',
-    borderRadius: 8,
-    padding: 12,
     borderWidth: 1,
-    borderColor: theme => theme.colors.border,
+    borderRadius: 5,
+    padding: 8,
     flex: 0.48,
   },
   dateTimeText: {
     marginLeft: 8,
-    fontSize: 14,
-    color: theme => theme.colors.text,
+    fontSize: 16,
   },
   daysContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     flexWrap: 'wrap',
+    marginTop: 4,
   },
   dayButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme => theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f5f5f5',
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: theme => theme.colors.border,
+    margin: 4,
   },
-  dayButtonText: {
+  dayText: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: theme => theme.colors.text,
   },
   colorsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
+    marginTop: 4,
   },
   colorButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: theme => theme.colors.border,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    margin: 4,
+  },
+  selectedColorButton: {
+    borderWidth: 2,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 3,
   },
   tagsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     flexWrap: 'wrap',
+    marginTop: 4,
   },
   tagButton: {
-    padding: 8,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme => theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#f5f5f5',
-    marginBottom: 8,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme => theme.colors.border,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    margin: 4,
   },
-  tagButtonText: {
+  tagText: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: theme => theme.colors.text,
-  },
-  buttonContainer: {
-    padding: 16,
-    paddingTop: 0,
   },
   resetButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 5,
+    flex: 0.48,
     justifyContent: 'center',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme => theme.colors.border,
-    marginBottom: 8,
-  },
-  resetButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
+    alignItems: 'center',
   },
   saveButton: {
-    backgroundColor: theme => theme.colors.primary,
-    borderRadius: 8,
-    padding: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 5,
+    flex: 0.48,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  saveButtonText: {
+  buttonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '500',
   },
 });
 

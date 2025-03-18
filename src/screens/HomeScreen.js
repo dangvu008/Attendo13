@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -88,12 +88,36 @@ const HomeScreen = () => {
     return () => clearInterval(intervalId);
   }, []);
 
-  // Lấy thông tin ca làm việc và trạng thái khi component được tạo
-  useEffect(() => {
-    // Lấy lịch sử bấm nút ngày hôm nay
+  // Cập nhật thông tin khi có thay đổi
+  const updateInfo = () => {
+    // Cập nhật lịch sử trạng thái
     const today = getTodayStatus();
     setTodayEntries(today);
-  }, [statusHistory, getTodayStatus]);
+    
+    // Cập nhật Button action
+    const actionBtn = getActionButton();
+    
+    // Debug info
+    console.log('Đã cập nhật thông tin:', { 
+      workStatus, 
+      todayEntries: today.length 
+    });
+  };
+
+  // Khởi tạo các state mà không hiện popup reset ngay lập tức
+  useEffect(() => {
+    // Cập nhật UI khi workStatus thay đổi
+    updateInfo();
+    
+    // Đảm bảo nút luôn có thể nhấn được
+    setActionButtonDisabled(false);
+  }, [workStatus, statusHistory]);
+
+  // Lấy thông tin ca làm việc và trạng thái khi component được tạo
+  useEffect(() => {
+    // Khởi tạo lần đầu
+    updateInfo();
+  }, []);
 
   // Format functions
   const formatDate = (date) => {
@@ -147,23 +171,53 @@ const HomeScreen = () => {
 
   // Check if action needs validation
   const handleMultiActionPress = (action) => {
-    // Lưu hành động tiếp theo và hiển thị xác nhận
-    setNextAction(action);
-    setConfirmActionVisible(true);
-  };
-
-  const handleResetPress = () => {
-    setConfirmResetVisible(true);
-  };
-
-  const confirmReset = async () => {
-    const success = await resetDayStatus();
-    if (success) {
-      console.log('Reset thành công trạng thái ngày hôm nay');
-    } else {
-      console.error('Có lỗi khi reset trạng thái');
+    // Kiểm tra thời gian giữa các hành động
+    let shouldConfirm = false;
+    let confirmMessage = '';
+    
+    if (action === 'check_in' && goWorkEntry) {
+      // Kiểm tra thời gian giữa go_work và check_in (ít nhất 5 phút)
+      const goWorkTime = parseISO(goWorkEntry.timestamp);
+      const timeDiffMinutes = differenceInMinutes(new Date(), goWorkTime);
+      
+      if (timeDiffMinutes < 5) {
+        shouldConfirm = true;
+        confirmMessage = t('check_in_time_warning', { minutes: 5 - timeDiffMinutes });
+      }
+    } else if (action === 'check_out' && checkInEntry) {
+      // Kiểm tra thời gian giữa check_in và check_out (ít nhất 2 giờ)
+      const checkInTime = parseISO(checkInEntry.timestamp);
+      const hoursDiff = differenceInHours(new Date(), checkInTime);
+      
+      if (hoursDiff < 2) {
+        shouldConfirm = true;
+        confirmMessage = t('check_out_time_warning', { hours: 2 - hoursDiff });
+      }
     }
-    setConfirmResetVisible(false);
+    
+    if (shouldConfirm) {
+      // Hiển thị xác nhận với cảnh báo thời gian
+      Alert.alert(
+        t('confirm'),
+        confirmMessage,
+        [
+          { text: t('cancel'), style: 'cancel' },
+          { 
+            text: t('continue'), 
+            onPress: () => {
+              // Lưu hành động tiếp theo và hiển thị xác nhận
+              setNextAction(action);
+              setConfirmActionVisible(true);
+            },
+            style: 'destructive' 
+          }
+        ]
+      );
+    } else {
+      // Lưu hành động tiếp theo và hiển thị xác nhận
+      setNextAction(action);
+      setConfirmActionVisible(true);
+    }
   };
 
   const confirmAction = async () => {
@@ -172,109 +226,176 @@ const HomeScreen = () => {
         // Log để debug
         console.log('Thực hiện hành động:', nextAction);
         
+        let success = false;
+        
         if (nextAction === 'go_work') {
-          await handleGoToWork();
+          success = await handleGoToWork();
         } else if (nextAction === 'check_in') {
-          await handleCheckIn();
+          success = await handleCheckIn();
         } else if (nextAction === 'check_out') {
-          await handleCheckOut();
+          success = await handleCheckOut();
         } else if (nextAction === 'complete') {
-          await handleComplete();
+          success = await handleComplete();
         }
         
         // Log kết quả
-        console.log('Đã hoàn thành hành động:', nextAction);
-        setNextAction(null);
+        console.log('Đã hoàn thành hành động:', nextAction, success ? 'thành công' : 'thất bại');
+        
+        if (success) {
+          // Cập nhật lịch sử và trạng thái nút ngay lập tức
+          const updatedEntries = getTodayStatus();
+          setTodayEntries(updatedEntries);
+          
+          // Cập nhật trạng thái làm việc hiện tại
+          setWorkStatus(nextAction);
+          
+          // Cập nhật lại thông tin
+          updateInfo();
+          
+          // Đảm bảo nút đa năng được refresh
+          setTimeout(() => {
+            setActionButtonDisabled(false);
+          }, 300);
+        }
       }
+      
+      // Đặt lại nextAction và đóng popup
+      setNextAction(null);
       setConfirmActionVisible(false);
     } catch (error) {
       console.error('Lỗi khi xác nhận hành động:', error);
-      // Vẫn đóng modal ngay cả khi có lỗi
+      // Đảm bảo đặt lại nextAction để có thể thử lại
+      setNextAction(null);
       setConfirmActionVisible(false);
     }
   };
 
-  // Xử lý khi nhấn nút đi làm
   const handleGoToWork = async () => {
     try {
       if (validateAction('go_work')) {
         const result = await updateWorkStatus('go_work');
         if (result) {
-          // Cập nhật lịch sử ngay lập tức
-          setTodayEntries(getTodayStatus());
-        }
-        
-        // Tự động lập lịch nhắc nhở dựa trên cài đặt
-        const settings = await NotificationService.loadNotificationSettings();
-        if (settings.enabled && settings.reminderType !== 'none' && currentShift) {
-          await NotificationService.scheduleShiftReminders(
-            currentShift,
-            settings.reminderType
-          );
+          // Tự động lập lịch nhắc nhở dựa trên cài đặt
+          const settings = await NotificationService.loadNotificationSettings();
+          if (settings.enabled && settings.reminderType !== 'none' && currentShift) {
+            await NotificationService.scheduleShiftReminders(
+              currentShift,
+              settings.reminderType
+            );
+          }
+          return true;
         }
       }
+      return false;
     } catch (error) {
       console.error('Error handling go to work:', error);
+      return false;
     }
   };
 
-  // Xử lý khi nhấn nút check in
   const handleCheckIn = async () => {
     try {
-      if (validateAction('check_in')) {
+      // Tìm mục đi làm mới nhất trong ngày hôm nay
+      const goWorkEntry = statusHistory.find(entry => 
+        entry.status === 'go_work' && isToday(parseISO(entry.timestamp))
+      );
+      
+      // Kiểm tra nếu chưa có mục "đi làm" thì không cho chấm công vào
+      if (!goWorkEntry) {
+        Alert.alert(
+          t('error'),
+          t('must_go_work_first'),
+          [{ text: t('ok') }]
+        );
+        return false;
+      }
+      
+      if (validateAction('check_in', goWorkEntry.timestamp)) {
         const result = await updateWorkStatus('check_in');
         if (result) {
-          // Cập nhật lịch sử ngay lập tức
-          setTodayEntries(getTodayStatus());
-        }
-        
-        // Hủy nhắc nhở check-in nếu có
-        if (currentReminders.some(r => r.type === 'check_in')) {
-          const checkInReminder = currentReminders.find(r => r.type === 'check_in');
-          if (checkInReminder) {
-            await NotificationService.cancelNotification(checkInReminder.id);
+          // Hủy nhắc nhở check-in nếu có
+          if (currentReminders.some(r => r.type === 'check_in')) {
+            const checkInReminder = currentReminders.find(r => r.type === 'check_in');
+            if (checkInReminder) {
+              await NotificationService.cancelNotification(checkInReminder.id);
+            }
           }
+          return true;
         }
+      } else {
+        console.log('Không đủ thời gian giữa đi làm và chấm công');
       }
+      return false;
     } catch (error) {
       console.error('Error handling check in:', error);
+      return false;
     }
   };
 
-  // Xử lý khi nhấn nút check out
   const handleCheckOut = async () => {
     try {
-      if (validateAction('check_out')) {
+      // Tìm mục chấm công vào mới nhất trong ngày hôm nay
+      const checkInEntry = statusHistory.find(entry => 
+        entry.status === 'check_in' && isToday(parseISO(entry.timestamp))
+      );
+      
+      // Kiểm tra nếu chưa có mục "chấm công vào" thì không cho tan làm
+      if (!checkInEntry) {
+        Alert.alert(
+          t('error'),
+          t('must_check_in_first'),
+          [{ text: t('ok') }]
+        );
+        return false;
+      }
+      
+      if (validateAction('check_out', checkInEntry.timestamp)) {
         const result = await updateWorkStatus('check_out');
         if (result) {
-          // Cập nhật lịch sử ngay lập tức
-          setTodayEntries(getTodayStatus());
+          return true;
         }
+      } else {
+        console.log('Không đủ thời gian giữa chấm công vào và tan làm');
       }
+      return false;
     } catch (error) {
       console.error('Error handling check out:', error);
+      return false;
     }
   };
 
-  // Xử lý khi nhấn nút hoàn thành
   const handleComplete = async () => {
     try {
+      // Tìm mục tan làm mới nhất trong ngày hôm nay
+      const checkOutEntry = statusHistory.find(entry => 
+        entry.status === 'check_out' && isToday(parseISO(entry.timestamp))
+      );
+      
+      // Kiểm tra nếu chưa có mục "tan làm" thì không cho hoàn thành
+      if (!checkOutEntry) {
+        Alert.alert(
+          t('error'),
+          t('must_check_out_first'),
+          [{ text: t('ok') }]
+        );
+        return false;
+      }
+      
       if (validateAction('complete')) {
         const result = await updateWorkStatus('complete');
         if (result) {
-          // Cập nhật lịch sử ngay lập tức
-          setTodayEntries(getTodayStatus());
+          // Hủy tất cả nhắc nhở liên quan đến ca làm việc hiện tại
+          await NotificationService.cancelAllShiftNotifications();
+          return true;
         }
-        
-        // Hủy tất cả nhắc nhở liên quan đến ca làm việc hiện tại
-        await NotificationService.cancelAllShiftNotifications();
       }
+      return false;
     } catch (error) {
       console.error('Error handling complete:', error);
+      return false;
     }
   };
 
-  // Note handlers
   const handleAddNote = () => {
     setSelectedNote(null);
     setIsAddNoteModalVisible(true);
@@ -310,44 +431,133 @@ const HomeScreen = () => {
     manualUpdateWeeklyStatus(date, newStatus);
   };
 
+  const handleResetPress = (event) => {
+    // Ngăn chặn sự kiện lan truyền đến các thành phần khác
+    event.stopPropagation();
+    
+    // Chỉ hiển thị xác nhận khi bấm trực tiếp vào nút reset
+    if (event.target) {
+      setConfirmResetVisible(true);
+    }
+  };
+
+  const confirmReset = async () => {
+    try {
+      const success = await resetDayStatus();
+      if (success) {
+        console.log('Reset thành công trạng thái ngày hôm nay');
+        
+        // Cập nhật trạng thái màn hình về trạng thái ban đầu
+        setWorkStatus(null);
+        
+        // Đặt lại nextAction để tránh xung đột
+        setNextAction(null);
+        
+        // Cập nhật UI
+        updateInfo();
+        
+        // Đảm bảo nút đa năng được kích hoạt lại
+        setActionButtonDisabled(false);
+        
+        // Cập nhật lại các nhắc nhở nếu cần
+        const loadReminders = async () => {
+          try {
+            const reminders = await NotificationService.getScheduledNotifications();
+            if (reminders) {
+              const remindersList = Object.values(reminders);
+              setCurrentReminders(remindersList);
+            }
+          } catch (error) {
+            console.error('Error loading reminders:', error);
+          }
+        };
+        
+        loadReminders();
+      } else {
+        console.error('Có lỗi khi reset trạng thái');
+      }
+    } catch (error) {
+      console.error('Lỗi khi reset:', error);
+    } finally {
+      // Luôn đảm bảo đóng popup
+      setConfirmResetVisible(false);
+    }
+  };
+
   // Get the appropriate button based on current status
-  const getActionButton = () => {
-    const buttons = {
-      inactive: {
-        status: 'go_work',
-        label: t('goToWork'),
-        icon: 'walk-outline',
-        color: theme.colors.goWorkButton
-      },
-      go_work: {
+  const getActionButton = useCallback(() => {
+    // Mặc định là nút Đi Làm
+    let button = {
+      status: 'go_work',
+      label: t('goToWork'),
+      icon: 'walk-outline',
+      color: theme.colors.goWorkButton,
+      disabled: false
+    };
+    
+    // Log trạng thái hiện tại để debug
+    console.log('Current workStatus:', workStatus);
+    console.log('Today entries count:', todayEntries.length);
+    
+    // Kiểm tra trạng thái hiện tại và cập nhật button phù hợp
+    if (workStatus === 'go_work') {
+      // Đã bấm Đi Làm, hiển thị nút Chấm Công Vào
+      button = {
         status: 'check_in',
         label: t('checkIn'),
         icon: 'log-in-outline',
-        color: theme.colors.checkInButton
-      },
-      check_in: {
+        color: theme.colors.checkInButton,
+        disabled: false
+      };
+    } else if (workStatus === 'check_in') {
+      // Đã Chấm Công Vào, hiển thị nút Tan Làm
+      button = {
         status: 'check_out',
         label: t('checkOut'),
         icon: 'log-out-outline',
-        color: theme.colors.checkOutButton
-      },
-      check_out: {
+        color: theme.colors.checkOutButton,
+        disabled: false
+      };
+    } else if (workStatus === 'check_out') {
+      // Đã Tan Làm, hiển thị nút Hoàn Thành
+      button = {
         status: 'complete',
         label: t('complete'),
         icon: 'checkmark-circle-outline',
-        color: theme.colors.completeButton
-      },
-      complete: {
-        status: 'complete',
+        color: theme.colors.completeButton,
+        disabled: false
+      };
+    } else if (workStatus === 'complete') {
+      // Đã Hoàn Thành, vô hiệu hóa nút
+      button = {
+        status: 'completed',
         label: t('completed'),
-        icon: 'checkmark-done-circle-outline',
-        color: theme.colors.disabled,
+        icon: 'checkmark-done-outline',
+        color: theme.colors.disabledButton,
         disabled: true
+      };
+    }
+    
+    // Kiểm tra xem button có bị vô hiệu hóa không dựa trên các điều kiện khác
+    if (currentShift) {
+      // Trong ca làm việc
+      if (workStatus === null && currentShift.canGoWork) {
+        button.disabled = false;
+      } else if (!currentShift.canCheckIn && button.status === 'check_in') {
+        button.disabled = true;
+      } else if (!currentShift.canCheckOut && button.status === 'check_out') {
+        button.disabled = true;
       }
-    };
-
-    return buttons[workStatus] || buttons.inactive;
-  };
+    } else {
+      // Không có ca làm việc
+      if (workStatus !== 'complete' && workStatus !== 'check_out') {
+        button.disabled = true;
+      }
+    }
+    
+    console.log('Button status:', button.status, 'disabled:', button.disabled);
+    return button;
+  }, [workStatus, t, theme.colors, currentShift]);
 
   const actionButton = getActionButton();
   
@@ -386,88 +596,92 @@ const HomeScreen = () => {
               onPress={() => handleMultiActionPress(actionButton.status)}
               disabled={actionButton.disabled || actionButtonDisabled}
             />
-            
-            {showResetButton && (
+          </View>
+          
+          {/* Nút reset được tách riêng khỏi multiActionContainer */}
+          {showResetButton && (
+            <View style={styles.resetButtonContainer}>
               <TouchableOpacity 
                 style={[styles.resetButton, { backgroundColor: theme.colors.resetButton }]}
                 onPress={handleResetPress}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                activeOpacity={0.7}
               >
                 <Ionicons name="refresh" size={20} color="#fff" />
               </TouchableOpacity>
-            )}
-            
-            {/* Nút Ký Công - Hiển thị sau khi chấm công vào */}
-            {workStatus === 'check_in' && currentShift && currentShift.showSignButton && (
-              <TouchableOpacity 
-                style={[styles.signButton, { backgroundColor: theme.colors.completeButton }]}
-                onPress={handleComplete}
-              >
-                <Ionicons name="document-text-outline" size={22} color="#fff" />
-              </TouchableOpacity>
-            )}
-            
-            {/* Action History Section */}
-            <View style={styles.historySection}>
-              <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('action_history')}</Text>
-              </View>
-              <View style={[styles.historyCard, { backgroundColor: theme.colors.surface }]}>
-                {todayEntries.length > 0 ? (
-                  todayEntries.map((entry, index) => {
-                    let statusText = '';
-                    let icon = '';
-                    let iconColor = theme.colors.primary;
-                    
-                    switch(entry.status) {
-                      case 'go_work':
-                        statusText = t('goToWork');
-                        icon = 'walk-outline';
-                        iconColor = theme.colors.goWorkButton;
-                        break;
-                      case 'check_in':
-                        statusText = t('checkIn');
-                        icon = 'log-in-outline';
-                        iconColor = theme.colors.checkInButton;
-                        break;
-                      case 'check_out':
-                        statusText = t('checkOut');
-                        icon = 'log-out-outline';
-                        iconColor = theme.colors.checkOutButton;
-                        break;
-                      case 'complete':
-                      case 'sign':
-                        statusText = entry.status === 'complete' ? t('complete') : t('sign_work');
-                        icon = 'checkmark-circle-outline';
-                        iconColor = theme.colors.completeButton;
-                        break;
-                      default:
-                        statusText = entry.status;
-                        icon = 'information-circle-outline';
-                    }
-                    
-                    return (
-                      <View key={entry.id} style={[
-                        styles.historyItem,
-                        index < todayEntries.length - 1 && styles.historyItemBorder
-                      ]}>
-                        <View style={styles.historyItemLeft}>
-                          <Ionicons name={icon} size={20} color={iconColor} />
-                          <Text style={[styles.historyText, { color: theme.colors.text }]}>
-                            {statusText}
-                          </Text>
-                        </View>
-                        <Text style={[styles.historyTime, { color: theme.colors.textSecondary }]}>
-                          {format(parseISO(entry.timestamp), 'HH:mm')}
+            </View>
+          )}
+          
+          {/* Nút Ký Công - Hiển thị sau khi chấm công vào */}
+          {workStatus === 'check_in' && currentShift && currentShift.showSignButton && (
+            <TouchableOpacity 
+              style={[styles.signButton, { backgroundColor: theme.colors.completeButton }]}
+              onPress={handleComplete}
+            >
+              <Ionicons name="document-text-outline" size={22} color="#fff" />
+            </TouchableOpacity>
+          )}
+          
+          {/* Action History Section */}
+          <View style={styles.historySection}>
+            <View style={styles.sectionHeader}>
+            </View>
+            <View style={[styles.historyCard, { backgroundColor: theme.colors.surface }]}>
+              {todayEntries.length > 0 ? (
+                todayEntries.map((entry, index) => {
+                  let statusText = '';
+                  let icon = '';
+                  let iconColor = theme.colors.primary;
+                  
+                  switch(entry.status) {
+                    case 'go_work':
+                      statusText = t('goToWork');
+                      icon = 'walk-outline';
+                      iconColor = theme.colors.goWorkButton;
+                      break;
+                    case 'check_in':
+                      statusText = t('checkIn');
+                      icon = 'log-in-outline';
+                      iconColor = theme.colors.checkInButton;
+                      break;
+                    case 'check_out':
+                      statusText = t('checkOut');
+                      icon = 'log-out-outline';
+                      iconColor = theme.colors.checkOutButton;
+                      break;
+                    case 'complete':
+                    case 'sign':
+                      statusText = entry.status === 'complete' ? t('complete') : t('sign_work');
+                      icon = 'checkmark-circle-outline';
+                      iconColor = theme.colors.completeButton;
+                      break;
+                    default:
+                      statusText = entry.status;
+                      icon = 'information-circle-outline';
+                  }
+                  
+                  return (
+                    <View key={entry.id} style={[
+                      styles.historyItem,
+                      index < todayEntries.length - 1 && styles.historyItemBorder
+                    ]}>
+                      <View style={styles.historyItemLeft}>
+                        <Ionicons name={icon} size={20} color={iconColor} />
+                        <Text style={[styles.historyText, { color: theme.colors.text }]}>
+                          {statusText}
                         </Text>
                       </View>
-                    );
-                  })
-                ) : (
-                  <Text style={[styles.noHistoryText, { color: theme.colors.textSecondary }]}>
-                    {t('no_history_today')}
-                  </Text>
-                )}
-              </View>
+                      <Text style={[styles.historyTime, { color: theme.colors.textSecondary }]}>
+                        {format(parseISO(entry.timestamp), 'HH:mm')}
+                      </Text>
+                    </View>
+                  );
+                })
+              ) : (
+                <Text style={[styles.noHistoryText, { color: theme.colors.textSecondary }]}>
+                  {t('no_history_today')}
+                </Text>
+              )}
             </View>
           </View>
         </View>
@@ -534,10 +748,10 @@ const HomeScreen = () => {
             <TouchableWithoutFeedback>
               <View style={[styles.confirmModalContainer, { backgroundColor: theme.colors.surface }]}>
                 <Text style={[styles.confirmModalTitle, { color: theme.colors.text }]}>
-                  {t('confirm_reset_title')}
+                  {t('confirm_reset')}
                 </Text>
                 <Text style={[styles.confirmModalMessage, { color: theme.colors.textSecondary }]}>
-                  {t('confirm_reset_message')}
+                  {t('confirm_reset_today')}
                 </Text>
                 <View style={styles.confirmButtonsContainer}>
                   <TouchableOpacity
@@ -564,9 +778,15 @@ const HomeScreen = () => {
         visible={confirmActionVisible}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setConfirmActionVisible(false)}
+        onRequestClose={() => {
+          setConfirmActionVisible(false);
+          setNextAction(null); // Đảm bảo xóa hành động tiếp theo khi đóng
+        }}
       >
-        <TouchableWithoutFeedback onPress={() => setConfirmActionVisible(false)}>
+        <TouchableWithoutFeedback onPress={() => {
+          setConfirmActionVisible(false);
+          setNextAction(null); // Đảm bảo xóa hành động tiếp theo khi đóng
+        }}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
               <View style={[styles.confirmModalContainer, { backgroundColor: theme.colors.surface }]}>
@@ -583,18 +803,12 @@ const HomeScreen = () => {
                 <View style={styles.confirmButtonsContainer}>
                   <TouchableOpacity
                     style={[styles.confirmButton, { backgroundColor: theme.colors.cancelButton }]}
-                    onPress={() => setConfirmActionVisible(false)}
-                  >
-                    <Ionicons name="close-circle-outline" size={24} color="#fff" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.confirmButton, { backgroundColor: theme.colors.resetButton }]}
                     onPress={() => {
-                      setNextAction(null);
                       setConfirmActionVisible(false);
+                      setNextAction(null); // Đảm bảo xóa hành động tiếp theo khi hủy
                     }}
                   >
-                    <Ionicons name="arrow-forward-circle-outline" size={24} color="#fff" />
+                    <Ionicons name="close-circle-outline" size={24} color="#fff" />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.confirmButton, { backgroundColor: theme.colors.primary }]}
@@ -650,27 +864,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   actionSection: {
-    marginBottom: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 20,
+    position: 'relative',
   },
   multiActionContainer: {
-    position: 'relative',
     alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  resetButtonContainer: {
+    position: 'absolute',
+    top: 0,
+    right: '30%',
+    width: 42,
+    height: 42,
+    zIndex: 200,
   },
   resetButton: {
-    position: 'absolute',
-    right: -10,
-    top: 10,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    position: 'relative',
+    backgroundColor: 'red',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    elevation: 5,
   },
   signButton: {
     position: 'absolute',
@@ -747,14 +967,18 @@ const styles = StyleSheet.create({
   confirmButtonsContainer: {
     flexDirection: 'row',
     width: '100%',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
+    marginTop: 10,
   },
   confirmButton: {
-    borderRadius: 8,
+    borderRadius: 50,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    minWidth: '45%',
+    width: 60,
+    height: 60,
     alignItems: 'center',
+    justifyContent: 'center',
+    margin: 10,
   },
   confirmButtonText: {
     color: '#fff',
