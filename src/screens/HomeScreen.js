@@ -168,6 +168,9 @@ const HomeScreen = () => {
 
   // Lấy thông tin ca làm việc và trạng thái khi component được tạo
   useEffect(() => {
+    // Khởi tạo thông tin ca làm việc
+    loadShiftInfo();
+    
     // Khởi tạo lần đầu
     updateInfo();
   }, []);
@@ -893,35 +896,55 @@ const HomeScreen = () => {
   // Determine if we should show the reset button
   const showResetButton = workStatus !== 'inactive';
 
-  // Lấy thông tin ca làm việc từ storage
+  // Hàm load thông tin ca làm việc
   const loadShiftInfo = async () => {
     try {
-      const shiftInfoJson = await AsyncStorage.getItem('currentShift');
+      const shiftInfoJson = await AsyncStorage.getItem('shiftInfo');
       
       if (shiftInfoJson) {
         const parsedShiftInfo = JSON.parse(shiftInfoJson);
-        setShiftInfo(parsedShiftInfo);
+        
+        // Đảm bảo shiftInfo có đủ các thuộc tính cần thiết
+        const defaultShiftInfo = {
+          name: t('default_shift_name'),
+          startTime: "08:00",
+          endTime: "17:00",
+          officeEndTime: "17:00",
+          lunchStartTime: "12:00",
+          lunchEndTime: "13:00",
+          showSignButton: false
+        };
+        
+        // Kết hợp thông tin mặc định với thông tin đã lưu
+        setShiftInfo({
+          ...defaultShiftInfo,
+          ...parsedShiftInfo
+        });
+        
         return parsedShiftInfo;
+      } else {
+        // Nếu chưa có thông tin ca làm việc, dùng giá trị mặc định
+        const defaultShift = {
+          name: t('default_shift_name'),
+          startTime: "08:00",
+          endTime: "17:00",
+          officeEndTime: "17:00",
+          lunchStartTime: "12:00",
+          lunchEndTime: "13:00",
+          showSignButton: false
+        };
+        
+        // Lưu thông tin mặc định
+        await AsyncStorage.setItem('shiftInfo', JSON.stringify(defaultShift));
+        setShiftInfo(defaultShift);
+        
+        return defaultShift;
       }
-      
-      return null;
     } catch (error) {
-      console.error('Lỗi khi lấy thông tin ca làm việc:', error);
+      console.error('Lỗi khi load thông tin ca làm việc:', error);
       return null;
     }
   };
-
-  // Cập nhật thông tin ca làm việc 
-  useEffect(() => {
-    const fetchShiftInfo = async () => {
-      const shift = await loadShiftInfo();
-      if (shift) {
-        console.log('Loaded shift info:', shift);
-      }
-    };
-    
-    fetchShiftInfo();
-  }, []);
 
   // Kiểm tra trạng thái vào muộn
   const checkIfLateCheckIn = (checkInTime, shiftStartTime) => {
@@ -938,7 +961,7 @@ const HomeScreen = () => {
     
     // Thêm thời gian dung sai (5 phút)
     const graceDate = new Date(shiftDate);
-    graceDate.setMinutes(graceDate.getMinutes() + 5);
+    graceDate.setMinutes(graceDate.getMinutes() + 5); // 5 phút dung sai
     
     // Vào muộn nếu vào sau thời gian dung sai (sau 08:05 với ca 08:00)
     return checkInDate > graceDate;
@@ -1150,12 +1173,12 @@ const HomeScreen = () => {
             <Text style={[styles.timeText, { color: theme.colors.primary }]}>{formatTime(currentTime)}</Text>
           </View>
           
-          {currentShift && (
+          {shiftInfo && (
             <View style={[styles.shiftInfo, { backgroundColor: isDarkMode ? theme.colors.surface : '#e6e6ff' }]}>
               <Ionicons name="time-outline" size={18} color={theme.colors.primary} />
-              <Text style={[styles.shiftText, { color: theme.colors.primary }]}>{currentShift.name}</Text>
+              <Text style={[styles.shiftText, { color: theme.colors.primary }]}>{shiftInfo.name}</Text>
               <Text style={[styles.shiftTimeText, { color: theme.colors.textSecondary }]}>
-                {formatShiftTime(currentShift.startWorkTime)} - {formatShiftTime(currentShift.endWorkTime)}
+                {formatShiftTime(shiftInfo.startTime)} - {formatShiftTime(shiftInfo.endTime)}
               </Text>
             </View>
           )}
@@ -1310,7 +1333,7 @@ const HomeScreen = () => {
           )}
           
           {/* Nút Ký Công - Hiển thị sau khi chấm công vào */}
-          {workStatus === 'check_in' && currentShift && currentShift.showSignButton && (
+          {workStatus === 'check_in' && shiftInfo && shiftInfo.showSignButton && (
             <TouchableOpacity 
               style={[styles.signButton, { backgroundColor: theme.colors.completeButton }]}
               onPress={handleComplete}
