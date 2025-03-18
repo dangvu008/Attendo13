@@ -47,6 +47,7 @@ const HomeScreen = () => {
   const [shiftInfo, setShiftInfo] = useState(null);
   const [weeklyStatus, setWeeklyStatus] = useState({});
   const [statusDetails, setStatusDetails] = useState({});
+  const [notes, setNotes] = useState([]);
 
   // Lấy thông tin nhắc nhở hiện tại
   useEffect(() => {
@@ -176,6 +177,9 @@ const HomeScreen = () => {
     
     // Khởi tạo lần đầu
     updateInfo();
+    
+    // Tải ghi chú
+    loadNotes();
   }, [loadShiftInfo, updateInfo]);
 
   // Format date using the current locale
@@ -631,27 +635,58 @@ const HomeScreen = () => {
   };
 
   // Hàm để xử lý xóa ghi chú
-  const handleDeleteNote = (noteId) => {
-    Alert.alert(
-      t('confirm'),
-      t('delete_note_confirm'),
-      [
-        { text: t('cancel'), style: 'cancel' },
-        { text: t('delete'), onPress: () => deleteNote(noteId), style: 'destructive' }
-      ]
-    );
+  const handleDeleteNote = async (noteId) => {
+    try {
+      const notesJson = await AsyncStorage.getItem('notes');
+      if (notesJson) {
+        const notesData = JSON.parse(notesJson);
+        const updatedNotes = notesData.filter(note => note.id !== noteId);
+        await AsyncStorage.setItem('notes', JSON.stringify(updatedNotes));
+        setNotes(updatedNotes);
+      }
+    } catch (error) {
+      console.error('Lỗi khi xóa ghi chú:', error);
+    }
   };
 
   // Hàm để xử lý lưu ghi chú
-  const handleSaveNote = (note) => {
-    if (selectedNote) {
-      updateNote({ ...selectedNote, ...note });
-    } else {
-      addNote(note);
+  const handleSaveNote = async (noteData) => {
+    try {
+      let notesJson = await AsyncStorage.getItem('notes');
+      let notesData = notesJson ? JSON.parse(notesJson) : [];
+      
+      if (selectedNote) {
+        // Cập nhật ghi chú hiện có
+        notesData = notesData.map(note => 
+          note.id === selectedNote.id ? {...noteData, id: selectedNote.id} : note
+        );
+      } else {
+        // Thêm ghi chú mới
+        notesData.push({...noteData, id: Date.now().toString()});
+      }
+      
+      await AsyncStorage.setItem('notes', JSON.stringify(notesData));
+      setNotes(notesData);
+      setIsAddNoteModalVisible(false);
+    } catch (error) {
+      console.error('Lỗi khi lưu ghi chú:', error);
     }
-    setIsAddNoteModalVisible(false);
   };
-  
+
+  // Lấy thông tin ghi chú
+  const loadNotes = async () => {
+    try {
+      const notesJson = await AsyncStorage.getItem('notes');
+      if (notesJson) {
+        const notesData = JSON.parse(notesJson);
+        setNotes(notesData);
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải ghi chú:', error);
+      setNotes([]); // Đặt mặc định là mảng rỗng nếu có lỗi
+    }
+  };
+
   // Handle status change for a specific day
   const handleStatusChange = (date, newStatus) => {
     manualUpdateWeeklyStatus(date, newStatus);
@@ -902,267 +937,15 @@ const HomeScreen = () => {
   // Hàm load thông tin ca làm việc
   const loadShiftInfo = async () => {
     try {
-      const shiftInfoJson = await AsyncStorage.getItem('shiftInfo');
-      
-      if (shiftInfoJson) {
-        const parsedShiftInfo = JSON.parse(shiftInfoJson);
-        
-        // Đảm bảo shiftInfo có đủ các thuộc tính cần thiết
-        const defaultShiftInfo = {
-          name: t('default_shift_name'),
-          startTime: "08:00",
-          endTime: "17:00",
-          officeEndTime: "17:00",
-          lunchStartTime: "12:00",
-          lunchEndTime: "13:00",
-          showSignButton: false
-        };
-        
-        // Kết hợp thông tin mặc định với thông tin đã lưu
-        setShiftInfo({
-          ...defaultShiftInfo,
-          ...parsedShiftInfo
-        });
-        
-        return parsedShiftInfo;
-      } else {
-        // Nếu chưa có thông tin ca làm việc, dùng giá trị mặc định
-        const defaultShift = {
-          name: t('default_shift_name'),
-          startTime: "08:00",
-          endTime: "17:00",
-          officeEndTime: "17:00",
-          lunchStartTime: "12:00",
-          lunchEndTime: "13:00",
-          showSignButton: false
-        };
-        
-        // Lưu thông tin mặc định
-        await AsyncStorage.setItem('shiftInfo', JSON.stringify(defaultShift));
-        setShiftInfo(defaultShift);
-        
-        return defaultShift;
-      }
-    } catch (error) {
-      console.error('Lỗi khi load thông tin ca làm việc:', error);
-      return null;
-    }
-  };
-
-  // Kiểm tra trạng thái vào muộn
-  const checkIfLateCheckIn = (checkInTime, shiftStartTime) => {
-    if (!checkInTime || !shiftStartTime) return false;
-    
-    // Chuyển đổi thời gian sang Date objects
-    const checkInDate = parseISO(checkInTime);
-    
-    // Parse shiftStartTime dạng "HH:MM" thành Date object của ngày hôm nay
-    const [hours, minutes] = shiftStartTime.split(':').map(Number);
-    
-    const shiftDate = new Date();
-    shiftDate.setHours(hours, minutes, 0, 0);
-    
-    // Thêm thời gian dung sai (5 phút)
-    const graceDate = new Date(shiftDate);
-    graceDate.setMinutes(graceDate.getMinutes() + 5); // 5 phút dung sai
-    
-    // Vào muộn nếu vào sau thời gian dung sai (sau 08:05 với ca 08:00)
-    return checkInDate > graceDate;
-  };
-
-  // Kiểm tra trạng thái ra sớm
-  const checkIfEarlyCheckOut = (checkOutTime, officeEndTime) => {
-    if (!checkOutTime || !officeEndTime) return false;
-    
-    // Chuyển đổi thời gian sang Date objects
-    const checkOutDate = parseISO(checkOutTime);
-    
-    // Parse officeEndTime dạng "HH:MM" thành Date object của ngày hôm nay
-    const [hours, minutes] = officeEndTime.split(':').map(Number);
-    
-    const endDate = new Date();
-    endDate.setHours(hours, minutes, 0, 0);
-    
-    // Ra sớm nếu ra trước thời gian kết thúc quy định (trước 17:00)
-    return checkOutDate < endDate;
-  };
-
-  // Kiểm tra trạng thái nghỉ
-  const checkIfAbsent = (checkInTime, checkOutTime) => {
-    // Nếu không có check-in hoặc không có check-out
-    if (!checkInTime || !checkOutTime) return true;
-    
-    // Chuyển đổi thời gian sang Date objects
-    const checkInDate = parseISO(checkInTime);
-    const checkOutDate = parseISO(checkOutTime);
-    
-    // Tính khoảng thời gian làm việc (phút)
-    const workMinutes = differenceInMinutes(checkOutDate, checkInDate);
-    
-    // Nếu thời gian làm việc dưới 60 phút (1 giờ), coi như nghỉ
-    return workMinutes < 60;
-  };
-
-  // Tính toán số giờ công theo quy tắc mới
-  const calculateWorkHours = (checkInTime, checkOutTime, shiftInfo) => {
-    if (!checkInTime || !checkOutTime || !shiftInfo) return {
-      regularHours: 0,
-      overtime150: 0,
-      overtime200: 0,
-      overtime300: 0,
-      totalHours: 0,
-      workDayStatus: 'absent'
-    };
-    
-    // Chuyển đổi thời gian sang Date objects
-    const checkInDate = parseISO(checkInTime);
-    const checkOutDate = parseISO(checkOutTime);
-    
-    // Kiểm tra xem có phải ngày nghỉ không (T7/CN)
-    const dayOfWeek = checkInDate.getDay(); // 0 = CN, 6 = T7
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    
-    // Parse thời gian ca làm việc
-    const [startHours, startMinutes] = shiftInfo.startTime.split(':').map(Number);
-    const [endHours, endMinutes] = shiftInfo.endTime.split(':').map(Number);
-    
-    // Tạo Date objects cho thời gian ca làm việc
-    const shiftStartDate = new Date(checkInDate);
-    shiftStartDate.setHours(startHours, startMinutes, 0, 0);
-    
-    const shiftEndDate = new Date(checkInDate);
-    shiftEndDate.setHours(endHours, endMinutes, 0, 0);
-    
-    // Thời gian ân trưa (cố định 1 giờ)
-    const lunchBreakHours = 1;
-    
-    // Tạo giờ kết thúc với thời gian dung sai
-    const graceStartDate = new Date(shiftStartDate);
-    graceStartDate.setMinutes(graceStartDate.getMinutes() + 5); // 5 phút dung sai
-    
-    // Kiểm tra trạng thái nghỉ (làm việc dưới 1 giờ)
-    const workMinutes = differenceInMinutes(checkOutDate, checkInDate);
-    if (workMinutes < 60) {
-      setWorkDayStatus('absent');
-      return {
-        regularHours: 0,
-        overtime150: 0,
-        overtime200: 0,
-        overtime300: 0,
-        totalHours: 0,
-        workDayStatus: 'absent'
-      };
-    }
-    
-    // Kiểm tra trạng thái vào muộn
-    const isLateCheckIn = checkInDate > graceStartDate;
-    setCheckInStatus(isLateCheckIn ? 'late' : 'normal');
-    
-    // Kiểm tra trạng thái ra sớm (trước thời gian kết thúc quy định)
-    const isEarlyCheckOut = checkOutDate < shiftEndDate;
-    setCheckOutStatus(isEarlyCheckOut ? 'early' : 'normal');
-    
-    // Tính giờ công chuẩn (8 giờ)
-    let regularHours = 8;
-    
-    // Nếu vào muộn hoặc ra sớm, giảm giờ công theo bội số 30 phút
-    if (isLateCheckIn) {
-      // Tính số phút vào muộn
-      const lateMinutes = differenceInMinutes(checkInDate, shiftStartDate);
-      // Làm tròn lên theo bội số 30 phút
-      const deductedHours = Math.ceil(lateMinutes / 30) / 2; // Chuyển đổi 30 phút thành 0.5 giờ
-      regularHours -= deductedHours;
-    }
-    
-    if (isEarlyCheckOut) {
-      // Tính số phút ra sớm
-      const earlyMinutes = differenceInMinutes(shiftEndDate, checkOutDate);
-      // Làm tròn lên theo bội số 30 phút
-      const deductedHours = Math.ceil(earlyMinutes / 30) / 2; // Chuyển đổi 30 phút thành 0.5 giờ
-      regularHours -= deductedHours;
-    }
-    
-    // Đảm bảo giờ công không âm
-    regularHours = Math.max(0, regularHours);
-    
-    // Cập nhật trạng thái ngày công
-    if (isLateCheckIn || isEarlyCheckOut) {
-      setWorkDayStatus('rv'); // Vào muộn/Ra sớm
-    } else {
-      setWorkDayStatus('full'); // Công đầy đủ
-    }
-    
-    // Tính giờ tăng ca (nếu có)
-    let overtime150 = 0;
-    let overtime200 = 0;
-    let overtime300 = 0;
-    
-    // Kiểm tra có phải làm đêm không (từ 22:00 đến 6:00 sáng hôm sau)
-    const isNightShift = (hour) => hour >= 22 || hour < 6;
-    
-    // Nếu làm việc quá giờ hành chính, tính tăng ca
-    if (checkOutDate > shiftEndDate) {
-      // Tính toán số giờ tăng ca
-      const overtimeMinutes = differenceInMinutes(checkOutDate, shiftEndDate);
-      let overtimeHours = overtimeMinutes / 60;
-      
-      if (isWeekend) {
-        // Tăng ca 200% cho ngày nghỉ (T7/CN)
-        overtime200 = overtimeHours;
-      } else {
-        // Tách thời gian tăng ca thành các khoảng để tính
-        const overtimeStartHour = shiftEndDate.getHours();
-        const overtimeEndHour = checkOutDate.getHours();
-        
-        // Kiểm tra tăng ca đêm
-        if (isNightShift(overtimeStartHour) || isNightShift(overtimeEndHour)) {
-          // Nếu có làm đêm, tính 300%
-          overtime300 = overtimeHours;
-        } else {
-          // Tăng ca ngày thường, tính 150%
-          overtime150 = overtimeHours;
+      const shiftJson = await AsyncStorage.getItem('workShifts');
+      if (shiftJson) {
+        const shifts = JSON.parse(shiftJson);
+        if (shifts.length > 0) {
+          setShiftInfo(shifts[0]); // Chỉ hiển thị ca đầu tiên
         }
       }
-    }
-    
-    // Tổng số giờ công
-    const totalHours = regularHours + overtime150 + overtime200 + overtime300;
-    
-    return {
-      regularHours,
-      overtime150,
-      overtime200,
-      overtime300,
-      totalHours,
-      workDayStatus: workDayStatus
-    };
-  };
-
-  // Lưu thông tin giờ công
-  const saveWorkHoursInfo = async (hoursInfo) => {
-    try {
-      const today = format(new Date(), 'yyyy-MM-dd');
-      
-      // Lấy dữ liệu hiện có
-      const hoursDataJson = await AsyncStorage.getItem('workHoursData');
-      const hoursData = hoursDataJson ? JSON.parse(hoursDataJson) : {};
-      
-      // Cập nhật thông tin của ngày hôm nay
-      hoursData[today] = {
-        ...hoursInfo,
-        checkInStatus: checkInStatus,
-        checkOutStatus: checkOutStatus,
-        workDayStatus: workDayStatus,
-        date: today
-      };
-      
-      // Lưu lại
-      await AsyncStorage.setItem('workHoursData', JSON.stringify(hoursData));
-      
-      return true;
     } catch (error) {
-      console.error('Lỗi khi lưu thông tin giờ công:', error);
-      return false;
+      console.error('Lỗi khi tải thông tin ca làm việc:', error);
     }
   };
 
