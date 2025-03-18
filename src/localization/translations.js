@@ -56,9 +56,9 @@ export const vi = {
   confirm_apply_shift: 'Bạn có chắc chắn muốn áp dụng ca làm việc này không?',
   
   // Success and Error messages
-  success: 'Thành công',
-  error: 'Lỗi',
-  shift_applied: 'Đã áp dụng ca làm việc thành công',
+  success_message: 'Thành công',
+  error_message: 'Lỗi',
+  shift_applied_message: 'Đã áp dụng ca làm việc thành công',
   shift_apply_error: 'Có lỗi xảy ra khi áp dụng ca làm việc',
   
   // Time labels
@@ -68,6 +68,8 @@ export const vi = {
   date: 'Ngày',
   day_of_week: 'Thứ',
   total: 'Tổng cộng',
+  time_minutes: 'phút',
+  time_select: 'Chọn thời gian',
   
   // Shift information
   shift_start_time: 'Giờ bắt đầu',
@@ -94,6 +96,8 @@ export const vi = {
   status_sick: 'Ốm',
   status_holiday: 'Ngày lễ',
   status_unknown: 'Không xác định',
+  weekly_work_history: 'Lịch sử làm việc',
+  weekly_no_history_today: 'Không có hoạt động nào hôm nay',
   
   // Buttons
   yes: 'Có',
@@ -109,8 +113,8 @@ export const vi = {
   
   // Notes
   notes_title: 'Ghi chú công việc',
-  addNote: 'Thêm ghi chú',
-  editNote: 'Sửa ghi chú',
+  notes_add_note: 'Thêm ghi chú',
+  notes_edit_note: 'Sửa ghi chú',
   noteTitle: 'Tiêu đề',
   noteContent: 'Nội dung',
   note: 'Ghi chú',
@@ -118,35 +122,21 @@ export const vi = {
   content: 'Nội dung',
   title_placeholder: 'Nhập tiêu đề ghi chú',
   content_placeholder: 'Nhập nội dung ghi chú',
-  note_title_required: 'Tiêu đề không được để trống',
-  note_content_required: 'Nội dung không được để trống',
-  note_title_duplicate: 'Tiêu đề này đã tồn tại, vui lòng chọn một tiêu đề khác',
-  note_title_too_long: 'Tiêu đề không được vượt quá {{max}} ký tự',
-  note_content_too_long: 'Nội dung không được vượt quá {{max}} ký tự',
-  note_save_confirm: 'Bạn có chắc chắn muốn lưu ghi chú này?',
-  note_exit_confirm: 'Bạn có muốn thoát mà không lưu ghi chú?',
-  continue_editing: 'Tiếp tục chỉnh sửa',
-  exit: 'Thoát',
-  show_on_days: 'Chọn ngày trong tuần',
-  add_note: 'Thêm ghi chú mới',
-  edit_note: 'Sửa ghi chú',
-  max_title_chars: 'Tối đa 100 ký tự',
-  max_content_chars: 'Tối đa 300 ký tự',
-  no_notes: 'Chưa có ghi chú nào',
-  work_notes: 'Ghi chú công việc',
-  search: 'Tìm kiếm',
-  no_notes_yet: 'Chưa có ghi chú nào',
-  add_new_note_hint: 'Nhấn nút Thêm để tạo ghi chú mới',
-  delete_note_confirm: 'Bạn có chắc chắn muốn xóa ghi chú này?',
-  delete_note_error: 'Không thể xóa ghi chú',
-  
-  // Note tags and colors
-  color: 'Màu sắc',
-  tags: 'Thẻ',
-  tag_work: 'Công việc',
-  tag_personal: 'Cá nhân',
-  tag_important: 'Quan trọng',
-  tag_urgent: 'Khẩn cấp',
+  notes_note_title_required: 'Tiêu đề không được để trống',
+  notes_note_content_required: 'Nội dung không được để trống',
+  notes_note_title_duplicate: 'Tiêu đề này đã tồn tại, vui lòng chọn một tiêu đề khác',
+  notes_note_title_too_long: 'Tiêu đề không được vượt quá {{max}} ký tự',
+  notes_note_content_too_long: 'Nội dung không được vượt quá {{max}} ký tự',
+  notes_save_confirm: 'Bạn có chắc chắn muốn lưu ghi chú này?',
+  notes_exit_confirm: 'Bạn có muốn thoát mà không lưu ghi chú?',
+  notes_color: 'Màu sắc ghi chú',
+  notes_tags: 'Thẻ gắn',
+  notes_tag_work: 'Công việc',
+  notes_tag_personal: 'Cá nhân',
+  notes_tag_important: 'Quan trọng',
+  notes_tag_urgent: 'Khẩn cấp',
+  notes_reminder_date: 'Ngày nhắc nhở',
+  notes_reminder_time: 'Giờ nhắc nhở',
   
   // Status validation messages
   check_in_time_warning: 'Bạn đang thực hiện chấm công vào quá sớm sau khi đi làm. Cần ít nhất 5 phút (còn thiếu {{minutes}} phút). Bạn có muốn tiếp tục?',
@@ -188,15 +178,14 @@ export const vi = {
   
   // Notifications
   enableNotifications: 'Bật thông báo',
-  reminderTime: 'Thời gian nhắc nhở',
-  reminder_time: 'Thời gian nhắc nhở',
+  notification_reminder_time: 'Thời gian nhắc nhở',
   reminder_before_work: 'Nhắc nhở trước giờ vào làm',
   reminder_after_work: 'Nhắc nhở sau giờ làm',
   remind_when_shift_changes: 'Nhắc khi thay đổi ca làm việc',
-  no_reminder: 'Không nhắc nhở',
-  reminder_type: 'Loại nhắc nhở',
-  select_reminder_type: 'Chọn loại nhắc nhở',
-  reminder_type_none: 'Không thay đổi',
+  notification_no_reminder: 'Không nhắc nhở',
+  notification_reminder_type: 'Loại nhắc nhở',
+  notification_select_reminder_type: 'Chọn loại nhắc nhở',
+  notification_reminder_type_none: 'Không thay đổi',
   reminder_type_weekly: 'Mỗi tuần',
   reminder_type_biweekly: 'Hai tuần',
   reminder_type_triweekly: 'Ba tuần',
@@ -210,9 +199,9 @@ export const vi = {
   notification_sound_description: 'Phát âm thanh khi có thông báo',
   notification_vibration: 'Rung thông báo',
   notification_vibration_description: 'Rung khi có thông báo',
-  before_5_min: 'Trước 5 phút',
-  before_15_min: 'Trước 15 phút',
-  before_30_min: 'Trước 30 phút',
+  notification_before_5_min: 'Trước 5 phút',
+  notification_before_15_min: 'Trước 15 phút',
+  notification_before_30_min: 'Trước 30 phút',
   
   // Statistics
   monthlyStats: 'Thống kê tháng',
@@ -246,7 +235,7 @@ export const vi = {
   
   // Additional work shift form translations
   work_time: 'Thời gian làm việc',
-  select_time: 'Chọn thời gian',
+  work_select_time: 'Chọn thời gian',
   apply_to_days: 'Áp dụng vào các ngày',
   day_0: 'CN',
   day_1: 'T2',
@@ -259,22 +248,20 @@ export const vi = {
   minutes: 'phút',
   confirm_reset_form_message: 'Bạn có chắc chắn muốn đặt lại biểu mẫu này không?',
   add_shift: 'Thêm ca làm việc mới',
-  show_sign_button: 'Hiển thị nút ký công',
+  shift_show_sign_button: 'Hiển thị nút ký tên',
   delete_shift: 'Xóa ca làm việc',
   
   // Reminders
   remind_before_work: 'Nhắc nhở trước giờ vào làm',
   remind_after_work: 'Nhắc nhở sau giờ làm',
   minutes: 'phút',
-  select_reminder: 'Chọn thời gian nhắc nhở',
+  reminder_select_time: 'Chọn thời gian nhắc nhở',
   
   // Time selection
-  select_time: 'Chọn thời gian',
   time_format_help: 'Định dạng: HH:MM (24h)',
   
   // Shift settings
-  show_sign_button: 'Hiển thị nút ký công',
-  applied_days: 'Ngày áp dụng',
+  shift_applied_days: 'Các ngày áp dụng',
   
   // Weekly grid
   change_status: 'Thay đổi trạng thái',
@@ -439,9 +426,9 @@ export const en = {
   confirm_apply_shift: 'Are you sure you want to apply this shift?',
   
   // Success and Error messages
-  success: 'Success',
-  error: 'Error',
-  shift_applied: 'Shift applied successfully',
+  success_message: 'Success',
+  error_message: 'Error',
+  shift_applied_message: 'Shift applied successfully',
   shift_apply_error: 'Error applying shift',
   
   // Time labels
@@ -449,7 +436,10 @@ export const en = {
   time: 'Time',
   duration: 'Duration',
   date: 'Date',
-  day_of_week: 'Day',
+  day_of_week: 'Day of Week',
+  total: 'Total',
+  time_minutes: 'minutes',
+  time_select: 'Select Time',
   
   // Shift information
   shift_start_time: 'Start Time',
@@ -476,6 +466,8 @@ export const en = {
   status_sick: 'Sick',
   status_holiday: 'Holiday',
   status_unknown: 'Unknown',
+  weekly_work_history: 'Work History',
+  weekly_no_history_today: 'No activity today',
   
   // Buttons
   yes: 'Yes',
@@ -491,8 +483,8 @@ export const en = {
   
   // Notes
   notes_title: 'Work Notes',
-  addNote: 'Add Note',
-  editNote: 'Edit Note',
+  notes_add_note: 'Add Note',
+  notes_edit_note: 'Edit Note',
   noteTitle: 'Title',
   noteContent: 'Content',
   note: 'Note',
@@ -500,35 +492,21 @@ export const en = {
   content: 'Content',
   title_placeholder: 'Enter note title',
   content_placeholder: 'Enter note content',
-  note_title_required: 'Title is required',
-  note_content_required: 'Content is required',
-  note_title_duplicate: 'This title already exists, please choose a different title',
-  note_title_too_long: 'Title cannot exceed {{max}} characters',
-  note_content_too_long: 'Content cannot exceed {{max}} characters',
-  note_save_confirm: 'Are you sure you want to save this note?',
-  note_exit_confirm: 'Do you want to exit without saving note?',
-  continue_editing: 'Continue Editing',
-  exit: 'Exit',
-  show_on_days: 'Select days of week',
-  add_note: 'Add New Note',
-  edit_note: 'Edit Note',
-  max_title_chars: 'Maximum 100 characters',
-  max_content_chars: 'Maximum 300 characters',
-  no_notes: 'No notes yet',
-  work_notes: 'Work Notes',
-  search: 'Search',
-  no_notes_yet: 'No notes yet',
-  add_new_note_hint: 'Press Add to create a new note',
-  delete_note_confirm: 'Are you sure you want to delete this note?',
-  delete_note_error: 'Cannot delete note',
-  
-  // Note tags and colors
-  color: 'Color',
-  tags: 'Tags',
-  tag_work: 'Work',
-  tag_personal: 'Personal',
-  tag_important: 'Important',
-  tag_urgent: 'Urgent',
+  notes_note_title_required: 'Title is required',
+  notes_note_content_required: 'Content is required',
+  notes_note_title_duplicate: 'This title already exists, please choose a different title',
+  notes_note_title_too_long: 'Title cannot exceed {{max}} characters',
+  notes_note_content_too_long: 'Content cannot exceed {{max}} characters',
+  notes_save_confirm: 'Are you sure you want to save this note?',
+  notes_exit_confirm: 'Do you want to exit without saving note?',
+  notes_color: 'Note Color',
+  notes_tags: 'Tags',
+  notes_tag_work: 'Work',
+  notes_tag_personal: 'Personal',
+  notes_tag_important: 'Important',
+  notes_tag_urgent: 'Urgent',
+  notes_reminder_date: 'Reminder Date',
+  notes_reminder_time: 'Reminder Time',
   
   // Status validation messages
   check_in_time_warning: 'You are checking in too early after going to work. It requires at least 5 minutes (missing {{minutes}} minutes). Do you want to continue?',
@@ -570,15 +548,14 @@ export const en = {
   
   // Notifications
   enableNotifications: 'Enable Notifications',
-  reminderTime: 'Reminder Time',
-  reminder_time: 'Reminder Time',
+  notification_reminder_time: 'Reminder Time',
   reminder_before_work: 'Reminder Before Work',
   reminder_after_work: 'Reminder After Work',
   remind_when_shift_changes: 'Remind When Shift Changes',
-  no_reminder: 'No Reminder',
-  reminder_type: 'Reminder Type',
-  select_reminder_type: 'Select Reminder Type',
-  reminder_type_none: 'No Change',
+  notification_no_reminder: 'No Reminder',
+  notification_reminder_type: 'Reminder Type',
+  notification_select_reminder_type: 'Select Reminder Type',
+  notification_reminder_type_none: 'No Change',
   reminder_type_weekly: 'Weekly',
   reminder_type_biweekly: 'Bi-weekly',
   reminder_type_triweekly: 'Tri-weekly',
@@ -592,9 +569,9 @@ export const en = {
   notification_sound_description: 'Play sound when notification appears',
   notification_vibration: 'Notification Vibration',
   notification_vibration_description: 'Vibrate when notification appears',
-  before_5_min: 'Before 5 minutes',
-  before_15_min: 'Before 15 minutes',
-  before_30_min: 'Before 30 minutes',
+  notification_before_5_min: 'Before 5 minutes',
+  notification_before_15_min: 'Before 15 minutes',
+  notification_before_30_min: 'Before 30 minutes',
   
   // Statistics
   monthlyStats: 'Monthly Statistics',
@@ -628,7 +605,7 @@ export const en = {
   
   // Additional work shift form translations
   work_time: 'Work Time',
-  select_time: 'Select time',
+  work_select_time: 'Select time',
   apply_to_days: 'Apply to days',
   day_0: 'Sun',
   day_1: 'Mon',
@@ -641,22 +618,20 @@ export const en = {
   minutes: 'minutes',
   confirm_reset_form_message: 'Are you sure you want to reset this form?',
   add_shift: 'Add New Work Shift',
-  show_sign_button: 'Show Sign Button',
+  shift_show_sign_button: 'Show Sign Button',
   delete_shift: 'Delete Shift',
   
   // Reminders
   remind_before_work: 'Reminder Before Work',
   remind_after_work: 'Reminder After Work',
   minutes: 'minutes',
-  select_reminder: 'Select reminder time',
+  reminder_select_time: 'Select reminder time',
   
   // Time selection
-  select_time: 'Select Time',
   time_format_help: 'Format: HH:MM (24h)',
   
   // Shift settings
-  show_sign_button: 'Show Sign Button',
-  applied_days: 'Applied Days',
+  shift_applied_days: 'Applied Days',
   
   // Weekly grid
   change_status: 'Change Status',

@@ -13,7 +13,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { format, differenceInMinutes, differenceInHours, isToday, parseISO, addDays } from 'date-fns';
-import { vi, enUS } from 'date-fns/locale';
+import vi from 'date-fns/locale/vi';
+import enUS from 'date-fns/locale/en-US';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Contexts & Services
@@ -44,6 +45,8 @@ const HomeScreen = () => {
   const [checkOutStatus, setCheckOutStatus] = useState('normal'); // 'normal', 'early'
   const [workDayStatus, setWorkDayStatus] = useState('full'); // 'full', 'rv', 'absent'
   const [shiftInfo, setShiftInfo] = useState(null);
+  const [weeklyStatus, setWeeklyStatus] = useState({});
+  const [statusDetails, setStatusDetails] = useState({});
 
   // Lấy thông tin nhắc nhở hiện tại
   useEffect(() => {
@@ -164,7 +167,7 @@ const HomeScreen = () => {
     
     // Đảm bảo nút luôn có thể nhấn được
     setActionButtonDisabled(false);
-  }, [workStatus]);
+  }, [workStatus, updateInfo]);
 
   // Lấy thông tin ca làm việc và trạng thái khi component được tạo
   useEffect(() => {
@@ -173,7 +176,7 @@ const HomeScreen = () => {
     
     // Khởi tạo lần đầu
     updateInfo();
-  }, []);
+  }, [loadShiftInfo, updateInfo]);
 
   // Format date using the current locale
   const formatDate = (date) => {
@@ -1203,18 +1206,18 @@ const HomeScreen = () => {
               </Text>
 
               {/* Trạng thái hiện tại */}
-              <View style={styles.currentStatusContainer}>
-                <Text style={[styles.currentStatusLabel, { color: theme.colors.textSecondary }]}>
+              <View style={styles.actionStatusContainer}>
+                <Text style={[styles.actionStatusLabel, { color: theme.colors.textSecondary }]}>
                   {t('current_status')}:
                 </Text>
-                <View style={styles.currentStatusValueContainer}>
+                <View style={styles.actionStatusValueContainer}>
                   <Ionicons
                     name={getIconForStatus(workStatus)}
                     size={18}
                     color={getColorForStatus(workStatus, theme)}
                   />
                   <Text style={[
-                    styles.currentStatusValue,
+                    styles.actionStatusValue,
                     { color: getColorForStatus(workStatus, theme) }
                   ]}>
                     {t(workStatus || 'not_started')}
@@ -1223,22 +1226,22 @@ const HomeScreen = () => {
               </View>
 
               {/* Danh sách lịch sử */}
-              <View style={styles.historyList}>
+              <View style={styles.actionHistoryList}>
                 {/* Mục Đi làm */}
                 {goWorkEntry && (
-                  <View style={styles.historyItem}>
-                    <View style={styles.historyIconContainer}>
+                  <View style={styles.actionHistoryItem}>
+                    <View style={styles.actionHistoryIconContainer}>
                       <Ionicons
                         name="briefcase-outline"
                         size={18}
                         color={theme.colors.goWorkButton}
                       />
                     </View>
-                    <View style={styles.historyContent}>
-                      <Text style={[styles.historyText, { color: theme.colors.textPrimary }]}>
+                    <View style={styles.actionHistoryContent}>
+                      <Text style={[styles.actionHistoryText, { color: theme.colors.textPrimary }]}>
                         {t('work_start')}
                       </Text>
-                      <Text style={[styles.historyTime, { color: theme.colors.textSecondary }]}>
+                      <Text style={[styles.actionHistoryTime, { color: theme.colors.textSecondary }]}>
                         {formatTime(new Date(goWorkEntry.timestamp))}
                       </Text>
                     </View>
@@ -1247,19 +1250,19 @@ const HomeScreen = () => {
                 
                 {/* Mục Chấm công vào */}
                 {checkInEntry && (
-                  <View style={styles.historyItem}>
-                    <View style={styles.historyIconContainer}>
+                  <View style={styles.actionHistoryItem}>
+                    <View style={styles.actionHistoryIconContainer}>
                       <Ionicons
                         name="log-in-outline"
                         size={18}
                         color={theme.colors.checkInButton}
                       />
                     </View>
-                    <View style={styles.historyContent}>
-                      <Text style={[styles.historyText, { color: theme.colors.textPrimary }]}>
+                    <View style={styles.actionHistoryContent}>
+                      <Text style={[styles.actionHistoryText, { color: theme.colors.textPrimary }]}>
                         {t('check_in_time')}
                       </Text>
-                      <Text style={[styles.historyTime, { color: theme.colors.textSecondary }]}>
+                      <Text style={[styles.actionHistoryTime, { color: theme.colors.textSecondary }]}>
                         {formatTime(new Date(checkInEntry.timestamp))}
                       </Text>
                     </View>
@@ -1268,19 +1271,19 @@ const HomeScreen = () => {
                 
                 {/* Mục Chấm công ra */}
                 {checkOutEntry && (
-                  <View style={styles.historyItem}>
-                    <View style={styles.historyIconContainer}>
+                  <View style={styles.actionHistoryItem}>
+                    <View style={styles.actionHistoryIconContainer}>
                       <Ionicons
                         name="log-out-outline"
                         size={18}
                         color={theme.colors.checkOutButton}
                       />
                     </View>
-                    <View style={styles.historyContent}>
-                      <Text style={[styles.historyText, { color: theme.colors.textPrimary }]}>
+                    <View style={styles.actionHistoryContent}>
+                      <Text style={[styles.actionHistoryText, { color: theme.colors.textPrimary }]}>
                         {t('check_out_time')}
                       </Text>
-                      <Text style={[styles.historyTime, { color: theme.colors.textSecondary }]}>
+                      <Text style={[styles.actionHistoryTime, { color: theme.colors.textSecondary }]}>
                         {formatTime(new Date(checkOutEntry.timestamp))}
                       </Text>
                     </View>
@@ -1289,19 +1292,19 @@ const HomeScreen = () => {
                 
                 {/* Mục Hoàn thành */}
                 {completeEntry && (
-                  <View style={styles.historyItem}>
-                    <View style={styles.historyIconContainer}>
+                  <View style={styles.actionHistoryItem}>
+                    <View style={styles.actionHistoryIconContainer}>
                       <Ionicons
                         name="checkmark-done-outline"
                         size={18}
                         color={theme.colors.completeButton}
                       />
                     </View>
-                    <View style={styles.historyContent}>
-                      <Text style={[styles.historyText, { color: theme.colors.textPrimary }]}>
+                    <View style={styles.actionHistoryContent}>
+                      <Text style={[styles.actionHistoryText, { color: theme.colors.textPrimary }]}>
                         {t('completion_time')}
                       </Text>
-                      <Text style={[styles.historyTime, { color: theme.colors.textSecondary }]}>
+                      <Text style={[styles.actionHistoryTime, { color: theme.colors.textSecondary }]}>
                         {formatTime(new Date(completeEntry.timestamp))}
                       </Text>
                     </View>
@@ -1775,34 +1778,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
   },
-  currentStatusContainer: {
-    flexDirection: 'column',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 16,
-  },
-  currentStatusTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  currentStatusText: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  actionHistoryContainer: {
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 12,
-    width: '90%',
-  },
-  actionHistoryTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  currentStatusContainer: {
+  actionStatusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1810,30 +1786,30 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
   },
-  currentStatusLabel: {
+  actionStatusLabel: {
     fontSize: 14,
     marginRight: 8,
   },
-  currentStatusValueContainer: {
+  actionStatusValueContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  currentStatusValue: {
+  actionStatusValue: {
     fontSize: 14,
     fontWeight: 'bold',
     marginLeft: 4,
   },
-  historyList: {
+  actionHistoryList: {
     marginTop: 8,
   },
-  historyItem: {
+  actionHistoryItem: {
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 4,
     padding: 8,
     borderRadius: 8,
   },
-  historyIconContainer: {
+  actionHistoryIconContainer: {
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -1841,17 +1817,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  historyContent: {
+  actionHistoryContent: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  historyText: {
+  actionHistoryText: {
     fontSize: 14,
     fontWeight: '500',
   },
-  historyTime: {
+  actionHistoryTime: {
     fontSize: 14,
   },
   noHistoryText: {
