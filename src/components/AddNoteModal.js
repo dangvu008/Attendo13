@@ -89,6 +89,7 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
       return;
     }
     
+    // Hiển thị cảnh báo xác nhận trước khi reset
     Alert.alert(
       t('confirm_reset'),
       t('confirm_reset_message'),
@@ -99,32 +100,41 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
         },
         {
           text: t('reset'),
-          onPress: resetForm,
+          onPress: () => {
+            console.log('Đang đặt lại form');
+            resetForm();
+          },
           style: 'destructive'
         }
-      ]
+      ],
+      { cancelable: true }
     );
   };
 
   const handleDateChange = (event, selectedDate) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      const currentDateTime = new Date(reminderDate);
-      currentDateTime.setFullYear(selectedDate.getFullYear());
-      currentDateTime.setMonth(selectedDate.getMonth());
-      currentDateTime.setDate(selectedDate.getDate());
-      setReminderDate(currentDateTime);
-    }
+    const currentDate = selectedDate || reminderDate;
+    setShowDatePicker(Platform.OS === 'ios'); // Only hide the picker on Android
+    
+    // Chỉ cập nhật ngày, giữ nguyên thời gian
+    const updatedDate = new Date(currentDate);
+    updatedDate.setHours(reminderDate.getHours());
+    updatedDate.setMinutes(reminderDate.getMinutes());
+    
+    console.log('Đã chọn ngày:', format(updatedDate, 'dd/MM/yyyy'));
+    setReminderDate(updatedDate);
   };
 
   const handleTimeChange = (event, selectedTime) => {
-    setShowTimePicker(false);
-    if (selectedTime) {
-      const currentDateTime = new Date(reminderDate);
-      currentDateTime.setHours(selectedTime.getHours());
-      currentDateTime.setMinutes(selectedTime.getMinutes());
-      setReminderDate(currentDateTime);
-    }
+    const currentTime = selectedTime || reminderDate;
+    setShowTimePicker(Platform.OS === 'ios'); // Only hide the picker on Android
+    
+    // Chỉ cập nhật giờ phút, giữ nguyên ngày
+    const updatedDate = new Date(reminderDate);
+    updatedDate.setHours(currentTime.getHours());
+    updatedDate.setMinutes(currentTime.getMinutes());
+    
+    console.log('Đã chọn giờ:', format(updatedDate, 'HH:mm'));
+    setReminderDate(updatedDate);
   };
 
   const toggleDaySelection = (dayId) => {
@@ -164,8 +174,10 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
   };
 
   const handleSave = () => {
+    console.log('Đang cố gắng lưu note');
     // Validate form
     if (!validateNote()) {
+      console.log('Validation thất bại');
       return;
     }
     
@@ -179,6 +191,8 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
       tags: selectedTags
     };
     
+    console.log('Dữ liệu note:', noteData);
+    
     // Show confirmation dialog
     Alert.alert(
       t('confirm'),
@@ -188,10 +202,12 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
         { 
           text: t('confirm'), 
           onPress: () => {
+            console.log('Đã xác nhận lưu');
             onSave(noteData);
           }
         }
-      ]
+      ],
+      { cancelable: true }
     );
   };
 
@@ -203,10 +219,12 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
         [
           { text: t('continue_editing'), style: 'cancel' },
           { text: t('exit'), onPress: () => {
+            console.log('Đóng và đặt lại form');
             resetForm();
             onClose();
           }}
-        ]
+        ],
+        { cancelable: true }
       );
     } else {
       resetForm();
@@ -232,8 +250,13 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                 <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
                   {initialData ? t('edit_note') : t('add_note')}
                 </Text>
-                <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                  <Ionicons name="close" size={24} color={theme.colors.text} />
+                <TouchableOpacity 
+                  onPress={handleClose} 
+                  style={styles.closeButton}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                >
+                  <Ionicons name="close-circle" size={28} color={theme.colors.text} />
                 </TouchableOpacity>
               </View>
 
@@ -301,48 +324,56 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                   </Text>
                 </View>
 
-                {/* Reminder Time */}
+                {/* Date Picker Button */}
+                <View style={styles.inputContainer}>
+                  <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
+                    {t('reminder_date')}
+                  </Text>
+                  <TouchableOpacity 
+                    style={[styles.dateButton, { borderColor: theme.colors.border }]}
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <Text style={{ color: theme.colors.text }}>
+                      {format(reminderDate, 'dd/MM/yyyy')}
+                    </Text>
+                    <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
+                  </TouchableOpacity>
+                  
+                  {showDatePicker && (
+                    <DateTimePicker
+                      testID="dateTimePicker"
+                      value={reminderDate}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      onChange={handleDateChange}
+                      minimumDate={new Date()}
+                    />
+                  )}
+                </View>
+
+                {/* Time Picker Button */}
                 <View style={styles.inputContainer}>
                   <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
                     {t('reminder_time')}
                   </Text>
-                  <View style={styles.dateTimeContainer}>
-                    <TouchableOpacity 
-                      style={[styles.dateTimeButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
-                      onPress={() => setShowDatePicker(true)}
-                    >
-                      <Ionicons name="calendar-outline" size={18} color={theme.colors.primary} />
-                      <Text style={[styles.dateTimeText, { color: theme.colors.text }]}>
-                        {format(reminderDate, 'dd/MM/yyyy')}
-                      </Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={[styles.dateTimeButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
-                      onPress={() => setShowTimePicker(true)}
-                    >
-                      <Ionicons name="time-outline" size={18} color={theme.colors.primary} />
-                      <Text style={[styles.dateTimeText, { color: theme.colors.text }]}>
-                        {format(reminderDate, 'HH:mm')}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                  
-                  {showDatePicker && (
-                    <DateTimePicker 
-                      value={reminderDate}
-                      mode="date"
-                      display="default"
-                      onChange={handleDateChange}
-                    />
-                  )}
+                  <TouchableOpacity 
+                    style={[styles.dateButton, { borderColor: theme.colors.border }]}
+                    onPress={() => setShowTimePicker(true)}
+                  >
+                    <Text style={{ color: theme.colors.text }}>
+                      {format(reminderDate, 'HH:mm')}
+                    </Text>
+                    <Ionicons name="time-outline" size={20} color={theme.colors.primary} />
+                  </TouchableOpacity>
                   
                   {showTimePicker && (
-                    <DateTimePicker 
+                    <DateTimePicker
+                      testID="timePicker"
                       value={reminderDate}
                       mode="time"
-                      display="default"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                       onChange={handleTimeChange}
+                      is24Hour={true}
                     />
                   )}
                 </View>
@@ -438,6 +469,7 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                 <TouchableOpacity
                   style={[styles.resetButton, { backgroundColor: theme.colors.error }]}
                   onPress={handleConfirmReset}
+                  activeOpacity={0.7}
                 >
                   <Text style={styles.buttonText}>{t('reset')}</Text>
                 </TouchableOpacity>
@@ -445,6 +477,7 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                 <TouchableOpacity
                   style={[styles.saveButton, { backgroundColor: theme.colors.primary }]}
                   onPress={handleSave}
+                  activeOpacity={0.7}
                 >
                   <Text style={styles.buttonText}>{t('save')}</Text>
                 </TouchableOpacity>
@@ -483,7 +516,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   closeButton: {
-    padding: 4,
+    position: 'absolute',
+    right: 16,
+    top: 16,
+    zIndex: 10,
+    padding: 5,
   },
   modalBody: {
     padding: 16,
@@ -531,21 +568,12 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     marginTop: 4,
   },
-  dateTimeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  dateTimeButton: {
+  dateButton: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderRadius: 5,
     padding: 8,
-    flex: 0.48,
-  },
-  dateTimeText: {
-    marginLeft: 8,
-    fontSize: 16,
   },
   daysContainer: {
     flexDirection: 'row',
