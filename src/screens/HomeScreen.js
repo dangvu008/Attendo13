@@ -49,6 +49,7 @@ const HomeScreen = () => {
   const [weeklyStatus, setWeeklyStatus] = useState({});
   const [statusDetails, setStatusDetails] = useState({});
   const [notes, setNotes] = useState([]);
+  const [actionHistory, setActionHistory] = useState([]);
 
   // Lấy thông tin nhắc nhở hiện tại
   useEffect(() => {
@@ -704,47 +705,48 @@ const HomeScreen = () => {
     }
   };
 
-  // Hàm để xử lý xác nhận reset
-  const confirmReset = async () => {
+  // Hàm xử lý khi người dùng xác nhận reset
+  const handleResetConfirm = async () => {
     try {
-      const success = await resetDayStatus();
-      if (success) {
-        console.log('Reset thành công trạng thái ngày hôm nay');
-        
-        // Cập nhật trạng thái màn hình về trạng thái ban đầu
-        setWorkStatus(null);
-        
-        // Đặt lại nextAction để tránh xung đột
-        setNextAction(null);
-        
-        // Cập nhật UI
-        updateInfo();
-        
-        // Đảm bảo nút đa năng được kích hoạt lại
-        setActionButtonDisabled(false);
-        
-        // Cập nhật lại các nhắc nhở nếu cần
-        const loadReminders = async () => {
-          try {
-            const reminders = await NotificationService.getScheduledNotifications();
-            if (reminders) {
-              const remindersList = Object.values(reminders);
-              setCurrentReminders(remindersList);
-            }
-          } catch (error) {
-            console.error('Error loading reminders:', error);
-          }
-        };
-        
-        loadReminders();
-      } else {
-        console.error('Có lỗi khi reset trạng thái');
-      }
+      // Reset trạng thái công việc
+      setWorkStatus(null);
+      setNextAction(null);
+      setActionHistory([]);
+      
+      // Xóa dữ liệu lưu trữ cho ngày hiện tại
+      const today = format(new Date(), 'yyyy-MM-dd');
+      await AsyncStorage.removeItem(`workStatus_${today}`);
+      await AsyncStorage.removeItem(`actionHistory_${today}`);
+      
+      // Hiển thị thông báo thành công
+      Alert.alert(
+        t('success'),
+        t('reset_success'),
+        [{ text: t('ok') }]
+      );
     } catch (error) {
       console.error('Lỗi khi reset:', error);
+      Alert.alert(
+        t('error'),
+        t('reset_error'),
+        [{ text: t('ok') }]
+      );
     } finally {
-      // Luôn đảm bảo đóng popup
+      // Đóng hộp thoại xác nhận
       setConfirmResetVisible(false);
+    }
+  };
+
+  // Hàm để tải danh sách ghi chú gần nhất
+  const loadRecentNotes = async () => {
+    try {
+      const notesJson = await AsyncStorage.getItem('notes');
+      if (notesJson) {
+        const notesData = JSON.parse(notesJson);
+        setNotes(notesData.slice(0, 3));
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải ghi chú gần nhất:', error);
     }
   };
 
