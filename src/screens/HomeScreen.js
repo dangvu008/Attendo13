@@ -1145,6 +1145,44 @@ const HomeScreen = () => {
   // Determine if we should show the reset button
   const showResetButton = workStatus !== 'inactive';
 
+  // Xử lý reset work status
+  const handleResetPress = () => {
+    setConfirmResetVisible(true);
+  };
+  
+  // Xử lý xác nhận reset work status
+  const handleResetConfirm = async () => {
+    try {
+      // Xóa dữ liệu ngày hiện tại
+      await AsyncStorage.removeItem(todayKey);
+      
+      // Cập nhật state
+      setTodayEntries([]);
+      setWorkStatus('inactive');
+      setActionLogs([]);
+      
+      // Cập nhật giao diện
+      updateInfo();
+      
+      // Đóng modal xác nhận
+      setConfirmResetVisible(false);
+      
+      // Thông báo thành công
+      Alert.alert(
+        i18n.t('success'),
+        i18n.t('reset_success'),
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Lỗi khi reset dữ liệu:', error);
+      Alert.alert(
+        i18n.t('error'),
+        i18n.t('reset_error'),
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   // Hàm load thông tin ca làm việc
   const loadShiftInfo = async () => {
     try {
