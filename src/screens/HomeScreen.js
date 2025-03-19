@@ -757,7 +757,8 @@ const HomeScreen = () => {
       // Thêm log mới
       const newLog = {
         action,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        status: action // Thêm trường status để tương thích với cách hiển thị cũ
       };
       
       logs.unshift(newLog); // Thêm vào đầu mảng
@@ -1270,45 +1271,45 @@ const HomeScreen = () => {
           
           <View style={[styles.actionHistoryCard, { backgroundColor: theme.colors.surface }]}>
             {/* Hiển thị lịch sử các thao tác quan trọng */}
-            {todayEntries.length > 0 ? (
+            {actionLogs.length > 0 ? (
               <View style={styles.actionHistoryList}>
-                {todayEntries.map((entry, index) => {
+                {actionLogs.map((entry, index) => {
                   let statusText = '';
                   let icon = '';
                   
-                  switch(entry.status) {
+                  switch(entry.action) {
                     case 'go_work':
-                      statusText = t('work_start');
+                      statusText = t('goToWork');
                       icon = 'briefcase-outline';
                       break;
                     case 'check_in':
-                      statusText = t('check_in_time');
+                      statusText = t('checkIn');
                       icon = 'log-in-outline';
                       break;
                     case 'check_out':
-                      statusText = t('check_out_time');
+                      statusText = t('checkOut');
                       icon = 'log-out-outline';
                       break;
                     case 'complete':
-                      statusText = t('completion_time');
+                      statusText = t('complete');
                       icon = 'checkmark-done-outline';
                       break;
                     default:
-                      statusText = entry.status;
+                      statusText = entry.action;
                       icon = 'time-outline';
                   }
                   
                   return (
                     <View key={index} style={styles.actionHistoryItem}>
                       <View style={styles.actionIconContainer}>
-                        <Ionicons name={icon} size={20} color={getColorForStatus(entry.status, theme)} />
+                        <Ionicons name={icon} size={20} color={getColorForStatus(entry.action, theme)} />
                       </View>
                       <View style={styles.actionTextContainer}>
                         <Text style={[styles.actionText, { color: theme.colors.textPrimary }]}>
                           {statusText}
                         </Text>
                         <Text style={[styles.actionTime, { color: theme.colors.textSecondary }]}>
-                          {format(new Date(entry.timestamp), 'HH:mm')}
+                          {format(parseISO(entry.timestamp), 'HH:mm')}
                         </Text>
                       </View>
                     </View>
@@ -1316,9 +1317,11 @@ const HomeScreen = () => {
                 })}
               </View>
             ) : (
-              <Text style={[styles.noHistoryText, { color: theme.colors.textSecondary }]}>
-                {t('no_history_today')}
-              </Text>
+              <View style={styles.emptyListContainer}>
+                <Text style={[styles.emptyListText, { color: theme.colors.textSecondary }]}>
+                  {t('no_history')}
+                </Text>
+              </View>
             )}
           </View>
         </View>
