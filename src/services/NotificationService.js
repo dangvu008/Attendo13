@@ -228,156 +228,275 @@ export const cancelAllShiftNotifications = async (shiftId = null) => {
 };
 
 // Schedule departure reminder (before "go to work")
-export const scheduleDepartureReminder = async (departureTime) => {
+export const scheduleDepartureReminder = async (departureTime, shiftInfo) => {
   try {
-    if (!departureTime) return null;
-    
-    const settings = await loadNotificationSettings();
-    if (!settings.enabled) return null;
-    
-    // Parse departureTime từ format "HH:MM"
-    const [hours, minutes] = departureTime.split(':').map(Number);
-    
-    // Tạo đối tượng Date cho hôm nay với thời gian xuất phát
-    const today = new Date();
-    const reminderDate = new Date(today);
-    reminderDate.setHours(hours, minutes, 0, 0);
-    
-    // Lên lịch trước thời gian xuất phát 15 phút
-    reminderDate.setMinutes(reminderDate.getMinutes() - 15);
-    
-    // Nếu đã qua thời gian thông báo thì không lên lịch
-    if (reminderDate <= new Date()) {
+    // Ensure departureTime is valid
+    if (!departureTime) {
+      console.log('Invalid departure time');
       return null;
     }
+
+    // Get notification settings
+    const settings = await loadNotificationSettings();
+    if (!settings.enabled) {
+      console.log('Notifications are disabled');
+      return null;
+    }
+
+    // Parse the departure time (format: HH:MM)
+    const [hours, minutes] = departureTime.split(':').map(num => parseInt(num, 10));
     
-    // Lên lịch thông báo
+    // Create departure time for today
+    const today = new Date();
+    const departureDate = new Date(today);
+    departureDate.setHours(hours, minutes, 0, 0);
+    
+    // Only schedule if the time is in the future
+    if (departureDate <= new Date()) {
+      console.log('Departure time is in the past, not scheduling');
+      return null;
+    }
+
+    // Schedule the notification
+    const notificationId = `departure-reminder-${today.toISOString().split('T')[0]}`;
     return await scheduleNotification({
-      id: 'departure-reminder',
-      title: 'Nhắc nhở chuẩn bị đi làm',
-      message: 'Sắp đến giờ chuẩn bị đi làm, hãy đảm bảo bạn sẵn sàng!',
-      date: reminderDate,
+      id: notificationId,
+      title: 'Nhắc nhở xuất phát',
+      message: `Đã đến giờ xuất phát cho ca làm việc ${shiftInfo ? shiftInfo.name : ''}`,
+      date: departureDate,
       sound: settings.sound,
       vibrate: settings.vibration,
-      data: { type: 'departure' }
+      data: {
+        type: 'departure_reminder',
+        action: 'go_work',
+        shiftInfo
+      }
     });
   } catch (error) {
-    console.error('Lỗi khi lên lịch nhắc nhở xuất phát:', error);
+    console.error('Error scheduling departure reminder:', error);
     return null;
   }
 };
 
 // Schedule start time reminder (for check-in)
-export const scheduleStartTimeReminder = async (startTime) => {
+export const scheduleStartTimeReminder = async (startTime, shiftInfo) => {
   try {
-    if (!startTime) return null;
-    
-    const settings = await loadNotificationSettings();
-    if (!settings.enabled) return null;
-    
-    // Parse startTime từ format "HH:MM"
-    const [hours, minutes] = startTime.split(':').map(Number);
-    
-    // Tạo đối tượng Date cho hôm nay với thời gian bắt đầu
-    const today = new Date();
-    const reminderDate = new Date(today);
-    reminderDate.setHours(hours, minutes, 0, 0);
-    
-    // Nếu đã qua thời gian thông báo thì không lên lịch
-    if (reminderDate <= new Date()) {
+    // Ensure startTime is valid
+    if (!startTime) {
+      console.log('Invalid start time');
       return null;
     }
+
+    // Get notification settings
+    const settings = await loadNotificationSettings();
+    if (!settings.enabled) {
+      console.log('Notifications are disabled');
+      return null;
+    }
+
+    // Parse the start time (format: HH:MM)
+    const [hours, minutes] = startTime.split(':').map(num => parseInt(num, 10));
     
-    // Lên lịch thông báo
+    // Create start time for today
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setHours(hours, minutes, 0, 0);
+    
+    // Calculate reminder time (10 minutes before start time)
+    const reminderDate = new Date(startDate);
+    reminderDate.setMinutes(reminderDate.getMinutes() - 10);
+
+    // Only schedule if the time is in the future
+    if (reminderDate <= new Date()) {
+      console.log('Check-in reminder time is in the past, not scheduling');
+      return null;
+    }
+
+    // Schedule the notification
+    const notificationId = `checkin-reminder-${today.toISOString().split('T')[0]}`;
     return await scheduleNotification({
-      id: 'check-in-reminder',
+      id: notificationId,
       title: 'Nhắc nhở chấm công vào',
-      message: 'Đã đến giờ làm việc, hãy nhớ chấm công vào!',
+      message: `Còn 10 phút nữa đến giờ chấm công vào cho ca ${shiftInfo ? shiftInfo.name : ''}`,
       date: reminderDate,
       sound: settings.sound,
       vibrate: settings.vibration,
-      data: { type: 'check-in' }
+      data: {
+        type: 'check_in_reminder',
+        action: 'check_in',
+        shiftInfo
+      }
     });
   } catch (error) {
-    console.error('Lỗi khi lên lịch nhắc nhở chấm công vào:', error);
+    console.error('Error scheduling start time reminder:', error);
     return null;
   }
 };
 
 // Schedule check-out reminder
-export const scheduleCheckOutReminder = async (officeEndTime) => {
+export const scheduleOfficeEndReminder = async (officeEndTime, shiftInfo) => {
   try {
-    if (!officeEndTime) return null;
-    
-    const settings = await loadNotificationSettings();
-    if (!settings.enabled) return null;
-    
-    // Parse officeEndTime từ format "HH:MM"
-    const [hours, minutes] = officeEndTime.split(':').map(Number);
-    
-    // Tạo đối tượng Date cho hôm nay với thời gian kết thúc
-    const today = new Date();
-    const reminderDate = new Date(today);
-    reminderDate.setHours(hours, minutes, 0, 0);
-    
-    // Nếu đã qua thời gian thông báo thì không lên lịch
-    if (reminderDate <= new Date()) {
+    // Ensure officeEndTime is valid
+    if (!officeEndTime) {
+      console.log('Invalid office end time');
       return null;
     }
+
+    // Get notification settings
+    const settings = await loadNotificationSettings();
+    if (!settings.enabled) {
+      console.log('Notifications are disabled');
+      return null;
+    }
+
+    // Parse the office end time (format: HH:MM)
+    const [hours, minutes] = officeEndTime.split(':').map(num => parseInt(num, 10));
     
-    // Lên lịch thông báo
+    // Create office end time for today
+    const today = new Date();
+    const officeEndDate = new Date(today);
+    officeEndDate.setHours(hours, minutes, 0, 0);
+
+    // Only schedule if the time is in the future
+    if (officeEndDate <= new Date()) {
+      console.log('Office end time is in the past, not scheduling');
+      return null;
+    }
+
+    // Schedule the notification
+    const notificationId = `office-end-reminder-${today.toISOString().split('T')[0]}`;
     return await scheduleNotification({
-      id: 'office-end-reminder',
-      title: 'Nhắc nhở chấm công ra',
-      message: 'Đã hết giờ làm việc, hãy nhớ chấm công ra!',
-      date: reminderDate,
+      id: notificationId,
+      title: 'Nhắc nhở kết thúc giờ hành chính',
+      message: `Đã đến giờ kết thúc làm việc hành chính, hãy chấm công ra`,
+      date: officeEndDate,
       sound: settings.sound,
       vibrate: settings.vibration,
-      data: { type: 'check-out' }
+      data: {
+        type: 'office_end_reminder',
+        action: 'check_out',
+        shiftInfo
+      }
     });
   } catch (error) {
-    console.error('Lỗi khi lên lịch nhắc nhở chấm công ra:', error);
+    console.error('Error scheduling office end reminder:', error);
     return null;
   }
 };
 
 // Schedule end shift reminder (for complete)
-export const scheduleEndShiftReminder = async (endTime) => {
+export const scheduleEndShiftReminder = async (endTime, shiftInfo) => {
   try {
-    if (!endTime) return null;
-    
-    const settings = await loadNotificationSettings();
-    if (!settings.enabled) return null;
-    
-    // Parse endTime từ format "HH:MM"
-    const [hours, minutes] = endTime.split(':').map(Number);
-    
-    // Tạo đối tượng Date cho hôm nay với thời gian kết thúc ca làm
-    const today = new Date();
-    const reminderDate = new Date(today);
-    reminderDate.setHours(hours, minutes, 0, 0);
-    
-    // Thêm 10 phút (nhắc nhở sau giờ kết thúc)
-    reminderDate.setMinutes(reminderDate.getMinutes() + 10);
-    
-    // Nếu đã qua thời gian thông báo thì không lên lịch
-    if (reminderDate <= new Date()) {
+    // Ensure endTime is valid
+    if (!endTime) {
+      console.log('Invalid end time');
       return null;
     }
+
+    // Get notification settings
+    const settings = await loadNotificationSettings();
+    if (!settings.enabled) {
+      console.log('Notifications are disabled');
+      return null;
+    }
+
+    // Parse the end time (format: HH:MM)
+    const [hours, minutes] = endTime.split(':').map(num => parseInt(num, 10));
     
-    // Lên lịch thông báo
+    // Create end time for today
+    const today = new Date();
+    const endDate = new Date(today);
+    endDate.setHours(hours, minutes, 0, 0);
+    
+    // Calculate reminder time (10 minutes after end time)
+    const reminderDate = new Date(endDate);
+    reminderDate.setMinutes(reminderDate.getMinutes() + 10);
+
+    // Only schedule if the time is in the future
+    if (reminderDate <= new Date()) {
+      console.log('End shift reminder time is in the past, not scheduling');
+      return null;
+    }
+
+    // Schedule the notification
+    const notificationId = `shift-end-reminder-${today.toISOString().split('T')[0]}`;
     return await scheduleNotification({
-      id: 'shift-end-reminder',
-      title: 'Nhắc nhở hoàn thành ca làm',
-      message: 'Ca làm việc đã kết thúc, hãy nhớ xác nhận hoàn thành!',
+      id: notificationId,
+      title: 'Nhắc nhở hoàn tất ca làm việc',
+      message: `Đã quá giờ kết thúc ca làm việc ${shiftInfo ? shiftInfo.name : ''}, hãy hoàn tất ca`,
       date: reminderDate,
       sound: settings.sound,
       vibrate: settings.vibration,
-      data: { type: 'complete' }
+      data: {
+        type: 'shift_end_reminder',
+        action: 'complete',
+        shiftInfo
+      }
     });
   } catch (error) {
-    console.error('Lỗi khi lên lịch nhắc nhở hoàn thành ca làm:', error);
+    console.error('Error scheduling end shift reminder:', error);
     return null;
+  }
+};
+
+// Schedule all reminders for today's shift
+export const scheduleShiftReminders = async (shiftInfo) => {
+  if (!shiftInfo) {
+    console.log('No shift info provided, not scheduling reminders');
+    return;
+  }
+
+  // Cancel any existing reminders first
+  await cancelAllShiftNotifications();
+
+  const settings = await loadNotificationSettings();
+  if (!settings.enabled) {
+    console.log('Notifications are disabled, not scheduling');
+    return;
+  }
+
+  // Schedule departure reminder
+  if (shiftInfo.departureTime) {
+    await scheduleDepartureReminder(shiftInfo.departureTime, shiftInfo);
+  }
+
+  // Schedule start time reminder (10 min before)
+  if (shiftInfo.startTime) {
+    await scheduleStartTimeReminder(shiftInfo.startTime, shiftInfo);
+  }
+
+  // Schedule office end reminder
+  if (shiftInfo.officeEndTime) {
+    await scheduleOfficeEndReminder(shiftInfo.officeEndTime, shiftInfo);
+  }
+
+  // Schedule shift end reminder
+  if (shiftInfo.endTime) {
+    await scheduleEndShiftReminder(shiftInfo.endTime, shiftInfo);
+  }
+};
+
+// Cancel all reminders when a work action is completed
+export const cancelRemindersByAction = async (action) => {
+  const today = new Date().toISOString().split('T')[0];
+  
+  switch(action) {
+    case 'go_work':
+      // Cancel departure reminder when "go to work" is pressed
+      await cancelNotification(`departure-reminder-${today}`);
+      break;
+    case 'check_in':
+      // Cancel check-in reminder when "check in" is pressed
+      await cancelNotification(`checkin-reminder-${today}`);
+      break;
+    case 'check_out':
+      // Cancel office-end reminder when "check out" is pressed
+      await cancelNotification(`office-end-reminder-${today}`);
+      break;
+    case 'complete':
+      // Cancel shift-end reminder when "complete" is pressed
+      await cancelNotification(`shift-end-reminder-${today}`);
+      break;
   }
 };
 
@@ -443,6 +562,8 @@ export default {
   handleNotificationResponse,
   scheduleDepartureReminder,
   scheduleStartTimeReminder,
-  scheduleCheckOutReminder,
-  scheduleEndShiftReminder
+  scheduleOfficeEndReminder,
+  scheduleEndShiftReminder,
+  scheduleShiftReminders,
+  cancelRemindersByAction
 };

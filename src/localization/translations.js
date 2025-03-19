@@ -24,6 +24,7 @@ export const vi = {
   // Status messages
   working: 'Đang làm việc',
   not_started: 'Chưa bắt đầu',
+  not_started_yet: 'Chưa bắt đầu làm việc',
   gone_to_work: 'Đã đi làm',
   clocked_in: 'Đã check in',
   clocked_out: 'Đã tan làm',
@@ -69,7 +70,7 @@ export const vi = {
   day_of_week: 'Thứ',
   total: 'Tổng cộng',
   time_minutes: 'phút',
-  time_select: 'Chọn thời gian',
+  time_select: 'Chọn thởi gian',
   
   // Shift information
   shift_start_time: 'Giờ bắt đầu',
@@ -235,7 +236,7 @@ export const vi = {
   
   // Additional work shift form translations
   work_time: 'Thời gian làm việc',
-  work_select_time: 'Chọn thời gian',
+  work_select_time: 'Chọn thởi gian',
   apply_to_days: 'Áp dụng vào các ngày',
   day_0: 'CN',
   day_1: 'T2',
@@ -255,7 +256,7 @@ export const vi = {
   remind_before_work: 'Nhắc nhở trước giờ vào làm',
   remind_after_work: 'Nhắc nhở sau giờ làm',
   minutes: 'phút',
-  reminder_select_time: 'Chọn thời gian nhắc nhở',
+  reminder_select_time: 'Chọn thởi gian nhắc nhở',
   
   // Time selection
   time_format_help: 'Định dạng: HH:MM (24h)',
@@ -394,11 +395,12 @@ export const en = {
   // Status messages
   working: 'Working',
   not_started: 'Not started',
+  not_started_yet: 'Work not started yet',
   gone_to_work: 'Gone to work',
-  clocked_in: 'Checked in',
-  clocked_out: 'Checked out',
-  action_history: 'Action History',
-  no_history_today: 'No activities today',
+  clocked_in: 'Clocked in',
+  clocked_out: 'Clocked out',
+  action_history: 'Action history',
+  no_history_today: 'No activity today',
   workHistory: 'Work History',
   
   // Time status

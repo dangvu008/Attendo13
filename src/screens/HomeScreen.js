@@ -5,23 +5,29 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
   Modal,
-  Dimensions,
+  TextInput,
+  Alert,
   TouchableWithoutFeedback,
-  TextInput
+  FlatList,
+  Image,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { format, differenceInMinutes, differenceInHours, isToday, parseISO, addDays } from 'date-fns';
-import { vi } from 'date-fns/locale';
-import { enUS } from 'date-fns/locale';
+import { format, differenceInMinutes, differenceInHours, isToday, parseISO, addDays, startOfWeek, isBefore, differenceInMilliseconds, parse } from 'date-fns';
+import viLocale from 'date-fns/locale/vi';
+import enUSLocale from 'date-fns/locale/en-US';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useFocusEffect } from '@react-navigation/native';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 
 // Contexts & Services
 import { useTheme } from '../context/ThemeContext';
-import { useLocalization } from '../context/LocalizationContext';
-import NotificationService from '../services/NotificationService';
+import { useTranslation } from '../i18n';
+import { NotificationService } from '../services/NotificationService';
 import MultiActionButton from '../components/MultiActionButton';
 import AddNoteModal from '../components/AddNoteModal';
 import WeeklyStatusGrid from '../components/WeeklyStatusGrid';
@@ -29,7 +35,7 @@ import NoteItem from '../components/NoteItem';
 
 const HomeScreen = () => {
   const { theme, isDarkMode } = useTheme();
-  const { t, locale } = useLocalization();
+  const { t, locale } = useTranslation();
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isAddNoteModalVisible, setIsAddNoteModalVisible] = useState(false);
@@ -50,6 +56,7 @@ const HomeScreen = () => {
   const [statusDetails, setStatusDetails] = useState({});
   const [notes, setNotes] = useState([]);
   const [actionHistory, setActionHistory] = useState([]);
+  const [actionLogs, setActionLogs] = useState([]);
 
   // Lấy thông tin nhắc nhở hiện tại
   useEffect(() => {
@@ -141,7 +148,7 @@ const HomeScreen = () => {
   };
 
   // Cập nhật thông tin khi có thay đổi
-  const updateInfo = async () => {
+  const updateInfo = useCallback(async () => {
     // Cập nhật lịch sử trạng thái
     const today = await getTodayEntries();
     setTodayEntries(today);
@@ -161,7 +168,7 @@ const HomeScreen = () => {
       workStatus, 
       todayEntries: today.length 
     });
-  };
+  }, [workStatus]);
 
   // Khởi tạo các state mà không hiện popup reset ngay lập tức
   useEffect(() => {
@@ -182,12 +189,13 @@ const HomeScreen = () => {
     
     // Tải ghi chú
     loadNotes();
+    loadActionLogs();
   }, [loadShiftInfo, updateInfo]);
 
   // Format date using the current locale
   const formatDate = (date) => {
     const formatOptions = locale === 'vi' ? 'EEEE, dd/MM/yyyy' : 'EEEE, MM/dd/yyyy';
-    return format(date, formatOptions, { locale: locale === 'vi' ? vi : enUS });
+    return format(date, formatOptions, { locale: locale === 'vi' ? viLocale : enUSLocale });
   };
 
   // Format time
@@ -359,6 +367,23 @@ const HomeScreen = () => {
         // Cập nhật trạng thái làm việc
         setWorkStatus('go_work');
         
+        // Hủy thông báo nhắc nhở xuất phát vì đã thực hiện
+        await NotificationService.cancelRemindersByAction('go_work');
+        
+        // Kiểm tra thời gian và thêm thông báo trạng thái
+        const currentShift = await getCurrentShift();
+        if (currentShift && currentShift.startTime) {
+          const now = new Date();
+          const [startHour, startMinute] = currentShift.startTime.split(':').map(Number);
+          const startTime = new Date(now);
+          startTime.setHours(startHour, startMinute, 0, 0);
+          
+          // Nếu đi làm sớm, không cần hiển thị thông báo
+          if (now < startTime) {
+            showToast(t('early_departure_success'));
+          }
+        }
+        
         return true;
       }
       return false;
@@ -375,7 +400,7 @@ const HomeScreen = () => {
       if (!goWorkEntry) {
         Alert.alert(
           t('error'),
-          t('must_go_work_first'),
+          t('must_go_work_first_message'),
           [{ text: t('ok') }]
         );
         return false;
@@ -394,41 +419,31 @@ const HomeScreen = () => {
         // Cập nhật trạng thái làm việc
         setWorkStatus('check_in');
         
-        // Kiểm tra vào muộn nếu có thông tin ca làm việc
-        if (shiftInfo) {
-          const isLate = checkIfLateCheckIn(newEntry.timestamp, shiftInfo.startTime);
-          setCheckInStatus(isLate ? 'late' : 'normal');
+        // Hủy thông báo nhắc nhở chấm công vào vì đã thực hiện
+        await NotificationService.cancelRemindersByAction('check_in');
+        
+        // Kiểm tra thời gian và thêm thông báo trạng thái
+        const currentShift = await getCurrentShift();
+        if (currentShift && currentShift.startTime) {
+          const now = new Date();
+          const [startHour, startMinute] = currentShift.startTime.split(':').map(Number);
+          const startTime = new Date(now);
+          startTime.setHours(startHour, startMinute, 0, 0);
           
-          // Hiển thị thông báo vào muộn
-          if (isLate) {
-            Alert.alert(
-              t('warning'),
-              t('late_check_in_warning'),
-              [{ text: t('ok') }]
-            );
-          }
-          
-          // Lên lịch thông báo nhắc nhở tan làm nếu có
-          if (shiftInfo.officeEndTime) {
-            // Lên lịch thông báo tại thời điểm kết thúc giờ hành chính
-            const [hours, minutes] = shiftInfo.officeEndTime.split(':').map(Number);
-            
-            const notificationDate = new Date();
-            notificationDate.setHours(hours, minutes, 0, 0);
-            
-            // Chỉ lên lịch nếu thời gian trong tương lai
-            if (notificationDate > new Date()) {
-              await NotificationService.scheduleNotification({
-                id: 'office-end-reminder',
-                title: t('check_out_reminder'),
-                message: t('office_hours_ended'),
-                date: notificationDate,
-                sound: true,
-                vibrate: true
-              });
+          // Nếu chấm công vào muộn, hiển thị cảnh báo
+          if (now > startTime) {
+            const minutesLate = differenceInMinutes(now, startTime);
+            if (minutesLate > 5) {
+              showToast(t('late_check_in_warning'));
+              
+              // Cập nhật trạng thái là "RV" (vào muộn)
+              await updateWorkStatus('rv');
             }
           }
         }
+        
+        // Lên lịch thông báo nhắc nhở giờ hành chính kết thúc
+        scheduleOfficeEndReminder();
         
         return true;
       }
@@ -446,7 +461,7 @@ const HomeScreen = () => {
       if (!checkInEntry) {
         Alert.alert(
           t('error'),
-          t('must_check_in_first'),
+          t('must_check_in_first_message'),
           [{ text: t('ok') }]
         );
         return false;
@@ -465,110 +480,31 @@ const HomeScreen = () => {
         // Cập nhật trạng thái làm việc
         setWorkStatus('check_out');
         
-        // Kiểm tra trạng thái ngày công mới
-        const workHours = calculateWorkHours(
-          checkInEntry.timestamp,
-          newEntry.timestamp,
-          shiftInfo
-        );
+        // Hủy thông báo nhắc nhở chấm công ra vì đã thực hiện
+        await NotificationService.cancelRemindersByAction('check_out');
         
-        await saveWorkHoursInfo(workHours);
-        
-        // Cập nhật trạng thái ngày công
-        if (workHours.workDayStatus === 'absent') {
-          setWorkDayStatus('absent');
-        } else if (workHours.workDayStatus === 'rv') {
-          setWorkDayStatus('rv');
-        } else {
-          setWorkDayStatus('full');
-        }
-        
-        // Kiểm tra vào muộn/ra sớm
-        if (shiftInfo && checkInEntry) {
-          // Tính toán và lưu thông tin giờ công
-          const workHours = calculateWorkHours(
-            checkInEntry.timestamp,
-            newEntry.timestamp,
-            shiftInfo
-          );
+        // Kiểm tra thời gian và thêm thông báo trạng thái
+        const currentShift = await getCurrentShift();
+        if (currentShift && currentShift.officeEndTime) {
+          const now = new Date();
+          const [endHour, endMinute] = currentShift.officeEndTime.split(':').map(Number);
+          const endTime = new Date(now);
+          endTime.setHours(endHour, endMinute, 0, 0);
           
-          await saveWorkHoursInfo(workHours);
-          
-          // Kiểm tra trạng thái nghỉ (làm việc dưới 1 giờ)
-          if (workHours.workDayStatus === 'absent') {
-            Alert.alert(
-              t('warning'),
-              t('work_time_too_short'),
-              [{ text: t('ok') }]
-            );
-          } 
-          // Kiểm tra vào muộn/ra sớm
-          else if (workHours.workDayStatus === 'rv') {
-            // Hiển thị thông báo tương ứng
-            if (checkInStatus === 'late' && checkOutStatus === 'early') {
-              Alert.alert(
-                t('warning'),
-                t('late_and_early_warning'),
-                [{ text: t('ok') }]
-              );
-            } else if (checkInStatus === 'late') {
-              Alert.alert(
-                t('warning'),
-                t('late_check_in_warning'),
-                [{ text: t('ok') }]
-              );
-            } else if (checkOutStatus === 'early') {
-              Alert.alert(
-                t('warning'),
-                t('early_check_out_warning'),
-                [{ text: t('ok') }]
-              );
-            }
-          }
-          
-          // Hiển thị thông tin giờ công
-          const workStatusText = t(`work_status_${workHours.workDayStatus}`);
-          
-          const hoursMessage = `${t('work_status')}: ${workStatusText}\n\n` +
-                             `${t('regular_hours')}: ${workHours.regularHours.toFixed(1)} ${t('hours')}\n` +
-                             `${t('overtime_150')}: ${workHours.overtime150.toFixed(1)} ${t('hours')}\n` +
-                             `${t('overtime_200')}: ${workHours.overtime200.toFixed(1)} ${t('hours')}\n` +
-                             `${t('overtime_300')}: ${workHours.overtime300.toFixed(1)} ${t('hours')}\n\n` +
-                             `${t('total_hours')}: ${workHours.totalHours.toFixed(1)} ${t('hours')}`;
-          
-          Alert.alert(
-            t('work_hours_summary'),
-            hoursMessage,
-            [{ text: t('ok') }]
-          );
-          
-          // Lên lịch thông báo nhắc nhở hoàn thành nếu có
-          if (shiftInfo.endTime) {
-            // Lên lịch thông báo tại thời điểm kết thúc ca làm việc
-            const [hours, minutes] = shiftInfo.endTime.split(':').map(Number);
-            
-            const notificationDate = new Date();
-            notificationDate.setHours(hours, minutes, 0, 0);
-            
-            // Thêm 10 phút (nhắc nhở sau giờ kết thúc)
-            notificationDate.setMinutes(notificationDate.getMinutes() + 10);
-            
-            // Chỉ lên lịch nếu thời gian trong tương lai
-            if (notificationDate > new Date()) {
-              await NotificationService.scheduleNotification({
-                id: 'shift-end-reminder',
-                title: t('complete_reminder'),
-                message: t('shift_ended_complete_reminder'),
-                date: notificationDate,
-                sound: true,
-                vibrate: true
-              });
+          // Nếu chấm công ra sớm, hiển thị cảnh báo
+          if (now < endTime) {
+            const minutesEarly = differenceInMinutes(endTime, now);
+            if (minutesEarly > 5) {
+              showToast(t('early_check_out_warning'));
+              
+              // Cập nhật trạng thái là "RV" (ra sớm)
+              await updateWorkStatus('rv');
             }
           }
         }
         
-        // Hủy thông báo nhắc nhở tan làm nếu có
-        await NotificationService.cancelNotification('office-end-reminder');
+        // Lên lịch thông báo nhắc nhở kết thúc ca
+        scheduleShiftEndReminder();
         
         return true;
       }
@@ -579,24 +515,24 @@ const HomeScreen = () => {
     }
   };
 
-  // Xử lý khi bấm "Hoàn thành"
+  // Xử lý khi bấm "Hoàn tất"
   const handleComplete = async () => {
     try {
       // Kiểm tra xem đã chấm công ra chưa
       if (!checkOutEntry) {
         Alert.alert(
           t('error'),
-          t('must_check_out_first'),
+          t('must_check_out_first_message'),
           [{ text: t('ok') }]
         );
         return false;
       }
       
-      // Cập nhật trạng thái "Hoàn thành"
+      // Cập nhật trạng thái "Hoàn tất"
       const newEntry = await addWorkEntry('complete');
       
       if (newEntry) {
-        console.log('Đã thêm mục "Hoàn thành":', newEntry);
+        console.log('Đã thêm mục "Hoàn tất":', newEntry);
         
         // Cập nhật danh sách
         const updatedEntries = await getTodayEntries();
@@ -605,22 +541,111 @@ const HomeScreen = () => {
         // Cập nhật trạng thái làm việc
         setWorkStatus('complete');
         
-        // Hủy tất cả thông báo liên quan đến ca làm việc hiện tại
-        await NotificationService.cancelNotification('shift-end-reminder');
+        // Hủy thông báo nhắc nhở hoàn tất vì đã thực hiện
+        await NotificationService.cancelRemindersByAction('complete');
         
-        // Hiển thị thông báo tổng kết ca làm việc
-        Alert.alert(
-          t('shift_summary'),
-          t('shift_completed_successfully'),
-          [{ text: t('ok') }]
-        );
+        // Cập nhật trạng thái tuần
+        await updateWeeklyStatus();
+        
+        // Hiển thị thông báo
+        showToast(t('work_completed_success'));
         
         return true;
       }
       return false;
     } catch (error) {
-      console.error('Lỗi khi thêm mục "Hoàn thành":', error);
+      console.error('Lỗi khi thêm mục "Hoàn tất":', error);
       return false;
+    }
+  };
+
+  // Lên lịch thông báo nhắc nhở giờ hành chính kết thúc
+  const scheduleOfficeEndReminder = async () => {
+    try {
+      const currentShift = await getCurrentShift();
+      if (!currentShift || !currentShift.officeEndTime) {
+        console.log('Không có thông tin ca làm việc hoặc giờ kết thúc hành chính');
+        return;
+      }
+      
+      // Hủy thông báo cũ nếu có
+      await NotificationService.cancelNotification('office-end-reminder');
+      
+      // Lên lịch thông báo mới
+      await NotificationService.scheduleOfficeEndReminder(
+        currentShift.officeEndTime,
+        currentShift
+      );
+      
+      console.log('Đã lên lịch thông báo nhắc nhở giờ hành chính kết thúc');
+    } catch (error) {
+      console.error('Lỗi khi lên lịch thông báo nhắc nhở giờ hành chính kết thúc:', error);
+    }
+  };
+
+  // Lên lịch thông báo nhắc nhở kết thúc ca
+  const scheduleShiftEndReminder = async () => {
+    try {
+      const currentShift = await getCurrentShift();
+      if (!currentShift || !currentShift.endTime) {
+        console.log('Không có thông tin ca làm việc hoặc giờ kết thúc ca');
+        return;
+      }
+      
+      // Hủy thông báo cũ nếu có
+      await NotificationService.cancelNotification('shift-end-reminder');
+      
+      // Lên lịch thông báo mới
+      await NotificationService.scheduleEndShiftReminder(
+        currentShift.endTime,
+        currentShift
+      );
+      
+      console.log('Đã lên lịch thông báo nhắc nhở kết thúc ca');
+    } catch (error) {
+      console.error('Lỗi khi lên lịch thông báo nhắc nhở kết thúc ca:', error);
+    }
+  };
+
+  // Cập nhật trạng thái công
+  const updateWorkStatus = async (status) => {
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      await AsyncStorage.setItem(`workStatus_${today}`, status);
+      
+      // Cập nhật trạng thái tuần
+      const weeklyStatusCopy = { ...weeklyStatus };
+      weeklyStatusCopy[today] = status;
+      setWeeklyStatus(weeklyStatusCopy);
+      await AsyncStorage.setItem('weeklyStatus', JSON.stringify(weeklyStatusCopy));
+      
+      console.log(`Đã cập nhật trạng thái công cho ngày ${today}: ${status}`);
+      return true;
+    } catch (error) {
+      console.error('Lỗi khi cập nhật trạng thái công:', error);
+      return false;
+    }
+  };
+
+  // Lấy thông tin ca làm việc hiện tại
+  const getCurrentShift = async () => {
+    try {
+      const shiftData = await AsyncStorage.getItem('currentShift');
+      if (shiftData) {
+        return JSON.parse(shiftData);
+      }
+      
+      // Trả về ca mặc định nếu không có dữ liệu
+      return {
+        name: 'Ca Sáng',
+        departureTime: '07:10',
+        startTime: '08:00',
+        officeEndTime: '17:00',
+        endTime: '20:00'
+      };
+    } catch (error) {
+      console.error('Lỗi khi lấy thông tin ca làm việc hiện tại:', error);
+      return null;
     }
   };
 
@@ -689,117 +714,66 @@ const HomeScreen = () => {
     }
   };
 
-  // Handle status change for a specific day
-  const handleStatusChange = (date, newStatus) => {
-    manualUpdateWeeklyStatus(date, newStatus);
-  };
-
-  // Hàm để xử lý nhấn nút reset
-  const handleResetPress = (event) => {
-    // Ngăn chặn sự kiện lan truyền đến các thành phần khác
-    event.stopPropagation();
-    
-    // Chỉ hiển thị xác nhận khi bấm trực tiếp vào nút reset
-    if (event.target) {
-      setConfirmResetVisible(true);
+  // Load lịch sử bấm nút
+  const loadActionLogs = async () => {
+    try {
+      // Lấy lịch sử từ AsyncStorage
+      const logs = await getTodayActionLogs();
+      setActionLogs(logs);
+    } catch (error) {
+      console.error('Lỗi khi tải lịch sử bấm nút:', error);
     }
   };
 
-  // Hàm xử lý khi người dùng xác nhận reset
-  const handleResetConfirm = async () => {
+  // Lấy lịch sử bấm nút trong ngày
+  const getTodayActionLogs = async () => {
     try {
-      // Reset trạng thái công việc
-      setWorkStatus(null);
-      setNextAction(null);
-      setActionHistory([]);
-      
-      // Xóa dữ liệu lưu trữ cho ngày hiện tại
       const today = format(new Date(), 'yyyy-MM-dd');
-      await AsyncStorage.removeItem(`workStatus_${today}`);
-      await AsyncStorage.removeItem(`actionHistory_${today}`);
+      const logsKey = `actionLogs_${today}`;
+      const logsJson = await AsyncStorage.getItem(logsKey);
       
-      // Hiển thị thông báo thành công
-      Alert.alert(
-        t('success'),
-        t('reset_success'),
-        [{ text: t('ok') }]
-      );
-    } catch (error) {
-      console.error('Lỗi khi reset:', error);
-      Alert.alert(
-        t('error'),
-        t('reset_error'),
-        [{ text: t('ok') }]
-      );
-    } finally {
-      // Đóng hộp thoại xác nhận
-      setConfirmResetVisible(false);
-    }
-  };
-
-  // Hàm để tải danh sách ghi chú gần nhất
-  const loadRecentNotes = async () => {
-    try {
-      const notesJson = await AsyncStorage.getItem('notes');
-      if (notesJson) {
-        const notesData = JSON.parse(notesJson);
-        setNotes(notesData.slice(0, 3));
+      if (logsJson) {
+        const logs = JSON.parse(logsJson);
+        return logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       }
+      
+      return [];
     } catch (error) {
-      console.error('Lỗi khi tải ghi chú gần nhất:', error);
+      console.error('Lỗi khi lấy lịch sử bấm nút:', error);
+      return [];
     }
   };
 
-  // Lấy trạng thái hiện tại và thiết lập cho nút hành động
-  const getActionButton = () => {
-    let button = {
-      status: 'go_work',
-      label: t('goToWork'),
-      icon: 'briefcase-outline',
-      color: theme.colors.goWorkButton,
-      disabled: false
-    };
-
-    // Dựa vào trạng thái làm việc hiện tại để xác định nút tiếp theo
-    if (!workStatus || workStatus === 'complete') {
-      // Mặc định là "Đi làm" nếu chưa có trạng thái nào
-      button = {
-        status: 'go_work',
-        label: t('goToWork'),
-        icon: 'briefcase-outline',
-        color: theme.colors.goWorkButton,
-        disabled: false
+  // Lưu lịch sử bấm nút
+  const saveActionLog = async (action) => {
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const logsKey = `actionLogs_${today}`;
+      
+      // Lấy lịch sử hiện tại
+      const logsJson = await AsyncStorage.getItem(logsKey);
+      const logs = logsJson ? JSON.parse(logsJson) : [];
+      
+      // Thêm log mới
+      const newLog = {
+        action,
+        timestamp: new Date().toISOString()
       };
-    } else if (workStatus === 'go_work') {
-      // Nếu đã "Đi làm" thì hiển thị "Chấm công vào"
-      button = {
-        status: 'check_in',
-        label: t('checkIn'),
-        icon: 'log-in-outline',
-        color: theme.colors.checkInButton,
-        disabled: false
-      };
-    } else if (workStatus === 'check_in') {
-      // Nếu đã "Chấm công vào" thì hiển thị "Chấm công ra"
-      button = {
-        status: 'check_out',
-        label: t('checkOut'),
-        icon: 'log-out-outline',
-        color: theme.colors.checkOutButton,
-        disabled: false
-      };
-    } else if (workStatus === 'check_out') {
-      // Nếu đã "Chấm công ra" thì hiển thị "Hoàn thành"
-      button = {
-        status: 'complete',
-        label: t('complete'),
-        icon: 'checkmark-done-outline',
-        color: theme.colors.completeButton,
-        disabled: false
-      };
+      
+      logs.unshift(newLog); // Thêm vào đầu mảng
+      
+      // Lưu lịch sử cập nhật
+      await AsyncStorage.setItem(logsKey, JSON.stringify(logs));
+      
+      // Cập nhật state
+      setActionLogs(logs);
+      
+      console.log('Đã lưu lịch sử bấm nút:', newLog);
+      return true;
+    } catch (error) {
+      console.error('Lỗi khi lưu lịch sử bấm nút:', error);
+      return false;
     }
-
-    return button;
   };
 
   // Xử lý hành động từ nút đa năng
@@ -810,7 +784,7 @@ const HomeScreen = () => {
     // Xác định hành động tiếp theo dựa vào trạng thái hiện tại
     let nextAction = 'go_work';
     
-    if (!workStatus || workStatus === 'complete') {
+    if (!workStatus || workStatus === 'complete' || workStatus === 'inactive') {
       nextAction = 'go_work';
     } else if (workStatus === 'go_work') {
       nextAction = 'check_in';
@@ -819,6 +793,8 @@ const HomeScreen = () => {
     } else if (workStatus === 'check_out') {
       nextAction = 'complete';
     }
+
+    console.log(`Hành động tiếp theo: ${nextAction}`);
 
     // Cập nhật biến để xác định hành động tiếp theo
     setNextAction(nextAction);
@@ -838,6 +814,11 @@ const HomeScreen = () => {
     let success = false;
 
     try {
+      console.log(`Đang thực hiện hành động: ${action}`);
+      
+      // Lưu lịch sử bấm nút ngay khi bắt đầu thực hiện hành động
+      await saveActionLog(action);
+      
       // Xử lý theo loại hành động
       if (action === 'go_work') {
         success = await handleGoWork();
@@ -850,37 +831,305 @@ const HomeScreen = () => {
       }
 
       if (success) {
-        // Cập nhật UI nếu thành công
-        updateInfo();
+        // Cập nhật giao diện người dùng
+        await updateInfo();
         
-        // Hiển thị thông báo thành công nếu cần
-        const actionName = getActionName(action);
-        Alert.alert(
-          t('success'),
-          t('action_completed_successfully', { action: actionName }),
-          [{ text: t('ok') }]
-        );
+        // Đặt lại nút để có thể sử dụng lại
+        setTimeout(() => {
+          setActionButtonDisabled(false);
+        }, 500);
+        
+        // Hủy thông báo nhắc nhở tương ứng
+        await NotificationService.cancelRemindersByAction(action);
+        
+        // Lưu lịch sử vào thống kê
+        await saveWorkActionHistory(action);
       } else {
-        // Thông báo lỗi nếu thất bại
-        Alert.alert(
-          t('error'),
-          t('action_failed'),
-          [{ text: t('ok') }]
-        );
+        setActionButtonDisabled(false);
       }
     } catch (error) {
       console.error('Lỗi khi thực hiện hành động:', error);
       Alert.alert(
         t('error'),
-        t('unexpected_error'),
+        t('action_execution_error'),
         [{ text: t('ok') }]
       );
+      setActionButtonDisabled(false);
     } finally {
       // Đóng dialog xác nhận nếu đang mở
       setConfirmActionVisible(false);
+    }
+  };
+
+  // Lưu lịch sử hành động vào thống kê
+  const saveWorkActionHistory = async (action) => {
+    try {
+      // Lấy thời gian hiện tại
+      const now = new Date();
+      const today = format(now, 'yyyy-MM-dd');
       
-      // Kích hoạt lại nút
-      setActionButtonDisabled(false);
+      // Tạo đối tượng lịch sử hành động
+      const actionHistory = {
+        action,
+        timestamp: now.toISOString(),
+        weekNumber: getWeekNumber(now),
+        month: format(now, 'MM-yyyy')
+      };
+      
+      // Lấy lịch sử hành động hiện có
+      const historyJson = await AsyncStorage.getItem('workActionHistory');
+      let history = historyJson ? JSON.parse(historyJson) : [];
+      
+      // Thêm hành động mới vào lịch sử
+      history.push(actionHistory);
+      
+      // Lưu lịch sử cập nhật
+      await AsyncStorage.setItem('workActionHistory', JSON.stringify(history));
+      console.log(`Đã lưu lịch sử hành động: ${action}`);
+      
+      // Cập nhật thống kê tuần/tháng
+      await updateWorkStatistics(action, now);
+      
+      return true;
+    } catch (error) {
+      console.error('Lỗi khi lưu lịch sử hành động:', error);
+      return false;
+    }
+  };
+  
+  // Cập nhật thống kê thời gian làm việc
+  const updateWorkStatistics = async (action, timestamp) => {
+    try {
+      // Nếu hành động là hoàn tất (đã kết thúc ca làm việc)
+      if (action === 'complete' && checkInEntry && checkOutEntry) {
+        const checkInTime = parseISO(checkInEntry.timestamp);
+        const checkOutTime = parseISO(checkOutEntry.timestamp);
+        
+        // Tính toán thời gian làm việc thực tế (phút)
+        const workTimeMinutes = differenceInMinutes(checkOutTime, checkInTime);
+        
+        // Lấy thông tin ca làm việc để tính giờ chuẩn
+        const currentShift = await getCurrentShift();
+        let standardWorkMinutes = 480; // 8 giờ mặc định
+        
+        if (currentShift && currentShift.startTime && currentShift.officeEndTime) {
+          const [startHour, startMinute] = currentShift.startTime.split(':').map(Number);
+          const [endHour, endMinute] = currentShift.officeEndTime.split(':').map(Number);
+          
+          // Tính số phút chuẩn từ giờ bắt đầu đến kết thúc
+          const shiftStartMinutes = startHour * 60 + startMinute;
+          const shiftEndMinutes = endHour * 60 + endMinute;
+          standardWorkMinutes = shiftEndMinutes - shiftStartMinutes;
+        }
+        
+        // Tính giờ làm việc thực tế và giờ tăng ca
+        const regularHours = Math.min(workTimeMinutes, standardWorkMinutes) / 60;
+        const overtimeHours = Math.max(0, (workTimeMinutes - standardWorkMinutes) / 60);
+        
+        // Tạo đối tượng dữ liệu thống kê
+        const workDate = format(timestamp, 'yyyy-MM-dd');
+        const weekNumber = getWeekNumber(timestamp);
+        const monthYear = format(timestamp, 'MM-yyyy');
+        
+        const workStats = {
+          date: workDate,
+          week: weekNumber,
+          month: monthYear,
+          regularHours: Number(regularHours.toFixed(2)),
+          overtimeHours: Number(overtimeHours.toFixed(2)),
+          totalHours: Number(((regularHours + overtimeHours).toFixed(2))),
+          status: workDayStatus || 'full', // Trạng thái ngày làm việc (full, rv, absent)
+          timestamp: timestamp.toISOString()
+        };
+        
+        // Lưu thống kê cho ngày hiện tại
+        await AsyncStorage.setItem(`workStats_${workDate}`, JSON.stringify(workStats));
+        
+        // Cập nhật thống kê tuần
+        await updateWeeklyStatistics(weekNumber, workStats);
+        
+        // Cập nhật thống kê tháng
+        await updateMonthlyStatistics(monthYear, workStats);
+        
+        console.log('Đã cập nhật thống kê thời gian làm việc:', workStats);
+      }
+    } catch (error) {
+      console.error('Lỗi khi cập nhật thống kê thời gian làm việc:', error);
+    }
+  };
+  
+  // Cập nhật thống kê tuần
+  const updateWeeklyStatistics = async (weekNumber, dailyStats) => {
+    try {
+      // Lấy thống kê tuần hiện tại
+      const weekStatsKey = `weekStats_${weekNumber}`;
+      const weekStatsJson = await AsyncStorage.getItem(weekStatsKey);
+      let weekStats = weekStatsJson ? JSON.parse(weekStatsJson) : {
+        weekNumber,
+        year: new Date().getFullYear(),
+        days: {},
+        totalRegularHours: 0,
+        totalOvertimeHours: 0,
+        totalHours: 0
+      };
+      
+      // Cập nhật thông tin ngày
+      weekStats.days[dailyStats.date] = {
+        date: dailyStats.date,
+        regularHours: dailyStats.regularHours,
+        overtimeHours: dailyStats.overtimeHours,
+        totalHours: dailyStats.totalHours,
+        status: dailyStats.status
+      };
+      
+      // Tính lại tổng giờ cho tuần
+      let totalRegular = 0;
+      let totalOvertime = 0;
+      let totalHours = 0;
+      
+      Object.values(weekStats.days).forEach(day => {
+        totalRegular += day.regularHours || 0;
+        totalOvertime += day.overtimeHours || 0;
+        totalHours += day.totalHours || 0;
+      });
+      
+      weekStats.totalRegularHours = Number(totalRegular.toFixed(2));
+      weekStats.totalOvertimeHours = Number(totalOvertime.toFixed(2));
+      weekStats.totalHours = Number(totalHours.toFixed(2));
+      
+      // Lưu thống kê tuần cập nhật
+      await AsyncStorage.setItem(weekStatsKey, JSON.stringify(weekStats));
+      console.log(`Đã cập nhật thống kê tuần ${weekNumber}:`, weekStats);
+      
+    } catch (error) {
+      console.error('Lỗi khi cập nhật thống kê tuần:', error);
+    }
+  };
+  
+  // Cập nhật thống kê tháng
+  const updateMonthlyStatistics = async (monthYear, dailyStats) => {
+    try {
+      // Lấy thống kê tháng hiện tại
+      const monthStatsKey = `monthStats_${monthYear}`;
+      const monthStatsJson = await AsyncStorage.getItem(monthStatsKey);
+      let monthStats = monthStatsJson ? JSON.parse(monthStatsJson) : {
+        month: monthYear,
+        days: {},
+        totalRegularHours: 0,
+        totalOvertimeHours: 0,
+        totalHours: 0,
+        daysWorked: 0,
+        daysFullWork: 0,
+        daysRV: 0
+      };
+      
+      // Cập nhật thông tin ngày
+      const isNewDay = !monthStats.days[dailyStats.date];
+      monthStats.days[dailyStats.date] = {
+        date: dailyStats.date,
+        regularHours: dailyStats.regularHours,
+        overtimeHours: dailyStats.overtimeHours,
+        totalHours: dailyStats.totalHours,
+        status: dailyStats.status
+      };
+      
+      // Cập nhật thống kê số ngày
+      if (isNewDay) {
+        monthStats.daysWorked++;
+        
+        if (dailyStats.status === 'full') {
+          monthStats.daysFullWork++;
+        } else if (dailyStats.status === 'rv') {
+          monthStats.daysRV++;
+        }
+      } else {
+        // Nếu đã có ngày này nhưng trạng thái thay đổi
+        const oldStatus = monthStats.days[dailyStats.date].status;
+        if (oldStatus !== dailyStats.status) {
+          if (oldStatus === 'full') monthStats.daysFullWork--;
+          if (oldStatus === 'rv') monthStats.daysRV--;
+          
+          if (dailyStats.status === 'full') monthStats.daysFullWork++;
+          if (dailyStats.status === 'rv') monthStats.daysRV++;
+        }
+      }
+      
+      // Tính lại tổng giờ cho tháng
+      let totalRegular = 0;
+      let totalOvertime = 0;
+      let totalHours = 0;
+      
+      Object.values(monthStats.days).forEach(day => {
+        totalRegular += day.regularHours || 0;
+        totalOvertime += day.overtimeHours || 0;
+        totalHours += day.totalHours || 0;
+      });
+      
+      monthStats.totalRegularHours = Number(totalRegular.toFixed(2));
+      monthStats.totalOvertimeHours = Number(totalOvertime.toFixed(2));
+      monthStats.totalHours = Number(totalHours.toFixed(2));
+      
+      // Lưu thống kê tháng cập nhật
+      await AsyncStorage.setItem(monthStatsKey, JSON.stringify(monthStats));
+      console.log(`Đã cập nhật thống kê tháng ${monthYear}:`, monthStats);
+      
+    } catch (error) {
+      console.error('Lỗi khi cập nhật thống kê tháng:', error);
+    }
+  };
+  
+  // Hàm lấy số tuần trong năm
+  const getWeekNumber = (date) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+    const yearStart = new Date(d.getFullYear(), 0, 1);
+    const weekNumber = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return `${d.getFullYear()}-${weekNumber}`;
+  };
+
+  const actionButton = getActionButton();
+  
+  // Determine if we should show the reset button
+  const showResetButton = workStatus !== 'inactive';
+
+  // Hàm load thông tin ca làm việc
+  const loadShiftInfo = async () => {
+    try {
+      const shiftJson = await AsyncStorage.getItem('workShifts');
+      if (shiftJson) {
+        const shifts = JSON.parse(shiftJson);
+        if (shifts.length > 0) {
+          setShiftInfo(shifts[0]); // Chỉ hiển thị ca đầu tiên
+        }
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải thông tin ca làm việc:', error);
+    }
+  };
+
+  // Hàm trả về trạng thái ngày trong tuần dạng icon
+  const getDayStatusIcon = (status) => {
+    switch (status) {
+      case 'full':
+        return { icon: 'checkmark-circle', color: '#4CAF50', text: '✓' };
+      case 'partial':
+      case 'rv':
+        return { icon: 'alert-circle', color: '#FF9800', text: 'RV' };
+      case 'absent':
+        return { icon: 'close-circle', color: '#F44336', text: 'X' };
+      case 'pending':
+        return { icon: 'help-circle', color: '#9E9E9E', text: '?' };
+      case 'sick':
+        return { icon: 'medkit', color: '#E91E63', text: 'B' };
+      case 'vacation':
+        return { icon: 'mail', color: '#2196F3', text: 'P' };
+      case 'holiday':
+        return { icon: 'flag', color: '#9C27B0', text: 'H' };
+      case 'incomplete':
+        return { icon: 'alert', color: '#FF5722', text: '!' };
+      default:
+        return { icon: 'remove-circle', color: '#757575', text: '--' };
     }
   };
 
@@ -932,59 +1181,14 @@ const HomeScreen = () => {
     }
   };
 
-  const actionButton = getActionButton();
-  
-  // Determine if we should show the reset button
-  const showResetButton = workStatus !== 'inactive';
-
-  // Hàm load thông tin ca làm việc
-  const loadShiftInfo = async () => {
-    try {
-      const shiftJson = await AsyncStorage.getItem('workShifts');
-      if (shiftJson) {
-        const shifts = JSON.parse(shiftJson);
-        if (shifts.length > 0) {
-          setShiftInfo(shifts[0]); // Chỉ hiển thị ca đầu tiên
-        }
-      }
-    } catch (error) {
-      console.error('Lỗi khi tải thông tin ca làm việc:', error);
-    }
-  };
-
-  // Hàm trả về trạng thái ngày trong tuần dạng icon
-  const getDayStatusIcon = (status) => {
-    switch (status) {
-      case 'full':
-        return { icon: 'checkmark-circle', color: '#4CAF50', text: '✓' };
-      case 'partial':
-      case 'rv':
-        return { icon: 'alert-circle', color: '#FF9800', text: 'RV' };
-      case 'absent':
-        return { icon: 'close-circle', color: '#F44336', text: 'X' };
-      case 'pending':
-        return { icon: 'help-circle', color: '#9E9E9E', text: '?' };
-      case 'sick':
-        return { icon: 'medkit', color: '#E91E63', text: 'B' };
-      case 'vacation':
-        return { icon: 'mail', color: '#2196F3', text: 'P' };
-      case 'holiday':
-        return { icon: 'flag', color: '#9C27B0', text: 'H' };
-      case 'incomplete':
-        return { icon: 'alert', color: '#FF5722', text: '!' };
-      default:
-        return { icon: 'remove-circle', color: '#757575', text: '--' };
-    }
-  };
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Vùng thông tin thời gian */}
+        {/* Vùng thông tin thởi gian */}
         <View style={styles.timeInfoSection}>
           <View style={styles.timeDisplayContainer}>
             <Text style={styles.timeDisplay}>
-              {format(currentTime, 'HH:mm', { locale: locale === 'vi' ? vi : enUS })}
+              {format(currentTime, 'HH:mm', { locale: locale === 'vi' ? viLocale : enUSLocale })}
             </Text>
             <Text style={[styles.dateDisplay, { color: theme.colors.textSecondary }]}>
               {formatDate(currentTime)}
@@ -1034,6 +1238,22 @@ const HomeScreen = () => {
                 <Ionicons name="refresh-outline" size={24} color={theme.colors.resetButton} />
               </TouchableOpacity>
             )}
+          </View>
+          
+          {/* Hiển thị lịch sử bấm nút */}
+          <View style={styles.actionLogsContainer}>
+            {actionLogs.slice(0, 3).map((log, index) => (
+              <View key={index} style={styles.actionLogItem}>
+                <Ionicons 
+                  name={getIconForStatus(log.action)} 
+                  size={16} 
+                  color={getColorForStatus(log.action, theme)} 
+                />
+                <Text style={styles.actionLogText}>
+                  {getActionName(log.action)}: {format(parseISO(log.timestamp), 'HH:mm')}
+                </Text>
+              </View>
+            ))}
           </View>
           
           {/* Hiển thị trạng thái nhập công hiện tại */}
@@ -1311,7 +1531,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
   },
-  // Vùng thông tin thời gian
+  // Vùng thông tin thởi gian
   timeInfoSection: {
     marginBottom: 20,
   },
@@ -1347,20 +1567,22 @@ const styles = StyleSheet.create({
   
   // Nút đa năng
   multiActionSection: {
-    alignItems: 'center',
+    marginTop: 16,
     marginBottom: 24,
+    alignItems: 'center',
   },
   buttonContainer: {
-    position: 'relative',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
   },
   multiActionButton: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1375,26 +1597,36 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     position: 'absolute',
-    right: -24,
+    right: -30,
     top: 10,
     width: 40,
     height: 40,
-    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
   currentStatusText: {
+    marginTop: 2,
     fontSize: 14,
     color: '#666',
-    marginTop: 4,
+    textAlign: 'center',
   },
-  
+  // Styles cho lịch sử bấm nút
+  actionLogsContainer: {
+    width: '80%',
+    marginTop: 8,
+    marginBottom: 8,
+    alignItems: 'flex-start',
+  },
+  actionLogItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  actionLogText: {
+    fontSize: 14,
+    marginLeft: 8,
+    color: '#333',
+  },
   // Các section chung
   sectionHeader: {
     flexDirection: 'row',
