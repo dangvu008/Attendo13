@@ -975,23 +975,6 @@ const HomeScreen = () => {
     }
   };
 
-  // Hàm để tải danh sách ghi chú gần nhất
-  const loadNotes = useCallback(async () => {
-    try {
-      const notesData = await AsyncStorage.getItem('notes');
-      if (notesData) {
-        const parsedNotes = JSON.parse(notesData);
-        // Sắp xếp theo thời gian nhắc nhở
-        const sortedNotes = parsedNotes.sort((a, b) => {
-          return new Date(a.reminderTime) - new Date(b.reminderTime);
-        });
-        setNotes(sortedNotes);
-      }
-    } catch (error) {
-      console.error('Lỗi khi tải ghi chú:', error);
-    }
-  }, []);
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
