@@ -1089,6 +1089,57 @@ const HomeScreen = () => {
     return `${d.getFullYear()}-${weekNumber}`;
   };
 
+  // Hàm xác định nút hành động dựa vào trạng thái hiện tại
+  const getActionButton = () => {
+    switch (workStatus) {
+      case null:
+      case 'inactive':
+        return {
+          status: 'go_work',
+          label: i18n.t('goToWork'),
+          icon: 'briefcase-outline',
+          color: theme.colors.goWorkButton
+        };
+      case 'go_work':
+        return {
+          status: 'check_in',
+          label: i18n.t('checkIn'),
+          icon: 'log-in-outline',
+          color: theme.colors.checkInButton
+        };
+      case 'check_in':
+        return {
+          status: 'check_out',
+          label: i18n.t('checkOut'),
+          icon: 'log-out-outline',
+          color: theme.colors.checkOutButton
+        };
+      case 'check_out':
+        return {
+          status: 'complete',
+          label: i18n.t('complete'),
+          icon: 'checkmark-done-outline',
+          color: theme.colors.completeButton
+        };
+      case 'complete':
+      case 'completed':
+        return {
+          status: 'completed',
+          label: i18n.t('workCompleted'),
+          icon: 'checkmark-circle-outline',
+          color: theme.colors.completeButton,
+          disabled: true
+        };
+      default:
+        return {
+          status: 'go_work',
+          label: i18n.t('goToWork'),
+          icon: 'briefcase-outline',
+          color: theme.colors.goWorkButton
+        };
+    }
+  };
+
   const actionButton = getActionButton();
   
   // Determine if we should show the reset button
