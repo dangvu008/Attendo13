@@ -12,6 +12,7 @@ import {
   FlatList,
   Image,
   StatusBar,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -1518,7 +1519,6 @@ const HomeScreen = () => {
         onClose={() => setIsAddNoteModalVisible(false)}
         onSave={handleSaveNote}
         editNote={selectedNote}
-        t={i18n.t}
         theme={theme}
       />
     </SafeAreaView>

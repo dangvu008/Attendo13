@@ -15,8 +15,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
+import i18n from '../i18n';
 
-const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
+const AddNoteModal = ({ visible, onClose, onSave, initialData, theme }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [reminderDate, setReminderDate] = useState(new Date());
@@ -33,21 +34,21 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
   
   // Predefined tag options
   const tagOptions = [
-    { id: 'work', label: t('tag_work') },
-    { id: 'personal', label: t('tag_personal') },
-    { id: 'important', label: t('tag_important') },
-    { id: 'urgent', label: t('tag_urgent') },
+    { id: 'work', label: i18n.t('tag_work') },
+    { id: 'personal', label: i18n.t('tag_personal') },
+    { id: 'important', label: i18n.t('tag_important') },
+    { id: 'urgent', label: i18n.t('tag_urgent') },
   ];
 
   // Week days options
   const weekDays = [
-    { id: 1, name: t('mon_short') || 'T2' },
-    { id: 2, name: t('tue_short') || 'T3' },
-    { id: 3, name: t('wed_short') || 'T4' },
-    { id: 4, name: t('thu_short') || 'T5' },
-    { id: 5, name: t('fri_short') || 'T6' },
-    { id: 6, name: t('sat_short') || 'T7' },
-    { id: 0, name: t('sun_short') || 'CN' },
+    { id: 1, name: i18n.t('mon_short') || 'T2' },
+    { id: 2, name: i18n.t('tue_short') || 'T3' },
+    { id: 3, name: i18n.t('wed_short') || 'T4' },
+    { id: 4, name: i18n.t('thu_short') || 'T5' },
+    { id: 5, name: i18n.t('fri_short') || 'T6' },
+    { id: 6, name: i18n.t('sat_short') || 'T7' },
+    { id: 0, name: i18n.t('sun_short') || 'CN' },
   ];
 
   const MAX_TITLE_LENGTH = 100;
@@ -91,15 +92,15 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
     
     // Hiển thị cảnh báo xác nhận trước khi reset
     Alert.alert(
-      t('confirm_reset'),
-      t('confirm_reset_message'),
+      i18n.t('confirm_reset'),
+      i18n.t('confirm_reset_message'),
       [
         {
-          text: t('cancel'),
+          text: i18n.t('cancel'),
           style: 'cancel'
         },
         {
-          text: t('reset'),
+          text: i18n.t('reset'),
           onPress: () => {
             console.log('Đang đặt lại form');
             resetForm();
@@ -150,10 +151,10 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
     
     // Validate title
     if (!title.trim()) {
-      setTitleError(t('note_title_required'));
+      setTitleError(i18n.t('note_title_required'));
       isValid = false;
     } else if (title.trim().length > MAX_TITLE_LENGTH) {
-      setTitleError(t('note_title_too_long', { max: MAX_TITLE_LENGTH }));
+      setTitleError(i18n.t('note_title_too_long', { max: MAX_TITLE_LENGTH }));
       isValid = false;
     } else {
       setTitleError('');
@@ -161,10 +162,10 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
     
     // Validate content
     if (!content.trim()) {
-      setContentError(t('note_content_required'));
+      setContentError(i18n.t('note_content_required'));
       isValid = false;
     } else if (content.trim().length > MAX_CONTENT_LENGTH) {
-      setContentError(t('note_content_too_long', { max: MAX_CONTENT_LENGTH }));
+      setContentError(i18n.t('note_content_too_long', { max: MAX_CONTENT_LENGTH }));
       isValid = false;
     } else {
       setContentError('');
@@ -195,12 +196,12 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
     
     // Show confirmation dialog
     Alert.alert(
-      t('confirm'),
-      t('save_note_confirm'),
+      i18n.t('confirm'),
+      i18n.t('save_note_confirm'),
       [
-        { text: t('cancel'), style: 'cancel' },
+        { text: i18n.t('cancel'), style: 'cancel' },
         { 
-          text: t('confirm'), 
+          text: i18n.t('confirm'), 
           onPress: () => {
             console.log('Đã xác nhận lưu');
             onSave(noteData);
@@ -214,11 +215,11 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
   const handleClose = () => {
     if (title.trim() || content.trim() || selectedTags.length > 0) {
       Alert.alert(
-        t('confirm'),
-        t('exit_note_confirm'),
+        i18n.t('confirm'),
+        i18n.t('exit_note_confirm'),
         [
-          { text: t('continue_editing'), style: 'cancel' },
-          { text: t('exit'), onPress: () => {
+          { text: i18n.t('continue_editing'), style: 'cancel' },
+          { text: i18n.t('exit'), onPress: () => {
             console.log('Đóng và đặt lại form');
             resetForm();
             onClose();
@@ -248,7 +249,7 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
             >
               <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
                 <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-                  {initialData ? t('edit_note') : t('add_note')}
+                  {initialData ? i18n.t('edit_note') : i18n.t('add_note')}
                 </Text>
                 <TouchableOpacity 
                   onPress={handleClose} 
@@ -264,14 +265,14 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                 {/* Title Input */}
                 <View style={styles.inputContainer}>
                   <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-                    {t('note_title')} <Text style={styles.requiredStar}>*</Text>
+                    {i18n.t('note_title')} <Text style={styles.requiredStar}>*</Text>
                   </Text>
                   <TextInput
                     style={[
                       styles.input,
                       { color: theme.colors.text, borderColor: titleError ? theme.colors.error : theme.colors.border }
                     ]}
-                    placeholder={t('note_title_placeholder')}
+                    placeholder={i18n.t('note_title_placeholder')}
                     placeholderTextColor={theme.colors.textSecondary}
                     value={title}
                     onChangeText={(text) => {
@@ -295,14 +296,14 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                 {/* Content Input */}
                 <View style={styles.inputContainer}>
                   <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-                    {t('note_content')} <Text style={styles.requiredStar}>*</Text>
+                    {i18n.t('note_content')} <Text style={styles.requiredStar}>*</Text>
                   </Text>
                   <TextInput
                     style={[
                       styles.textArea,
                       { color: theme.colors.text, borderColor: contentError ? theme.colors.error : theme.colors.border }
                     ]}
-                    placeholder={t('note_content_placeholder')}
+                    placeholder={i18n.t('note_content_placeholder')}
                     placeholderTextColor={theme.colors.textSecondary}
                     value={content}
                     onChangeText={(text) => {
@@ -327,7 +328,7 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                 {/* Date Picker Button */}
                 <View style={styles.inputContainer}>
                   <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-                    {t('reminder_date')}
+                    {i18n.t('reminder_date')}
                   </Text>
                   <TouchableOpacity 
                     style={[styles.dateButton, { borderColor: theme.colors.border }]}
@@ -354,7 +355,7 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                 {/* Time Picker Button */}
                 <View style={styles.inputContainer}>
                   <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-                    {t('reminder_time')}
+                    {i18n.t('reminder_time')}
                   </Text>
                   <TouchableOpacity 
                     style={[styles.dateButton, { borderColor: theme.colors.border }]}
@@ -381,10 +382,10 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                 {/* Week Days Selection */}
                 <View style={styles.inputContainer}>
                   <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-                    {t('repeat_on')}
+                    {i18n.t('repeat_on')}
                   </Text>
                   <Text style={[styles.inputSubLabel, { color: theme.colors.textSecondary }]}>
-                    {t('note_days')}
+                    {i18n.t('note_days')}
                   </Text>
                   <View style={styles.daysContainer}>
                     {weekDays.map((day) => (
@@ -414,7 +415,7 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                 {/* Color Selection */}
                 <View style={styles.inputContainer}>
                   <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-                    {t('note_color')}
+                    {i18n.t('note_color')}
                   </Text>
                   <View style={styles.colorsContainer}>
                     {colors.map(color => (
@@ -434,7 +435,7 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                 {/* Tags Selection */}
                 <View style={styles.inputContainer}>
                   <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-                    {t('note_tags')}
+                    {i18n.t('note_tags')}
                   </Text>
                   <View style={styles.tagsContainer}>
                     {tagOptions.map(tag => (
@@ -474,7 +475,7 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                   onPress={handleConfirmReset}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.buttonText}>{t('reset')}</Text>
+                  <Text style={styles.buttonText}>{i18n.t('reset')}</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity
@@ -482,7 +483,7 @@ const AddNoteModal = ({ visible, onClose, onSave, initialData, theme, t }) => {
                   onPress={handleSave}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.buttonText}>{t('save')}</Text>
+                  <Text style={styles.buttonText}>{i18n.t('save')}</Text>
                 </TouchableOpacity>
               </View>
             </KeyboardAvoidingView>
