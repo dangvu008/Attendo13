@@ -8,13 +8,14 @@ import {
   Alert,
   Modal,
   Dimensions,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  TextInput
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { format, differenceInMinutes, differenceInHours, isToday, parseISO, addDays } from 'date-fns';
-import vi from 'date-fns/locale/vi';
-import enUS from 'date-fns/locale/en-US';
+import { vi } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Contexts & Services
@@ -949,349 +950,353 @@ const HomeScreen = () => {
     }
   };
 
+  // Hàm trả về trạng thái ngày trong tuần dạng icon
+  const getDayStatusIcon = (status) => {
+    switch (status) {
+      case 'full':
+        return { icon: 'checkmark-circle', color: '#4CAF50', text: '✓' };
+      case 'partial':
+      case 'rv':
+        return { icon: 'alert-circle', color: '#FF9800', text: 'RV' };
+      case 'absent':
+        return { icon: 'close-circle', color: '#F44336', text: 'X' };
+      case 'pending':
+        return { icon: 'help-circle', color: '#9E9E9E', text: '?' };
+      case 'sick':
+        return { icon: 'medkit', color: '#E91E63', text: 'B' };
+      case 'vacation':
+        return { icon: 'mail', color: '#2196F3', text: 'P' };
+      case 'holiday':
+        return { icon: 'flag', color: '#9C27B0', text: 'H' };
+      case 'incomplete':
+        return { icon: 'alert', color: '#FF5722', text: '!' };
+      default:
+        return { icon: 'remove-circle', color: '#757575', text: '--' };
+    }
+  };
+
+  // Hàm để tải danh sách ghi chú gần nhất
+  const loadNotes = useCallback(async () => {
+    try {
+      const notesData = await AsyncStorage.getItem('notes');
+      if (notesData) {
+        const parsedNotes = JSON.parse(notesData);
+        // Sắp xếp theo thời gian nhắc nhở
+        const sortedNotes = parsedNotes.sort((a, b) => {
+          return new Date(a.reminderTime) - new Date(b.reminderTime);
+        });
+        setNotes(sortedNotes);
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải ghi chú:', error);
+    }
+  }, []);
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header Section */}
-        <View style={styles.header}>
-          <View style={styles.dateTimeContainer}>
-            <Text style={[styles.dateText, { color: theme.colors.text }]}>{formatDate(currentTime)}</Text>
-            <Text style={[styles.timeText, { color: theme.colors.primary }]}>{formatTime(currentTime)}</Text>
+        {/* Vùng thông tin thời gian */}
+        <View style={styles.timeInfoSection}>
+          <View style={styles.timeDisplayContainer}>
+            <Text style={styles.timeDisplay}>
+              {format(currentTime, 'HH:mm', { locale: locale === 'vi' ? vi : enUS })}
+            </Text>
+            <Text style={[styles.dateDisplay, { color: theme.colors.textSecondary }]}>
+              {formatDate(currentTime)}
+            </Text>
           </View>
           
           {shiftInfo && (
-            <View style={[styles.shiftInfo, { backgroundColor: isDarkMode ? theme.colors.surface : '#e6e6ff' }]}>
-              <Ionicons name="time-outline" size={18} color={theme.colors.primary} />
-              <Text style={[styles.shiftText, { color: theme.colors.primary }]}>{shiftInfo.name}</Text>
-              <Text style={[styles.shiftTimeText, { color: theme.colors.textSecondary }]}>
-                {formatShiftTime(shiftInfo.startTime)} - {formatShiftTime(shiftInfo.endTime)}
+            <View style={[styles.shiftInfoContainer, { backgroundColor: theme.colors.surface }]}>
+              <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
+              <Text style={[styles.shiftName, { color: theme.colors.primary }]}>
+                {shiftInfo.name}
+              </Text>
+              <Text style={[styles.shiftTime, { color: theme.colors.textSecondary }]}>
+                {formatShiftTime(shiftInfo.startTime)} → {formatShiftTime(shiftInfo.endTime)}
               </Text>
             </View>
           )}
         </View>
 
-        {/* Main Action Button Section */}
-        <View style={styles.actionSection}>
-          <View style={styles.multiActionContainer}>
-            {/* Nút hành động */}
-            <MultiActionButton
-              label={actionButton.label}
-              iconName={actionButton.icon}
-              color={actionButton.color}
+        {/* Nút đa năng */}
+        <View style={styles.multiActionSection}>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[
+                styles.multiActionButton,
+                { backgroundColor: getColorForStatus(workStatus || 'go_work', theme) }
+              ]}
               onPress={handleActionButtonPress}
-              disabled={actionButton.disabled || actionButtonDisabled}
-            />
-
-            {/* Lịch sử hành động */}
-            <View style={styles.actionHistoryContainer}>
-              <Text style={[styles.actionHistoryTitle, { color: theme.colors.textPrimary }]}>
-                {t('action_history')}
-              </Text>
-
-              {/* Trạng thái hiện tại */}
-              <View style={styles.actionStatusContainer}>
-                <Text style={[styles.actionStatusLabel, { color: theme.colors.textSecondary }]}>
-                  {t('current_status')}:
-                </Text>
-                <View style={styles.actionStatusValueContainer}>
-                  <Ionicons
-                    name={getIconForStatus(workStatus)}
-                    size={18}
-                    color={getColorForStatus(workStatus, theme)}
-                  />
-                  <Text style={[
-                    styles.actionStatusValue,
-                    { color: getColorForStatus(workStatus, theme) }
-                  ]}>
-                    {t(workStatus || 'not_started')}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Danh sách lịch sử */}
-              <View style={styles.actionHistoryList}>
-                {/* Mục Đi làm */}
-                {goWorkEntry && (
-                  <View style={styles.actionHistoryItem}>
-                    <View style={styles.actionHistoryIconContainer}>
-                      <Ionicons
-                        name="briefcase-outline"
-                        size={18}
-                        color={theme.colors.goWorkButton}
-                      />
-                    </View>
-                    <View style={styles.actionHistoryContent}>
-                      <Text style={[styles.actionHistoryText, { color: theme.colors.textPrimary }]}>
-                        {t('work_start')}
-                      </Text>
-                      <Text style={[styles.actionHistoryTime, { color: theme.colors.textSecondary }]}>
-                        {formatTime(new Date(goWorkEntry.timestamp))}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-                
-                {/* Mục Chấm công vào */}
-                {checkInEntry && (
-                  <View style={styles.actionHistoryItem}>
-                    <View style={styles.actionHistoryIconContainer}>
-                      <Ionicons
-                        name="log-in-outline"
-                        size={18}
-                        color={theme.colors.checkInButton}
-                      />
-                    </View>
-                    <View style={styles.actionHistoryContent}>
-                      <Text style={[styles.actionHistoryText, { color: theme.colors.textPrimary }]}>
-                        {t('check_in_time')}
-                      </Text>
-                      <Text style={[styles.actionHistoryTime, { color: theme.colors.textSecondary }]}>
-                        {formatTime(new Date(checkInEntry.timestamp))}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-                
-                {/* Mục Chấm công ra */}
-                {checkOutEntry && (
-                  <View style={styles.actionHistoryItem}>
-                    <View style={styles.actionHistoryIconContainer}>
-                      <Ionicons
-                        name="log-out-outline"
-                        size={18}
-                        color={theme.colors.checkOutButton}
-                      />
-                    </View>
-                    <View style={styles.actionHistoryContent}>
-                      <Text style={[styles.actionHistoryText, { color: theme.colors.textPrimary }]}>
-                        {t('check_out_time')}
-                      </Text>
-                      <Text style={[styles.actionHistoryTime, { color: theme.colors.textSecondary }]}>
-                        {formatTime(new Date(checkOutEntry.timestamp))}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-                
-                {/* Mục Hoàn thành */}
-                {completeEntry && (
-                  <View style={styles.actionHistoryItem}>
-                    <View style={styles.actionHistoryIconContainer}>
-                      <Ionicons
-                        name="checkmark-done-outline"
-                        size={18}
-                        color={theme.colors.completeButton}
-                      />
-                    </View>
-                    <View style={styles.actionHistoryContent}>
-                      <Text style={[styles.actionHistoryText, { color: theme.colors.textPrimary }]}>
-                        {t('completion_time')}
-                      </Text>
-                      <Text style={[styles.actionHistoryTime, { color: theme.colors.textSecondary }]}>
-                        {formatTime(new Date(completeEntry.timestamp))}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-                
-                {/* Hiển thị thông báo nếu chưa có lịch sử */}
-                {!goWorkEntry && !checkInEntry && !checkOutEntry && !completeEntry && (
-                  <Text style={[styles.noHistoryText, { color: theme.colors.textSecondary }]}>
-                    {t('no_history_today')}
-                  </Text>
-                )}
-              </View>
-            </View>
-          </View>
-          
-          {/* Nút reset được tách riêng khỏi multiActionContainer */}
-          {showResetButton && (
-            <View style={styles.resetButtonContainer}>
-              <TouchableOpacity 
-                style={[styles.resetButton, { backgroundColor: theme.colors.resetButton }]}
-                onPress={handleResetPress}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="refresh" size={20} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          )}
-          
-          {/* Nút Ký Công - Hiển thị sau khi chấm công vào */}
-          {workStatus === 'check_in' && shiftInfo && shiftInfo.showSignButton && (
-            <TouchableOpacity 
-              style={[styles.signButton, { backgroundColor: theme.colors.completeButton }]}
-              onPress={handleComplete}
+              disabled={actionButtonDisabled}
             >
-              <Ionicons name="document-text-outline" size={22} color="#fff" />
-            </TouchableOpacity>
-          )}
-          
-          {/* Action History Section */}
-          <View style={styles.historySection}>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('workHistory')}</Text>
-            </View>
-            <View style={[styles.historyCard, { backgroundColor: theme.colors.surface, ...theme.elevation.small }]}>
-              {todayEntries.length > 0 ? (
-                <View style={styles.historyList}>
-                  {/* Trạng thái hiện tại */}
-                  <View style={[styles.currentStatusContainer, { backgroundColor: theme.colors.primaryLight }]}>
-                    <Text style={[styles.currentStatusTitle, { color: theme.colors.primary }]}>
-                      {t('currentStatus')}:
-                    </Text>
-                    <Text style={[styles.currentStatusText, { color: theme.colors.text }]}>
-                      {workStatus ? 
-                        (workStatus === 'go_work' ? t('statusWorking') :
-                        workStatus === 'check_in' ? t('statusCheckedIn') :
-                        workStatus === 'check_out' ? t('statusCheckedOut') :
-                        workStatus === 'complete' ? t('statusCompleted') : t('statusIdle')) 
-                        : t('statusIdle')}
-                    </Text>
-                  </View>
-                  
-                  {/* Lịch sử các thao tác */}
-                  {todayEntries.map((entry, index) => {
-                    let statusText = '';
-                    let icon = '';
-                    let iconColor = theme.colors.primary;
-                    
-                    switch(entry.status) {
-                      case 'go_work':
-                        statusText = t('goToWork');
-                        icon = 'briefcase-outline';
-                        iconColor = theme.colors.goWorkButton;
-                        break;
-                      case 'check_in':
-                        statusText = t('checkIn');
-                        icon = 'log-in-outline';
-                        iconColor = theme.colors.checkInButton;
-                        break;
-                      case 'check_out':
-                        statusText = t('checkOut');
-                        icon = 'log-out-outline';
-                        iconColor = theme.colors.checkOutButton;
-                        break;
-                      case 'complete':
-                      case 'sign':
-                        statusText = entry.status === 'complete' ? t('complete') : t('sign_work');
-                        icon = 'checkmark-circle-outline';
-                        iconColor = theme.colors.completeButton;
-                        break;
-                      default:
-                        statusText = entry.status;
-                        icon = 'information-circle-outline';
-                    }
-                    
-                    return (
-                      <View key={index} style={styles.historyItem}>
-                        <View style={[styles.historyIconContainer, { backgroundColor: iconColor }]}>
-                          <Ionicons name={icon} size={18} color="#fff" />
-                        </View>
-                        <View style={styles.historyContent}>
-                          <Text style={[styles.historyTitle, { color: theme.colors.text }]}>
-                            {statusText}
-                          </Text>
-                          <Text style={[styles.historyTime, { color: theme.colors.textSecondary }]}>
-                            {formatTime(new Date(entry.timestamp))}
-                          </Text>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-              ) : (
-                <View style={styles.emptyHistory}>
-                  <Ionicons name="calendar-outline" size={30} color={theme.colors.disabled} />
-                  <Text style={[styles.emptyHistoryText, { color: theme.colors.textSecondary }]}>
-                    {t('no_history_today')}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        </View>
-
-        {/* Weekly Status Grid */}
-        <View style={[styles.weeklyStatusSection, { backgroundColor: theme.colors.surface }]}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('weekly_status')}</Text>
-          <WeeklyStatusGrid 
-            weeklyStatus={weeklyStatus} 
-            statusDetails={statusDetails}
-            onStatusChange={handleStatusChange}
-            theme={theme}
-          />
-        </View>
-
-        {/* Notes Section */}
-        <View style={[styles.notesSection, { backgroundColor: theme.colors.surface }]}>
-          <View style={styles.notesHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>{t('work_notes')}</Text>
-            <TouchableOpacity 
-              style={[styles.addNoteButton, { backgroundColor: theme.colors.primary }]}
-              onPress={handleAddNote}
-            >
-              <Ionicons name="add-outline" size={18} color="#fff" />
-              <Text style={styles.addNoteButtonText}>{t('add_note')}</Text>
-            </TouchableOpacity>
-          </View>
-          
-          {notes.length > 0 ? (
-            notes.slice(0, 3).map(note => (
-              <NoteItem
-                key={note.id}
-                note={note}
-                onEdit={() => handleEditNote(note)}
-                onDelete={() => handleDeleteNote(note.id)}
-                theme={theme}
+              <Ionicons 
+                name={getIconForStatus(workStatus || 'go_work')} 
+                size={36} 
+                color="#fff" 
               />
-            ))
-          ) : (
-            <Text style={[styles.emptyNotesText, { color: theme.colors.textSecondary }]}>{t('no_notes')}</Text>
-          )}
+              <Text style={styles.multiActionButtonText}>
+                {actionButton.label}
+              </Text>
+            </TouchableOpacity>
+            
+            {/* Nút reset */}
+            {showResetButton && (
+              <TouchableOpacity 
+                style={styles.resetButton}
+                onPress={handleResetPress}
+              >
+                <Ionicons name="refresh-outline" size={24} color={theme.colors.resetButton} />
+              </TouchableOpacity>
+            )}
+          </View>
+          
+          {/* Hiển thị trạng thái nhập công hiện tại */}
+          <Text style={styles.currentStatusText}>
+            {goWorkEntry ? format(new Date(goWorkEntry.timestamp), 'HH:mm') + ' - ' + t('work_started') : t('not_started_yet')}
+          </Text>
+        </View>
+
+        {/* Lịch sử thao tác */}
+        <View style={styles.actionHistorySection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{t('action_history')}</Text>
+          </View>
+          
+          <View style={[styles.actionHistoryCard, { backgroundColor: theme.colors.surface }]}>
+            {/* Hiển thị lịch sử các thao tác quan trọng */}
+            {todayEntries.length > 0 ? (
+              <View style={styles.actionHistoryList}>
+                {todayEntries.map((entry, index) => {
+                  let statusText = '';
+                  let icon = '';
+                  
+                  switch(entry.status) {
+                    case 'go_work':
+                      statusText = t('work_start');
+                      icon = 'briefcase-outline';
+                      break;
+                    case 'check_in':
+                      statusText = t('check_in_time');
+                      icon = 'log-in-outline';
+                      break;
+                    case 'check_out':
+                      statusText = t('check_out_time');
+                      icon = 'log-out-outline';
+                      break;
+                    case 'complete':
+                      statusText = t('completion_time');
+                      icon = 'checkmark-done-outline';
+                      break;
+                    default:
+                      statusText = entry.status;
+                      icon = 'time-outline';
+                  }
+                  
+                  return (
+                    <View key={index} style={styles.actionHistoryItem}>
+                      <View style={styles.actionIconContainer}>
+                        <Ionicons name={icon} size={20} color={getColorForStatus(entry.status, theme)} />
+                      </View>
+                      <View style={styles.actionTextContainer}>
+                        <Text style={[styles.actionText, { color: theme.colors.textPrimary }]}>
+                          {statusText}
+                        </Text>
+                        <Text style={[styles.actionTime, { color: theme.colors.textSecondary }]}>
+                          {format(new Date(entry.timestamp), 'HH:mm')}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            ) : (
+              <Text style={[styles.noHistoryText, { color: theme.colors.textSecondary }]}>
+                {t('no_history_today')}
+              </Text>
+            )}
+          </View>
+        </View>
+
+        {/* Trạng thái tuần này */}
+        <View style={styles.weeklyStatusSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{t('weekly_status')}</Text>
+          </View>
+          
+          <View style={[styles.weeklyStatusCard, { backgroundColor: theme.colors.surface }]}>
+            <View style={styles.weekDaysContainer}>
+              {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((day, index) => {
+                const date = addDays(new Date(), index - new Date().getDay() + (index === 6 ? -6 : 1));
+                const dayStatus = weeklyStatus[format(date, 'yyyy-MM-dd')] || 'none';
+                const statusInfo = getDayStatusIcon(dayStatus);
+                
+                return (
+                  <TouchableOpacity 
+                    key={index}
+                    style={styles.weekDayItem}
+                    onPress={() => handleDayStatusPress(format(date, 'yyyy-MM-dd'))}
+                  >
+                    <Text style={[
+                      styles.weekDayText, 
+                      { color: isToday(date) ? theme.colors.primary : theme.colors.textPrimary }
+                    ]}>
+                      {day}
+                    </Text>
+                    <Text style={[
+                      styles.weekDayDate, 
+                      { color: isToday(date) ? theme.colors.primary : theme.colors.textSecondary }
+                    ]}>
+                      {format(date, 'dd')}
+                    </Text>
+                    <View style={[
+                      styles.statusIcon, 
+                      { backgroundColor: isToday(date) ? statusInfo.color : theme.colors.background }
+                    ]}>
+                      <Text style={styles.statusIconText}>
+                        {statusInfo.text}
+                      </Text>
+                    </View>
+                    
+                    {shiftInfo && (
+                      <Text style={styles.shiftTimeText}>
+                        {formatShiftTime(shiftInfo.startTime)} - {formatShiftTime(shiftInfo.endTime)}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </View>
+
+        {/* Ghi chú công việc */}
+        <View style={styles.notesSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{t('notes')}</Text>
+            <TouchableOpacity 
+              style={styles.addNoteButton}
+              onPress={() => setIsAddNoteModalVisible(true)}
+            >
+              <Text style={styles.addNoteButtonText}>{t('add_note')}</Text>
+              <Ionicons name="add-circle-outline" size={20} color={theme.colors.primary} />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={[styles.notesCard, { backgroundColor: theme.colors.surface }]}>
+            {notes.length > 0 ? (
+              <View style={styles.notesList}>
+                {notes.slice(0, 3).map((note, index) => (
+                  <View key={index} style={styles.noteItem}>
+                    <View style={styles.noteContent}>
+                      <Text style={styles.noteTitle} numberOfLines={1}>
+                        {note.title}
+                      </Text>
+                      <Text style={styles.noteText} numberOfLines={2}>
+                        {note.content}
+                      </Text>
+                      <Text style={styles.noteTime}>
+                        {format(new Date(note.reminderTime), 'HH:mm, dd/MM/yyyy')}
+                      </Text>
+                    </View>
+                    <View style={styles.noteActions}>
+                      <TouchableOpacity 
+                        style={styles.noteActionButton}
+                        onPress={() => handleEditNote(note)}
+                      >
+                        <Ionicons name="pencil-outline" size={20} color={theme.colors.primary} />
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={styles.noteActionButton}
+                        onPress={() => handleDeleteNote(note.id)}
+                      >
+                        <Ionicons name="trash-outline" size={20} color={theme.colors.error} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text style={[styles.noNotesText, { color: theme.colors.textSecondary }]}>
+                {t('no_notes')}
+              </Text>
+            )}
+          </View>
         </View>
       </ScrollView>
-
-      {/* Add/Edit Note Modal */}
-      <AddNoteModal
-        visible={isAddNoteModalVisible}
-        onClose={() => setIsAddNoteModalVisible(false)}
-        onSave={handleSaveNote}
-        initialData={selectedNote}
-        theme={theme}
-        t={t}
-      />
-
-      {/* Xác nhận Reset Trạng Thái */}
+      
+      {/* Modal xác nhận hành động */}
       <Modal
-        visible={confirmResetVisible}
         transparent={true}
-        animationType="fade"
+        visible={confirmActionVisible}
+        onRequestClose={() => setConfirmActionVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setConfirmActionVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback onPress={e => e.stopPropagation()}>
+              <View style={[styles.confirmDialog, { backgroundColor: theme.colors.surface }]}>
+                <Text style={[styles.confirmTitle, { color: theme.colors.textPrimary }]}>
+                  {t('confirm_action')}
+                </Text>
+                <Text style={[styles.confirmMessage, { color: theme.colors.textSecondary }]}>
+                  {confirmMessage}
+                </Text>
+                <View style={styles.confirmButtons}>
+                  <TouchableOpacity
+                    style={[styles.confirmButtonCancel, { borderColor: theme.colors.border }]}
+                    onPress={() => setConfirmActionVisible(false)}
+                  >
+                    <Text style={[styles.confirmButtonText, { color: theme.colors.textSecondary }]}>
+                      {t('cancel')}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.confirmButtonConfirm, { backgroundColor: theme.colors.primary }]}
+                    onPress={confirmAction}
+                  >
+                    <Text style={[styles.confirmButtonText, { color: '#fff' }]}>
+                      {t('confirm')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+      
+      {/* Modal xác nhận reset */}
+      <Modal
+        transparent={true}
+        visible={confirmResetVisible}
         onRequestClose={() => setConfirmResetVisible(false)}
       >
         <TouchableWithoutFeedback onPress={() => setConfirmResetVisible(false)}>
           <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={[styles.confirmModalContainer, { backgroundColor: theme.colors.surface }]}>
-                <Text style={[styles.confirmModalTitle, { color: theme.colors.text }]}>
+            <TouchableWithoutFeedback onPress={e => e.stopPropagation()}>
+              <View style={[styles.confirmDialog, { backgroundColor: theme.colors.surface }]}>
+                <Text style={[styles.confirmTitle, { color: theme.colors.textPrimary }]}>
                   {t('confirm_reset')}
                 </Text>
-                <Text style={[styles.confirmModalMessage, { color: theme.colors.textSecondary }]}>
-                  {t('confirm_reset_today')}
+                <Text style={[styles.confirmMessage, { color: theme.colors.textSecondary }]}>
+                  {t('reset_confirmation_message')}
                 </Text>
-                <View style={styles.confirmButtonsContainer}>
+                <View style={styles.confirmButtons}>
                   <TouchableOpacity
-                    style={[styles.confirmButton, { backgroundColor: theme.colors.cancelButton }]}
+                    style={[styles.confirmButtonCancel, { borderColor: theme.colors.border }]}
                     onPress={() => setConfirmResetVisible(false)}
                   >
-                    <Text style={styles.confirmButtonText}>{t('cancel')}</Text>
+                    <Text style={[styles.confirmButtonText, { color: theme.colors.textSecondary }]}>
+                      {t('cancel')}
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.confirmButton, { backgroundColor: theme.colors.resetButton }]}
-                    onPress={confirmReset}
+                    style={[styles.confirmButtonConfirm, { backgroundColor: theme.colors.error }]}
+                    onPress={handleResetConfirm}
                   >
-                    <Text style={styles.confirmButtonText}>{t('reset')}</Text>
+                    <Text style={[styles.confirmButtonText, { color: '#fff' }]}>
+                      {t('reset')}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1299,56 +1304,21 @@ const HomeScreen = () => {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-
-      {/* Xác nhận Hành Động Khi Không Đủ Thời Gian */}
-      <Modal
-        visible={confirmActionVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => {
-          setConfirmActionVisible(false);
-          setNextAction(null); // Đảm bảo xóa hành động tiếp theo khi đóng
-        }}
-      >
-        <TouchableWithoutFeedback onPress={() => {
-          setConfirmActionVisible(false);
-          setNextAction(null); // Đảm bảo xóa hành động tiếp theo khi đóng
-        }}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={[styles.confirmModalContainer, { backgroundColor: theme.colors.surface }]}>
-                <Text style={[styles.confirmModalTitle, { color: theme.colors.text }]}>
-                  {t('confirm_action_title')}
-                </Text>
-                <Text style={[styles.confirmModalMessage, { color: theme.colors.textSecondary }]}>
-                  {confirmMessage}
-                </Text>
-                <View style={styles.confirmButtonsContainer}>
-                  <TouchableOpacity
-                    style={[styles.confirmButton, { backgroundColor: theme.colors.cancelButton }]}
-                    onPress={() => {
-                      setConfirmActionVisible(false);
-                      setNextAction(null); // Đảm bảo xóa hành động tiếp theo khi hủy
-                    }}
-                  >
-                    <Ionicons name="close-circle-outline" size={24} color="#fff" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.confirmButton, { backgroundColor: theme.colors.primary }]}
-                    onPress={confirmAction}
-                  >
-                    <Ionicons name="checkmark-circle-outline" size={24} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+      
+      {/* Modal thêm/sửa ghi chú */}
+      <AddNoteModal
+        visible={isAddNoteModalVisible}
+        onClose={() => setIsAddNoteModalVisible(false)}
+        onSave={handleSaveNote}
+        editNote={selectedNote}
+        t={t}
+        theme={theme}
+      />
     </SafeAreaView>
   );
 };
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -1356,114 +1326,266 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
   },
-  header: {
-    marginBottom: 16,
+  // Vùng thông tin thời gian
+  timeInfoSection: {
+    marginBottom: 20,
   },
-  dateTimeContainer: {
+  timeDisplayContainer: {
+    alignItems: 'center',
     marginBottom: 10,
   },
-  dateText: {
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  timeText: {
-    fontSize: 32,
+  timeDisplay: {
+    fontSize: 48,
     fontWeight: 'bold',
+    color: '#5A35F0',
   },
-  shiftInfo: {
+  dateDisplay: {
+    fontSize: 16,
+    marginTop: 4,
+  },
+  shiftInfoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
-    borderRadius: 8,
-    marginVertical: 8,
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 8,
+    gap: 8,
   },
-  shiftText: {
+  shiftName: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginLeft: 8,
-    marginRight: 12,
   },
-  shiftTimeText: {
+  shiftTime: {
     fontSize: 14,
   },
-  actionSection: {
+  
+  // Nút đa năng
+  multiActionSection: {
     alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 20,
-    position: 'relative',
+    marginBottom: 24,
   },
-  multiActionContainer: {
+  buttonContainer: {
+    position: 'relative',
     alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
   },
-  resetButtonContainer: {
-    position: 'absolute',
-    top: 0,
-    right: '30%',
-    width: 42,
-    height: 42,
-    zIndex: 200,
+  multiActionButton: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  multiActionButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 8,
   },
   resetButton: {
-    position: 'relative',
-    backgroundColor: 'red',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 5,
-  },
-  signButton: {
     position: 'absolute',
-    right: -60,
+    right: -24,
     top: 10,
     width: 40,
     height: 40,
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  weeklyStatusSection: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+  currentStatusText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  
+  // Các section chung
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 12,
+    color: '#333',
   },
-  notesSection: {
+  
+  // Lịch sử thao tác
+  actionHistorySection: {
+    marginBottom: 24,
+  },
+  actionHistoryCard: {
     borderRadius: 12,
     padding: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  notesHeader: {
+  actionHistoryList: {
+    gap: 12,
+  },
+  actionHistoryItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
   },
-  addNoteButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+  actionIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    marginRight: 12,
   },
-  addNoteButtonText: {
-    color: '#fff',
+  actionTextContainer: {
+    flex: 1,
+  },
+  actionText: {
+    fontSize: 14,
     fontWeight: 'bold',
   },
-  emptyNotesText: {
-    textAlign: 'center',
-    padding: 20,
-    fontStyle: 'italic',
+  actionTime: {
+    fontSize: 12,
+    marginTop: 2,
   },
+  noHistoryText: {
+    textAlign: 'center',
+    padding: 16,
+    fontSize: 14,
+  },
+  
+  // Trạng thái tuần này
+  weeklyStatusSection: {
+    marginBottom: 24,
+  },
+  weeklyStatusCard: {
+    borderRadius: 12,
+    padding: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  weekDaysContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  weekDayItem: {
+    alignItems: 'center',
+    width: (Dimensions.get('window').width - 64) / 7,
+  },
+  weekDayText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  weekDayDate: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  statusIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  statusIconText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  shiftTimeText: {
+    fontSize: 10,
+    color: '#666',
+    marginTop: 4,
+  },
+  
+  // Ghi chú công việc
+  notesSection: {
+    marginBottom: 16,
+  },
+  addNoteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  addNoteButtonText: {
+    fontSize: 14,
+    color: '#5A35F0',
+  },
+  notesCard: {
+    borderRadius: 12,
+    padding: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  notesList: {
+    gap: 16,
+  },
+  noteItem: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+    paddingBottom: 12,
+  },
+  noteContent: {
+    flex: 1,
+  },
+  noteTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  noteText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 6,
+  },
+  noteTime: {
+    fontSize: 12,
+    color: '#999',
+  },
+  noteActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  noteActionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  noNotesText: {
+    textAlign: 'center',
+    padding: 16,
+    fontSize: 14,
+  },
+  
+  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -1471,153 +1593,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  confirmModalContainer: {
-    width: '90%',
+  confirmDialog: {
+    width: '100%',
     borderRadius: 12,
     padding: 20,
-    alignItems: 'center',
   },
-  confirmModalTitle: {
+  confirmTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
+    marginBottom: 12,
   },
-  confirmModalMessage: {
-    fontSize: 16,
-    marginBottom: 24,
-    textAlign: 'center',
+  confirmMessage: {
+    fontSize: 14,
+    marginBottom: 20,
   },
-  confirmButtonsContainer: {
+  confirmButtons: {
     flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'space-around',
-    marginTop: 10,
+    justifyContent: 'flex-end',
+    gap: 12,
   },
-  confirmButton: {
-    borderRadius: 50,
-    paddingVertical: 12,
+  confirmButtonCancel: {
+    paddingVertical: 8,
     paddingHorizontal: 16,
-    width: 60,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  confirmButtonConfirm: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
   },
   confirmButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  historySection: {
-    marginTop: 30,
-    width: '100%',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  historyCard: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-  },
-  historyList: {
-    gap: 16,
-  },
-  historyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  historyIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  historyContent: {
-    flex: 1,
-  },
-  historyTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  historyTime: {
-    fontSize: 14,
-    marginTop: 2,
-  },
-  emptyHistory: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-  },
-  emptyHistoryText: {
-    marginTop: 8,
-    fontSize: 14,
-  },
-  actionStatusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 8,
-    padding: 8,
-    borderRadius: 8,
-  },
-  actionStatusLabel: {
-    fontSize: 14,
-    marginRight: 8,
-  },
-  actionStatusValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  actionStatusValue: {
     fontSize: 14,
     fontWeight: 'bold',
-    marginLeft: 4,
-  },
-  actionHistoryList: {
-    marginTop: 8,
-  },
-  actionHistoryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 4,
-    padding: 8,
-    borderRadius: 8,
-  },
-  actionHistoryIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  actionHistoryContent: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  actionHistoryText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  actionHistoryTime: {
-    fontSize: 14,
-  },
-  noHistoryText: {
-    textAlign: 'center',
-    fontSize: 14,
-    fontStyle: 'italic',
-    marginVertical: 8,
   },
 });
 
