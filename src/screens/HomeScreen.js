@@ -26,7 +26,7 @@ import Constants from 'expo-constants';
 
 // Contexts & Services
 import { useTheme } from '../context/ThemeContext';
-import { useTranslation } from '../i18n';
+import i18n from '../i18n';
 import { NotificationService } from '../services/NotificationService';
 import MultiActionButton from '../components/MultiActionButton';
 import AddNoteModal from '../components/AddNoteModal';
@@ -35,7 +35,6 @@ import NoteItem from '../components/NoteItem';
 
 const HomeScreen = () => {
   const { theme, isDarkMode } = useTheme();
-  const { t, i18n } = useTranslation();
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isAddNoteModalVisible, setIsAddNoteModalVisible] = useState(false);
@@ -194,8 +193,8 @@ const HomeScreen = () => {
 
   // Format date using the current locale
   const formatDate = (date) => {
-    const formatOptions = i18n.language === 'vi' ? 'EEEE, dd/MM/yyyy' : 'EEEE, MM/dd/yyyy';
-    return format(date, formatOptions, { locale: i18n.language === 'vi' ? viLocale : enUSLocale });
+    const formatOptions = i18n.locale === 'vi' ? 'EEEE, dd/MM/yyyy' : 'EEEE, MM/dd/yyyy';
+    return format(date, formatOptions, { locale: i18n.locale === 'vi' ? viLocale : enUSLocale });
   };
 
   // Format time
@@ -333,7 +332,7 @@ const HomeScreen = () => {
       const timeDiffMinutes = differenceInMinutes(new Date(), goWorkTime);
       
       if (timeDiffMinutes < 5) {
-        setConfirmMessage(t('time_validation_check_in'));
+        setConfirmMessage(i18n.t('time_validation_check_in'));
         needsConfirmation = true;
       }
     } 
@@ -343,7 +342,7 @@ const HomeScreen = () => {
       const hoursDiff = differenceInHours(new Date(), checkInTime);
       
       if (hoursDiff < 2) {
-        setConfirmMessage(t('time_validation_check_out'));
+        setConfirmMessage(i18n.t('time_validation_check_out'));
         needsConfirmation = true;
       }
     }
@@ -380,7 +379,7 @@ const HomeScreen = () => {
           
           // Nếu đi làm sớm, không cần hiển thị thông báo
           if (now < startTime) {
-            showToast(t('early_departure_success'));
+            showToast(i18n.t('early_departure_success'));
           }
         }
         
@@ -399,9 +398,9 @@ const HomeScreen = () => {
       // Kiểm tra xem đã đi làm chưa
       if (!goWorkEntry) {
         Alert.alert(
-          t('error'),
-          t('must_go_work_first_message'),
-          [{ text: t('ok') }]
+          i18n.t('error'),
+          i18n.t('must_go_work_first_message'),
+          [{ text: i18n.t('ok') }]
         );
         return false;
       }
@@ -434,7 +433,7 @@ const HomeScreen = () => {
           if (now > startTime) {
             const minutesLate = differenceInMinutes(now, startTime);
             if (minutesLate > 5) {
-              showToast(t('late_check_in_warning'));
+              showToast(i18n.t('late_check_in_warning'));
               
               // Cập nhật trạng thái là "RV" (vào muộn)
               await updateWorkStatus('rv');
@@ -460,9 +459,9 @@ const HomeScreen = () => {
       // Kiểm tra xem đã chấm công vào chưa
       if (!checkInEntry) {
         Alert.alert(
-          t('error'),
-          t('must_check_in_first_message'),
-          [{ text: t('ok') }]
+          i18n.t('error'),
+          i18n.t('must_check_in_first_message'),
+          [{ text: i18n.t('ok') }]
         );
         return false;
       }
@@ -495,7 +494,7 @@ const HomeScreen = () => {
           if (now < endTime) {
             const minutesEarly = differenceInMinutes(endTime, now);
             if (minutesEarly > 5) {
-              showToast(t('early_check_out_warning'));
+              showToast(i18n.t('early_check_out_warning'));
               
               // Cập nhật trạng thái là "RV" (ra sớm)
               await updateWorkStatus('rv');
@@ -521,9 +520,9 @@ const HomeScreen = () => {
       // Kiểm tra xem đã chấm công ra chưa
       if (!checkOutEntry) {
         Alert.alert(
-          t('error'),
-          t('must_check_out_first_message'),
-          [{ text: t('ok') }]
+          i18n.t('error'),
+          i18n.t('must_check_out_first_message'),
+          [{ text: i18n.t('ok') }]
         );
         return false;
       }
@@ -548,7 +547,7 @@ const HomeScreen = () => {
         await updateWeeklyStatus();
         
         // Hiển thị thông báo
-        showToast(t('work_completed_success'));
+        showToast(i18n.t('work_completed_success'));
         
         return true;
       }
@@ -851,9 +850,9 @@ const HomeScreen = () => {
     } catch (error) {
       console.error('Lỗi khi thực hiện hành động:', error);
       Alert.alert(
-        t('error'),
-        t('action_execution_error'),
-        [{ text: t('ok') }]
+        i18n.t('error'),
+        i18n.t('action_execution_error'),
+        [{ text: i18n.t('ok') }]
       );
       setActionButtonDisabled(false);
     } finally {
@@ -1138,13 +1137,13 @@ const HomeScreen = () => {
   const getActionName = (action) => {
     switch (action) {
       case 'go_work':
-        return t('goToWork');
+        return i18n.t('goToWork');
       case 'check_in':
-        return t('checkIn');
+        return i18n.t('checkIn');
       case 'check_out':
-        return t('checkOut');
+        return i18n.t('checkOut');
       case 'complete':
-        return t('complete');
+        return i18n.t('complete');
       default:
         return '';
     }
@@ -1189,7 +1188,7 @@ const HomeScreen = () => {
         <View style={styles.timeInfoSection}>
           <View style={styles.timeDisplayContainer}>
             <Text style={styles.timeDisplay}>
-              {format(currentTime, 'HH:mm', { locale: i18n.language === 'vi' ? viLocale : enUSLocale })}
+              {format(currentTime, 'HH:mm', { locale: i18n.locale === 'vi' ? viLocale : enUSLocale })}
             </Text>
             <Text style={[styles.dateDisplay, { color: theme.colors.textSecondary }]}>
               {formatDate(currentTime)}
@@ -1259,14 +1258,14 @@ const HomeScreen = () => {
           
           {/* Hiển thị trạng thái nhập công hiện tại */}
           <Text style={styles.currentStatusText}>
-            {goWorkEntry ? format(new Date(goWorkEntry.timestamp), 'HH:mm') + ' - ' + t('work_started') : t('not_started_yet')}
+            {goWorkEntry ? format(new Date(goWorkEntry.timestamp), 'HH:mm') + ' - ' + i18n.t('work_started') : i18n.t('not_started_yet')}
           </Text>
         </View>
 
         {/* Lịch sử thao tác */}
         <View style={styles.actionHistorySection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t('action_history')}</Text>
+            <Text style={styles.sectionTitle}>{i18n.t('action_history')}</Text>
           </View>
           
           <View style={[styles.actionHistoryCard, { backgroundColor: theme.colors.surface }]}>
@@ -1279,19 +1278,19 @@ const HomeScreen = () => {
                   
                   switch(entry.action) {
                     case 'go_work':
-                      statusText = t('goToWork');
+                      statusText = i18n.t('goToWork');
                       icon = 'briefcase-outline';
                       break;
                     case 'check_in':
-                      statusText = t('checkIn');
+                      statusText = i18n.t('checkIn');
                       icon = 'log-in-outline';
                       break;
                     case 'check_out':
-                      statusText = t('checkOut');
+                      statusText = i18n.t('checkOut');
                       icon = 'log-out-outline';
                       break;
                     case 'complete':
-                      statusText = t('complete');
+                      statusText = i18n.t('complete');
                       icon = 'checkmark-done-outline';
                       break;
                     default:
@@ -1319,7 +1318,7 @@ const HomeScreen = () => {
             ) : (
               <View style={styles.emptyListContainer}>
                 <Text style={[styles.emptyListText, { color: theme.colors.textSecondary }]}>
-                  {t('no_history')}
+                  {i18n.t('no_history')}
                 </Text>
               </View>
             )}
@@ -1329,7 +1328,7 @@ const HomeScreen = () => {
         {/* Trạng thái tuần này */}
         <View style={styles.weeklyStatusSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t('weekly_status')}</Text>
+            <Text style={styles.sectionTitle}>{i18n.t('weekly_status')}</Text>
           </View>
           
           <View style={[styles.weeklyStatusCard, { backgroundColor: theme.colors.surface }]}>
@@ -1381,12 +1380,12 @@ const HomeScreen = () => {
         {/* Ghi chú công việc */}
         <View style={styles.notesSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t('notes')}</Text>
+            <Text style={styles.sectionTitle}>{i18n.t('notes')}</Text>
             <TouchableOpacity 
               style={styles.addNoteButton}
               onPress={() => setIsAddNoteModalVisible(true)}
             >
-              <Text style={styles.addNoteButtonText}>{t('add_note')}</Text>
+              <Text style={styles.addNoteButtonText}>{i18n.t('add_note')}</Text>
               <Ionicons name="add-circle-outline" size={20} color={theme.colors.primary} />
             </TouchableOpacity>
           </View>
@@ -1426,7 +1425,7 @@ const HomeScreen = () => {
               </View>
             ) : (
               <Text style={[styles.noNotesText, { color: theme.colors.textSecondary }]}>
-                {t('no_notes')}
+                {i18n.t('no_notes')}
               </Text>
             )}
           </View>
@@ -1444,7 +1443,7 @@ const HomeScreen = () => {
             <TouchableWithoutFeedback onPress={e => e.stopPropagation()}>
               <View style={[styles.confirmDialog, { backgroundColor: theme.colors.surface }]}>
                 <Text style={[styles.confirmTitle, { color: theme.colors.textPrimary }]}>
-                  {t('confirm_action')}
+                  {i18n.t('confirm_action')}
                 </Text>
                 <Text style={[styles.confirmMessage, { color: theme.colors.textSecondary }]}>
                   {confirmMessage}
@@ -1455,7 +1454,7 @@ const HomeScreen = () => {
                     onPress={() => setConfirmActionVisible(false)}
                   >
                     <Text style={[styles.confirmButtonText, { color: theme.colors.textSecondary }]}>
-                      {t('cancel')}
+                      {i18n.t('cancel')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -1463,7 +1462,7 @@ const HomeScreen = () => {
                     onPress={confirmAction}
                   >
                     <Text style={[styles.confirmButtonText, { color: '#fff' }]}>
-                      {t('confirm')}
+                      {i18n.t('confirm')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1484,10 +1483,10 @@ const HomeScreen = () => {
             <TouchableWithoutFeedback onPress={e => e.stopPropagation()}>
               <View style={[styles.confirmDialog, { backgroundColor: theme.colors.surface }]}>
                 <Text style={[styles.confirmTitle, { color: theme.colors.textPrimary }]}>
-                  {t('confirm_reset')}
+                  {i18n.t('confirm_reset')}
                 </Text>
                 <Text style={[styles.confirmMessage, { color: theme.colors.textSecondary }]}>
-                  {t('reset_confirmation_message')}
+                  {i18n.t('reset_confirmation_message')}
                 </Text>
                 <View style={styles.confirmButtons}>
                   <TouchableOpacity
@@ -1495,7 +1494,7 @@ const HomeScreen = () => {
                     onPress={() => setConfirmResetVisible(false)}
                   >
                     <Text style={[styles.confirmButtonText, { color: theme.colors.textSecondary }]}>
-                      {t('cancel')}
+                      {i18n.t('cancel')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -1503,7 +1502,7 @@ const HomeScreen = () => {
                     onPress={handleResetConfirm}
                   >
                     <Text style={[styles.confirmButtonText, { color: '#fff' }]}>
-                      {t('reset')}
+                      {i18n.t('reset')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1519,7 +1518,7 @@ const HomeScreen = () => {
         onClose={() => setIsAddNoteModalVisible(false)}
         onSave={handleSaveNote}
         editNote={selectedNote}
-        t={t}
+        t={i18n.t}
         theme={theme}
       />
     </SafeAreaView>
