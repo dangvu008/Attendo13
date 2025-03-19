@@ -35,7 +35,7 @@ import NoteItem from '../components/NoteItem';
 
 const HomeScreen = () => {
   const { theme, isDarkMode } = useTheme();
-  const { t, locale } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isAddNoteModalVisible, setIsAddNoteModalVisible] = useState(false);
@@ -194,8 +194,8 @@ const HomeScreen = () => {
 
   // Format date using the current locale
   const formatDate = (date) => {
-    const formatOptions = locale === 'vi' ? 'EEEE, dd/MM/yyyy' : 'EEEE, MM/dd/yyyy';
-    return format(date, formatOptions, { locale: locale === 'vi' ? viLocale : enUSLocale });
+    const formatOptions = i18n.language === 'vi' ? 'EEEE, dd/MM/yyyy' : 'EEEE, MM/dd/yyyy';
+    return format(date, formatOptions, { locale: i18n.language === 'vi' ? viLocale : enUSLocale });
   };
 
   // Format time
@@ -1189,7 +1189,7 @@ const HomeScreen = () => {
         <View style={styles.timeInfoSection}>
           <View style={styles.timeDisplayContainer}>
             <Text style={styles.timeDisplay}>
-              {format(currentTime, 'HH:mm', { locale: locale === 'vi' ? viLocale : enUSLocale })}
+              {format(currentTime, 'HH:mm', { locale: i18n.language === 'vi' ? viLocale : enUSLocale })}
             </Text>
             <Text style={[styles.dateDisplay, { color: theme.colors.textSecondary }]}>
               {formatDate(currentTime)}

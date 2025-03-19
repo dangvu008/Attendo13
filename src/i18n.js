@@ -1,5 +1,5 @@
 import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
+import { initReactI18next, useTranslation as useI18nTranslation } from 'react-i18next';
 import * as Localization from 'expo-localization';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -138,7 +138,6 @@ const resources = {
       note_delete_confirm: 'Bạn có chắc chắn muốn xóa ghi chú này?',
       note_delete_success: 'Đã xóa ghi chú thành công',
       note_delete_error: 'Lỗi khi xóa ghi chú',
-      note_update_success: 'Đã cập nhật ghi chú thành công',
       note_update_error: 'Lỗi khi cập nhật ghi chú',
       
       // Settings
@@ -178,49 +177,36 @@ const resources = {
 };
 
 // Khởi tạo i18n
-const initI18n = async () => {
-  let locale;
+i18n
+  .use(initReactI18next)
+  .init({
+    resources,
+    lng: Localization.locale.split('-')[0] === 'vi' ? 'vi' : 'en',
+    fallbackLng: 'en',
+    interpolation: {
+      escapeValue: false
+    },
+    compatibilityJSON: 'v3'
+  });
+
+// Hàm để lấy ngôn ngữ từ AsyncStorage và cập nhật i18n
+export const loadStoredLanguage = async () => {
   try {
-    // Cố gắng lấy ngôn ngữ từ AsyncStorage
-    locale = await AsyncStorage.getItem('userLanguage');
-  } catch (error) {
-    console.error('Error loading language from storage:', error);
-  }
-
-  // Nếu không có ngôn ngữ được lưu, lấy ngôn ngữ của thiết bị
-  if (!locale) {
-    locale = Localization.locale.split('-')[0];
-    // Nếu ngôn ngữ không được hỗ trợ, dùng tiếng Anh làm mặc định
-    if (locale !== 'en' && locale !== 'vi') {
-      locale = 'en';
+    const storedLanguage = await AsyncStorage.getItem('userLanguage');
+    if (storedLanguage) {
+      await i18n.changeLanguage(storedLanguage);
     }
+  } catch (error) {
+    console.error('Error loading stored language:', error);
   }
-
-  // Khởi tạo i18next
-  await i18n
-    .use(initReactI18next)
-    .init({
-      resources,
-      lng: locale,
-      fallbackLng: 'en',
-      interpolation: {
-        escapeValue: false
-      },
-      compatibilityJSON: 'v3'
-    });
-
-  return i18n;
 };
 
-// Khởi tạo i18n khi import module
-initI18n();
+// Load stored language when this file is imported
+loadStoredLanguage();
 
-// Hàm để lấy hook useTranslation và các hàm i18n khác
+// Export hook để sử dụng trong các component
 export const useTranslation = () => {
-  return {
-    t: (key, options) => i18n.t(key, options),
-    i18n
-  };
+  return useI18nTranslation();
 };
 
 // Hàm để thay đổi ngôn ngữ
