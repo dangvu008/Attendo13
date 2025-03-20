@@ -418,7 +418,7 @@ const SettingsScreen = () => {
                       fontWeight: locale === lang ? 'bold' : 'normal'
                     }
                   ]}>
-                    {lang === 'en' ? 'English' : 'Tiếng Việt'}
+                    {lang === 'vi' ? 'Tiếng Việt' : 'English'}
                   </Text>
                   {locale === lang && (
                     <Ionicons name="checkmark" size={18} color={theme.colors.primary} />

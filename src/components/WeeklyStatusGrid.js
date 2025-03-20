@@ -208,10 +208,10 @@ const WeeklyStatusGrid = ({ weeklyStatus, statusDetails, onStatusChange }) => {
                   </Text>
                   
                   <Text style={[styles.detailLabel, { color: theme.colors.text }]}>
-                    {t('total_hours')}:
+                    {t('work_time')}:
                   </Text>
                   <Text style={[styles.detailValue, { color: theme.colors.textSecondary }]}>
-                    {statusDetails[selectedDay.formattedDate].totalHours || t('no_data')}
+                    {statusDetails[selectedDay.formattedDate].workHours || t('no_data')}
                   </Text>
                   
                   {statusDetails[selectedDay.formattedDate].note && (
@@ -224,22 +224,24 @@ const WeeklyStatusGrid = ({ weeklyStatus, statusDetails, onStatusChange }) => {
                       </Text>
                     </>
                   )}
+                  
+                  <View style={styles.actionButtonContainer}>
+                    <TouchableOpacity
+                      style={[styles.changeStatusButton, { backgroundColor: theme.colors.primary }]}
+                      onPress={openStatusModal}
+                    >
+                      <Text style={styles.changeStatusButtonText}>
+                        {t('change_status')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </>
               ) : (
                 <Text style={[styles.noDataText, { color: theme.colors.textSecondary }]}>
-                  {t('no_data_available')}
+                  {selectedDay && selectedDay.isFuture 
+                    ? t('future_date') 
+                    : t('no_data')}
                 </Text>
-              )}
-              
-              {!selectedDay?.isFuture && (
-                <TouchableOpacity 
-                  style={[styles.changeStatusButton, { backgroundColor: theme.colors.primary }]}
-                  onPress={openStatusModal}
-                >
-                  <Text style={styles.changeStatusButtonText}>
-                    {t('change_status')}
-                  </Text>
-                </TouchableOpacity>
               )}
             </ScrollView>
           </View>
@@ -270,14 +272,14 @@ const WeeklyStatusGrid = ({ weeklyStatus, statusDetails, onStatusChange }) => {
               style={styles.statusList}
               renderItem={({ item }) => (
                 <TouchableOpacity 
-                  style={styles.statusOption}
+                  style={[styles.statusOption, { borderColor: theme.colors.border }]}
                   onPress={() => handleStatusChange(item.code)}
                 >
-                  <View style={[styles.statusColorDot, { backgroundColor: item.color }]}>
+                  <View style={[styles.statusOptionIcon, { backgroundColor: item.color }]}>
                     {item.fontAwesome ? (
-                      <FontAwesome5 name={item.icon} size={14} color="#fff" />
+                      <FontAwesome5 name={item.icon} size={18} color="#fff" />
                     ) : (
-                      <MaterialIcons name={item.icon} size={14} color="#fff" />
+                      <MaterialIcons name={item.icon} size={18} color="#fff" />
                     )}
                   </View>
                   <Text style={[styles.statusOptionText, { color: theme.colors.text }]}>
@@ -440,7 +442,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0, 0, 0, 0.05)',
   },
-  statusColorDot: {
+  statusOptionIcon: {
     width: 30,
     height: 30,
     borderRadius: 15,
@@ -450,6 +452,10 @@ const styles = StyleSheet.create({
   },
   statusOptionText: {
     fontSize: 16,
+  },
+  actionButtonContainer: {
+    marginTop: 16,
+    alignItems: 'center',
   },
 });
 

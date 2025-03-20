@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { TouchableOpacity, Text, StyleSheet, View, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import i18n from '../i18n';
@@ -6,6 +6,29 @@ import i18n from '../i18n';
 const MultiActionButton = ({ status, label, iconName, color, onPress, disabled }) => {
   // Animation effect for urgent statuses
   const isUrgent = status === 'check_in' || status === 'check_out';
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  
+  // Start pulse animation for urgent statuses
+  useEffect(() => {
+    if (isUrgent) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isUrgent, pulseAnim]);
   
   // Define styles for each status
   const getButtonStyle = () => {
@@ -28,6 +51,42 @@ const MultiActionButton = ({ status, label, iconName, color, onPress, disabled }
     }
   };
 
+  // Get status icon based on status
+  const getStatusIcon = () => {
+    switch(status) {
+      case 'go_work':
+        return 'briefcase-outline';
+      case 'check_in':
+        return 'log-in-outline';
+      case 'check_out':
+        return 'log-out-outline';
+      case 'complete':
+        return 'checkmark-done-outline';
+      case 'completed':
+        return 'checkmark-circle-outline';
+      default:
+        return iconName || 'time-outline';
+    }
+  };
+
+  // Get status label based on status
+  const getStatusLabel = () => {
+    switch(status) {
+      case 'go_work':
+        return i18n.t('goToWork');
+      case 'check_in':
+        return i18n.t('checkIn');  
+      case 'check_out':
+        return i18n.t('checkOut');
+      case 'complete':
+        return i18n.t('complete');
+      case 'completed':
+        return i18n.t('workCompleted');
+      default:
+        return label || '';
+    }
+  };
+
   return (
     <TouchableOpacity
       style={getButtonStyle()}
@@ -35,10 +94,20 @@ const MultiActionButton = ({ status, label, iconName, color, onPress, disabled }
       disabled={disabled}
       activeOpacity={0.8}
     >
-      <View style={styles.buttonContent}>
-        <Ionicons name={iconName} size={35} color="#fff" style={styles.buttonIcon} />
-        <Text style={styles.buttonLabel}>{i18n.t(label)}</Text>
-      </View>
+      <Animated.View 
+        style={[
+          styles.buttonContent,
+          isUrgent && { transform: [{ scale: pulseAnim }] }
+        ]}
+      >
+        <Ionicons 
+          name={getStatusIcon()} 
+          size={35} 
+          color="#fff" 
+          style={styles.buttonIcon} 
+        />
+        <Text style={styles.buttonLabel}>{getStatusLabel()}</Text>
+      </Animated.View>
     </TouchableOpacity>
   );
 };

@@ -250,24 +250,34 @@ const HomeScreen = () => {
   const checkOutEntry = findLatestEntryByStatus('check_out');
   const completeEntry = findLatestEntryByStatus('complete');
 
-  // Hàm để xử lý thao tác trên nút đa năng
-  const handleMultiActionPress = (action) => {
-    console.log('Action pressed:', action);
-    
-    // Vô hiệu hóa nút để tránh nhấn nhiều lần
-    setActionButtonDisabled(true);
-    
-    // Đặt nextAction và hiển thị popup xác nhận nếu cần
-    setNextAction(action);
-    
-    // Kiểm tra nếu cần xác nhận (kiểm tra thời gian)
-    const needsConfirmation = shouldShowConfirmation(action);
-    if (needsConfirmation) {
-      setConfirmActionVisible(true);
-    } else {
-      // Nếu không cần xác nhận, thực hiện hành động ngay lập tức
-      performAction(action);
+  // Kiểm tra xem hành động có cần xác nhận không dựa trên thời gian
+  const shouldShowConfirmation = (action) => {
+    let needsConfirmation = false;
+
+    if (action === 'check_in' && goWorkEntry) {
+      // Kiểm tra thời gian giữa go_work và check_in (ít nhất 5 phút)
+      const goWorkTime = parseISO(goWorkEntry.timestamp);
+      const timeDiffMinutes = differenceInMinutes(new Date(), goWorkTime);
+      
+      if (timeDiffMinutes < 5) {
+        setConfirmMessage(i18n.t('time_validation_check_in'));
+        console.log(`Thời gian giữa đi làm và chấm công vào: ${timeDiffMinutes} phút, cần tối thiểu 5 phút`);
+        needsConfirmation = true;
+      }
+    } 
+    else if (action === 'check_out' && checkInEntry) {
+      // Kiểm tra thời gian giữa check_in và check_out (ít nhất 2 giờ)
+      const checkInTime = parseISO(checkInEntry.timestamp);
+      const hoursDiff = differenceInHours(new Date(), checkInTime);
+      
+      if (hoursDiff < 2) {
+        setConfirmMessage(i18n.t('time_validation_check_out'));
+        console.log(`Thời gian làm việc: ${hoursDiff} giờ, cần tối thiểu 2 giờ`);
+        needsConfirmation = true;
+      }
     }
+
+    return needsConfirmation;
   };
 
   // Thực hiện hành động sau khi đã xác nhận hoặc không cần xác nhận
@@ -320,34 +330,6 @@ const HomeScreen = () => {
       // Đặt lại nextAction để tránh xung đột
       setNextAction(null);
     }
-  };
-
-  // Kiểm tra xem hành động có cần xác nhận không dựa trên thời gian
-  const shouldShowConfirmation = (action) => {
-    let needsConfirmation = false;
-
-    if (action === 'check_in' && goWorkEntry) {
-      // Kiểm tra thời gian giữa go_work và check_in (ít nhất 5 phút)
-      const goWorkTime = parseISO(goWorkEntry.timestamp);
-      const timeDiffMinutes = differenceInMinutes(new Date(), goWorkTime);
-      
-      if (timeDiffMinutes < 5) {
-        setConfirmMessage(i18n.t('time_validation_check_in'));
-        needsConfirmation = true;
-      }
-    } 
-    else if (action === 'check_out' && checkInEntry) {
-      // Kiểm tra thời gian giữa check_in và check_out (ít nhất 2 giờ)
-      const checkInTime = parseISO(checkInEntry.timestamp);
-      const hoursDiff = differenceInHours(new Date(), checkInTime);
-      
-      if (hoursDiff < 2) {
-        setConfirmMessage(i18n.t('time_validation_check_out'));
-        needsConfirmation = true;
-      }
-    }
-
-    return needsConfirmation;
   };
 
   // Xử lý khi bấm "Đi làm"
@@ -746,27 +728,17 @@ const HomeScreen = () => {
   // Lưu lịch sử bấm nút
   const saveActionLog = async (action) => {
     try {
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const logsKey = `actionLogs_${today}`;
-      
-      // Lấy lịch sử hiện tại
-      const logsJson = await AsyncStorage.getItem(logsKey);
-      const logs = logsJson ? JSON.parse(logsJson) : [];
-      
-      // Thêm log mới
       const newLog = {
         action,
-        timestamp: new Date().toISOString(),
-        status: action // Thêm trường status để tương thích với cách hiển thị cũ
+        timestamp: new Date().toISOString()
       };
       
-      logs.unshift(newLog); // Thêm vào đầu mảng
+      // Lưu vào danh sách hiện tại
+      const newLogs = [newLog, ...actionLogs].slice(0, 10); // Chỉ giữ 10 mục gần nhất
+      setActionLogs(newLogs);
       
-      // Lưu lịch sử cập nhật
-      await AsyncStorage.setItem(logsKey, JSON.stringify(logs));
-      
-      // Cập nhật state
-      setActionLogs(logs);
+      // Lưu xuống storage
+      await AsyncStorage.setItem('actionLogs', JSON.stringify(newLogs));
       
       console.log('Đã lưu lịch sử bấm nút:', newLog);
       return true;
@@ -778,34 +750,30 @@ const HomeScreen = () => {
 
   // Xử lý hành động từ nút đa năng
   const handleActionButtonPress = () => {
-    // Vô hiệu hóa nút trong khi xử lý để tránh nhấn nhiều lần
-    setActionButtonDisabled(true);
-
-    // Xác định hành động tiếp theo dựa vào trạng thái hiện tại
-    let nextAction = 'go_work';
+    console.log('Action pressed:', actionButton.status);
     
-    if (!workStatus || workStatus === 'complete' || workStatus === 'inactive') {
-      nextAction = 'go_work';
-    } else if (workStatus === 'go_work') {
-      nextAction = 'check_in';
-    } else if (workStatus === 'check_in') {
-      nextAction = 'check_out';
-    } else if (workStatus === 'check_out') {
-      nextAction = 'complete';
+    // Vô hiệu hóa nút để tránh nhấn nhiều lần
+    setActionButtonDisabled(true);
+    
+    // Lấy hành động từ trạng thái nút
+    const action = actionButton.status;
+    
+    // Kiểm tra nếu hành động đã hoàn thành
+    if (action === 'completed') {
+      setActionButtonDisabled(false);
+      return;
     }
-
-    console.log(`Hành động tiếp theo: ${nextAction}`);
-
-    // Cập nhật biến để xác định hành động tiếp theo
-    setNextAction(nextAction);
-
-    // Kiểm tra xem hành động có cần xác nhận không
-    if (shouldShowConfirmation(nextAction)) {
-      // Hiển thị xác nhận nếu cần
+    
+    // Đặt nextAction
+    setNextAction(action);
+    
+    // Kiểm tra nếu cần xác nhận (kiểm tra thời gian)
+    const needsConfirmation = shouldShowConfirmation(action);
+    if (needsConfirmation) {
       setConfirmActionVisible(true);
     } else {
-      // Thực hiện hành động ngay nếu không cần xác nhận
-      executeAction(nextAction);
+      // Nếu không cần xác nhận, thực hiện hành động ngay lập tức
+      performAction(action);
     }
   };
 
@@ -1097,28 +1065,32 @@ const HomeScreen = () => {
           status: 'go_work',
           label: i18n.t('goToWork'),
           icon: 'briefcase-outline',
-          color: theme.colors.goWorkButton
+          color: theme.colors.goWorkButton,
+          visible: true
         };
       case 'go_work':
         return {
           status: 'check_in',
           label: i18n.t('checkIn'),
           icon: 'log-in-outline',
-          color: theme.colors.checkInButton
+          color: theme.colors.checkInButton,
+          visible: true
         };
       case 'check_in':
         return {
           status: 'check_out',
           label: i18n.t('checkOut'),
           icon: 'log-out-outline',
-          color: theme.colors.checkOutButton
+          color: theme.colors.checkOutButton,
+          visible: true
         };
       case 'check_out':
         return {
           status: 'complete',
           label: i18n.t('complete'),
           icon: 'checkmark-done-outline',
-          color: theme.colors.completeButton
+          color: theme.colors.completeButton,
+          visible: true
         };
       case 'complete':
       case 'completed':
@@ -1127,102 +1099,130 @@ const HomeScreen = () => {
           label: i18n.t('workCompleted'),
           icon: 'checkmark-circle-outline',
           color: theme.colors.completeButton,
-          disabled: true
+          visible: false
         };
       default:
         return {
           status: 'go_work',
           label: i18n.t('goToWork'),
           icon: 'briefcase-outline',
-          color: theme.colors.goWorkButton
+          color: theme.colors.goWorkButton,
+          visible: true
         };
+    }
+  };
+
+  // Hiển thị thông tin thởi gian dựa trên trạng thái
+  const renderStatusTime = () => {
+    if (!goWorkEntry) {
+      return i18n.t('not_started_yet');
+    }
+
+    switch (workStatus) {
+      case 'go_work':
+        return format(new Date(goWorkEntry.timestamp), 'HH:mm') + ' - ' + i18n.t('work_started');
+      case 'check_in':
+        return format(new Date(checkInEntry.timestamp), 'HH:mm') + ' - ' + i18n.t('checked_in');
+      case 'check_out':
+        return format(new Date(checkOutEntry.timestamp), 'HH:mm') + ' - ' + i18n.t('checked_out');
+      case 'complete':
+      case 'completed':
+        return format(new Date(completeEntry?.timestamp || new Date()), 'HH:mm') + ' - ' + i18n.t('work_completed');
+      default:
+        return i18n.t('not_started_yet');
     }
   };
 
   const actionButton = getActionButton();
   
-  // Determine if we should show the reset button
-  const showResetButton = workStatus !== 'inactive';
+  // Nút reset chỉ hiển thị sau khi bấm "Đi làm" và trước khi hoàn thành
+  const showResetButton = workStatus !== null && workStatus !== 'completed' && workStatus !== 'complete';
 
   // Xử lý reset work status
   const handleResetPress = () => {
-    setConfirmResetVisible(true);
-  };
-  
-  // Xử lý xác nhận reset work status
-  const handleResetConfirm = async () => {
-    try {
-      // Xóa dữ liệu ngày hiện tại
-      await AsyncStorage.removeItem(todayKey);
-      
-      // Cập nhật state
-      setTodayEntries([]);
-      setWorkStatus('inactive');
-      setActionLogs([]);
-      
-      // Cập nhật giao diện
-      updateInfo();
-      
-      // Đóng modal xác nhận
-      setConfirmResetVisible(false);
-      
-      // Thông báo thành công
-      Alert.alert(
-        i18n.t('success'),
-        i18n.t('reset_success'),
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      console.error('Lỗi khi reset dữ liệu:', error);
-      Alert.alert(
-        i18n.t('error'),
-        i18n.t('reset_error'),
-        [{ text: 'OK' }]
-      );
-    }
-  };
-
-  // Hàm load thông tin ca làm việc
-  const loadShiftInfo = async () => {
-    try {
-      const shiftJson = await AsyncStorage.getItem('workShifts');
-      if (shiftJson) {
-        const shifts = JSON.parse(shiftJson);
-        if (shifts.length > 0) {
-          setShiftInfo(shifts[0]); // Chỉ hiển thị ca đầu tiên
+    // Hiển thị hộp thoại xác nhận trước khi reset
+    Alert.alert(
+      i18n.t('confirm_reset'),
+      i18n.t('confirm_reset_message'),
+      [
+        {
+          text: i18n.t('cancel'),
+          style: 'cancel'
+        },
+        {
+          text: i18n.t('confirm'),
+          onPress: async () => {
+            try {
+              // Reset trạng thái làm việc của ngày hôm nay
+              const success = await resetDayStatus();
+              
+              if (success) {
+                // Cập nhật trạng thái và UI
+                setWorkStatus(null);
+                setTodayEntries([]);
+                
+                // Kích hoạt lại các nhắc nhở
+                await NotificationService.rescheduleAllNotifications();
+                
+                // Hiển thị thông báo thành công
+                showToast(i18n.t('reset_success'));
+              } else {
+                // Hiển thị thông báo lỗi
+                Alert.alert(
+                  i18n.t('error'),
+                  i18n.t('reset_error')
+                );
+              }
+            } catch (error) {
+              console.error('Lỗi khi reset trạng thái:', error);
+              Alert.alert(
+                i18n.t('error'),
+                i18n.t('reset_error')
+              );
+            }
+          }
         }
-      }
-    } catch (error) {
-      console.error('Lỗi khi tải thông tin ca làm việc:', error);
-    }
+      ]
+    );
   };
 
-  // Hàm trả về trạng thái ngày trong tuần dạng icon
-  const getDayStatusIcon = (status) => {
-    switch (status) {
-      case 'full':
-        return { icon: 'checkmark-circle', color: '#4CAF50', text: '✓' };
-      case 'partial':
-      case 'rv':
-        return { icon: 'alert-circle', color: '#FF9800', text: 'RV' };
-      case 'absent':
-        return { icon: 'close-circle', color: '#F44336', text: 'X' };
-      case 'pending':
-        return { icon: 'help-circle', color: '#9E9E9E', text: '?' };
-      case 'sick':
-        return { icon: 'medkit', color: '#E91E63', text: 'B' };
-      case 'vacation':
-        return { icon: 'mail', color: '#2196F3', text: 'P' };
-      case 'holiday':
-        return { icon: 'flag', color: '#9C27B0', text: 'H' };
-      case 'incomplete':
-        return { icon: 'alert', color: '#FF5722', text: '!' };
-      default:
-        return { icon: 'remove-circle', color: '#757575', text: '--' };
+  // Hiển thị lịch sử bấm nút - chỉ hiển thị 3 dòng gần nhất
+  const renderActionHistory = () => {
+    if (todayEntries.length === 0) {
+      return (
+        <Text style={[styles.emptyListText, { color: theme.colors.textSecondary }]}>
+          {i18n.t('no_history')}
+        </Text>
+      );
     }
+
+    // Sắp xếp các mục theo thời gian mới nhất
+    const sortedEntries = [...todayEntries].sort(
+      (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+    );
+
+    // Lấy 3 mục gần nhất
+    const recentEntries = sortedEntries.slice(0, 3);
+
+    return (
+      <View style={styles.actionHistoryContainer}>
+        {recentEntries.map((entry, index) => (
+          <View key={index} style={styles.actionHistoryItem}>
+            <Ionicons 
+              name={getIconForStatus(entry.status)} 
+              size={16} 
+              color={getColorForStatus(entry.status, theme)} 
+            />
+            <Text style={styles.actionHistoryText}>
+              {getActionName(entry.status)}: {format(parseISO(entry.timestamp), 'HH:mm')}
+            </Text>
+          </View>
+        ))}
+      </View>
+    );
   };
 
-  // Lấy tên hành động theo loại
+  // Hàm lấy tên hành động theo loại
   const getActionName = (action) => {
     switch (action) {
       case 'go_work':
@@ -1238,7 +1238,7 @@ const HomeScreen = () => {
     }
   };
 
-  // Lấy icon tương ứng với trạng thái
+  // Hàm lấy icon tương ứng với trạng thái
   const getIconForStatus = (status) => {
     switch (status) {
       case 'go_work':
@@ -1254,7 +1254,7 @@ const HomeScreen = () => {
     }
   };
 
-  // Lấy màu tương ứng với trạng thái
+  // Hàm lấy màu tương ứng với trạng thái
   const getColorForStatus = (status, theme) => {
     switch (status) {
       case 'go_work':
@@ -1446,25 +1446,18 @@ const HomeScreen = () => {
         {/* Nút đa năng */}
         <View style={styles.multiActionSection}>
           <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[
-                styles.multiActionButton,
-                { backgroundColor: getColorForStatus(workStatus || 'go_work', theme) }
-              ]}
-              onPress={handleActionButtonPress}
-              disabled={actionButtonDisabled}
-            >
-              <Ionicons 
-                name={getIconForStatus(workStatus || 'go_work')} 
-                size={36} 
-                color="#fff" 
+            {actionButton.visible && (
+              <MultiActionButton
+                status={actionButton.status}
+                label={actionButton.label}
+                iconName={actionButton.icon}
+                color={actionButton.color}
+                onPress={handleActionButtonPress}
+                disabled={actionButtonDisabled || (actionButton.status === 'completed')}
               />
-              <Text style={styles.multiActionButtonText}>
-                {actionButton.label}
-              </Text>
-            </TouchableOpacity>
+            )}
             
-            {/* Nút reset */}
+            {/* Nút reset - chỉ hiển thị sau khi bấm "Đi Làm" và trước khi hoàn thành */}
             {showResetButton && (
               <TouchableOpacity 
                 style={styles.resetButton}
@@ -1475,30 +1468,12 @@ const HomeScreen = () => {
             )}
           </View>
           
-          {/* Hiển thị lịch sử bấm nút - chỉ hiển thị 3 dòng gần nhất */}
-          <View style={styles.actionLogsContainer}>
-            {actionLogs.slice(0, 3).map((log, index) => (
-              <View key={index} style={styles.actionLogItem}>
-                <Ionicons 
-                  name={getIconForStatus(log.action)} 
-                  size={16} 
-                  color={getColorForStatus(log.action, theme)} 
-                />
-                <Text style={styles.actionLogText}>
-                  {getActionName(log.action)}: {format(parseISO(log.timestamp), 'HH:mm')}
-                </Text>
-              </View>
-            ))}
-            {actionLogs.length === 0 && (
-              <Text style={[styles.emptyListText, { color: theme.colors.textSecondary }]}>
-                {i18n.t('no_history')}
-              </Text>
-            )}
-          </View>
+          {/* Hiển thị lịch sử bấm nút */}
+          {renderActionHistory()}
           
           {/* Hiển thị trạng thái nhập công hiện tại */}
           <Text style={styles.currentStatusText}>
-            {goWorkEntry ? format(new Date(goWorkEntry.timestamp), 'HH:mm') + ' - ' + i18n.t('work_started') : i18n.t('not_started_yet')}
+            {renderStatusTime()}
           </Text>
         </View>
 
@@ -1746,18 +1721,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   // Styles cho lịch sử bấm nút
-  actionLogsContainer: {
+  actionHistoryContainer: {
     width: '80%',
     marginTop: 8,
     marginBottom: 8,
     alignItems: 'flex-start',
   },
-  actionLogItem: {
+  actionHistoryItem: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
   },
-  actionLogText: {
+  actionHistoryText: {
     fontSize: 14,
     marginLeft: 8,
     color: '#333',
