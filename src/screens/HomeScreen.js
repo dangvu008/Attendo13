@@ -17,8 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { format, differenceInMinutes, differenceInHours, isToday, parseISO, addDays, startOfWeek, isBefore, differenceInMilliseconds, parse } from 'date-fns';
-import viLocale from 'date-fns/locale/vi';
-import enUSLocale from 'date-fns/locale/en-US';
+import { vi, enUS } from 'date-fns/locale';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
@@ -30,8 +29,8 @@ import { useTheme } from '../context/ThemeContext';
 import i18n from '../i18n';
 import { NotificationService } from '../services/NotificationService';
 import MultiActionButton from '../components/MultiActionButton';
-import AddNoteModal from '../components/AddNoteModal';
 import WeeklyStatusGrid from '../components/WeeklyStatusGrid';
+import AddNoteModal from '../components/AddNoteModal';
 import NoteItem from '../components/NoteItem';
 
 const HomeScreen = () => {
@@ -195,7 +194,7 @@ const HomeScreen = () => {
   // Format date using the current locale
   const formatDate = (date) => {
     const formatOptions = i18n.locale === 'vi' ? 'EEEE, dd/MM/yyyy' : 'EEEE, MM/dd/yyyy';
-    return format(date, formatOptions, { locale: i18n.locale === 'vi' ? viLocale : enUSLocale });
+    return format(date, formatOptions, { locale: i18n.locale === 'vi' ? vi : enUS });
   };
 
   // Format time
@@ -1271,6 +1270,152 @@ const HomeScreen = () => {
     }
   };
 
+  // State cho trạng thái tuần và chi tiết
+
+  // Tải dữ liệu trạng thái tuần khi màn hình được hiển thị
+  useFocusEffect(
+    useCallback(() => {
+      loadWeeklyStatus();
+      loadStatusDetails();
+    }, [])
+  );
+
+  // Hàm tải dữ liệu trạng thái tuần
+  const loadWeeklyStatus = async () => {
+    try {
+      const weeklyStatusJson = await AsyncStorage.getItem('weeklyStatus');
+      if (weeklyStatusJson) {
+        setWeeklyStatus(JSON.parse(weeklyStatusJson));
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải dữ liệu trạng thái tuần:', error);
+    }
+  };
+
+  // Hàm tải chi tiết trạng thái các ngày
+  const loadStatusDetails = async () => {
+    try {
+      const detailsJson = await AsyncStorage.getItem('statusDetails');
+      if (detailsJson) {
+        setStatusDetails(JSON.parse(detailsJson));
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải chi tiết trạng thái:', error);
+    }
+  };
+
+  // Hàm cập nhật trạng thái tuần
+  const updateWeeklyStatus = async () => {
+    try {
+      // Lấy trạng thái công của ngày hiện tại
+      const today = format(new Date(), 'yyyy-MM-dd');
+      let currentStatus = '?'; // Mặc định là không xác định
+      
+      // Xác định trạng thái dựa trên các hành động đã thực hiện
+      if (workStatus === 'complete') {
+        currentStatus = '✓'; // Đủ công
+      } else if (workStatus === 'check_out') {
+        const checkInTime = checkInEntry ? new Date(checkInEntry.timestamp) : null;
+        const checkOutTime = checkOutEntry ? new Date(checkOutEntry.timestamp) : null;
+        
+        if (checkInTime && checkOutTime) {
+          // Kiểm tra giờ vào muộn hoặc ra sớm
+          const currentShift = await getCurrentShift();
+          const startTime = parseShiftTime(currentShift.startTime);
+          const endTime = parseShiftTime(currentShift.officeEndTime);
+          
+          const isLate = checkInTime > startTime;
+          const isEarly = checkOutTime < endTime;
+          
+          if (isLate || isEarly) {
+            currentStatus = 'RV'; // Vào muộn hoặc ra sớm
+          } else {
+            currentStatus = '✓'; // Đủ công
+          }
+        } else {
+          currentStatus = '!'; // Thiếu check-in hoặc check-out
+        }
+      } else if (workStatus === 'check_in') {
+        currentStatus = '!'; // Đang làm việc nhưng chưa check-out
+      } else if (workStatus === 'go_work') {
+        currentStatus = '!'; // Đã đi làm nhưng chưa check-in
+      }
+      
+      // Cập nhật statusDetails cho ngày hiện tại
+      const currentDetails = {
+        checkInTime: checkInEntry ? checkInEntry.timestamp : null,
+        checkOutTime: checkOutEntry ? checkOutEntry.timestamp : null,
+        totalHours: calculateWorkHours(),
+        status: currentStatus
+      };
+      
+      const updatedDetails = { ...statusDetails };
+      updatedDetails[today] = currentDetails;
+      setStatusDetails(updatedDetails);
+      await AsyncStorage.setItem('statusDetails', JSON.stringify(updatedDetails));
+      
+      // Cập nhật weeklyStatus
+      const updatedStatus = { ...weeklyStatus };
+      updatedStatus[today] = currentStatus;
+      setWeeklyStatus(updatedStatus);
+      await AsyncStorage.setItem('weeklyStatus', JSON.stringify(updatedStatus));
+      
+      console.log(`Đã cập nhật trạng thái công cho ngày ${today}: ${currentStatus}`);
+    } catch (error) {
+      console.error('Lỗi khi cập nhật trạng thái tuần:', error);
+    }
+  };
+
+  // Hàm tính số giờ làm việc
+  const calculateWorkHours = () => {
+    if (!checkInEntry || !checkOutEntry) return null;
+    
+    const checkInTime = new Date(checkInEntry.timestamp);
+    const checkOutTime = new Date(checkOutEntry.timestamp);
+    const diffMinutes = differenceInMinutes(checkOutTime, checkInTime);
+    
+    return (diffMinutes / 60).toFixed(2);
+  };
+
+  // Hàm xử lý thay đổi trạng thái ngày thủ công
+  const handleDayStatusChange = async (dateStr, newStatus) => {
+    try {
+      // Cập nhật weeklyStatus
+      const updatedStatus = { ...weeklyStatus };
+      updatedStatus[dateStr] = newStatus;
+      setWeeklyStatus(updatedStatus);
+      await AsyncStorage.setItem('weeklyStatus', JSON.stringify(updatedStatus));
+      
+      // Cập nhật statusDetails nếu cần
+      if (statusDetails[dateStr]) {
+        const updatedDetails = { ...statusDetails };
+        updatedDetails[dateStr] = {
+          ...updatedDetails[dateStr],
+          status: newStatus
+        };
+        setStatusDetails(updatedDetails);
+        await AsyncStorage.setItem('statusDetails', JSON.stringify(updatedDetails));
+      }
+      
+      console.log(`Đã cập nhật trạng thái cho ngày ${dateStr}: ${newStatus}`);
+    } catch (error) {
+      console.error('Lỗi khi thay đổi trạng thái ngày:', error);
+    }
+  };
+
+  // Hàm chuyển đổi giờ từ chuỗi HH:MM thành đối tượng Date
+  const parseShiftTime = (timeStr) => {
+    try {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const date = new Date();
+      date.setHours(hours, minutes, 0, 0);
+      return date;
+    } catch (error) {
+      console.error('Lỗi khi phân tích giờ ca làm việc:', error);
+      return new Date();
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -1278,7 +1423,7 @@ const HomeScreen = () => {
         <View style={styles.timeInfoSection}>
           <View style={styles.timeDisplayContainer}>
             <Text style={styles.timeDisplay}>
-              {format(currentTime, 'HH:mm', { locale: i18n.locale === 'vi' ? viLocale : enUSLocale })}
+              {format(currentTime, 'HH:mm', { locale: i18n.locale === 'vi' ? vi : enUS })}
             </Text>
             <Text style={[styles.dateDisplay, { color: theme.colors.textSecondary }]}>
               {formatDate(currentTime)}
@@ -1330,7 +1475,7 @@ const HomeScreen = () => {
             )}
           </View>
           
-          {/* Hiển thị lịch sử bấm nút */}
+          {/* Hiển thị lịch sử bấm nút - chỉ hiển thị 3 dòng gần nhất */}
           <View style={styles.actionLogsContainer}>
             {actionLogs.slice(0, 3).map((log, index) => (
               <View key={index} style={styles.actionLogItem}>
@@ -1344,6 +1489,11 @@ const HomeScreen = () => {
                 </Text>
               </View>
             ))}
+            {actionLogs.length === 0 && (
+              <Text style={[styles.emptyListText, { color: theme.colors.textSecondary }]}>
+                {i18n.t('no_history')}
+              </Text>
+            )}
           </View>
           
           {/* Hiển thị trạng thái nhập công hiện tại */}
@@ -1352,119 +1502,13 @@ const HomeScreen = () => {
           </Text>
         </View>
 
-        {/* Lịch sử thao tác */}
-        <View style={styles.actionHistorySection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{i18n.t('action_history')}</Text>
-          </View>
-          
-          <View style={[styles.actionHistoryCard, { backgroundColor: theme.colors.surface }]}>
-            {/* Hiển thị lịch sử các thao tác quan trọng */}
-            {actionLogs.length > 0 ? (
-              <View style={styles.actionHistoryList}>
-                {actionLogs.map((entry, index) => {
-                  let statusText = '';
-                  let icon = '';
-                  
-                  switch(entry.action) {
-                    case 'go_work':
-                      statusText = i18n.t('goToWork');
-                      icon = 'briefcase-outline';
-                      break;
-                    case 'check_in':
-                      statusText = i18n.t('checkIn');
-                      icon = 'log-in-outline';
-                      break;
-                    case 'check_out':
-                      statusText = i18n.t('checkOut');
-                      icon = 'log-out-outline';
-                      break;
-                    case 'complete':
-                      statusText = i18n.t('complete');
-                      icon = 'checkmark-done-outline';
-                      break;
-                    default:
-                      statusText = entry.action;
-                      icon = 'time-outline';
-                  }
-                  
-                  return (
-                    <View key={index} style={styles.actionHistoryItem}>
-                      <View style={styles.actionIconContainer}>
-                        <Ionicons name={icon} size={20} color={getColorForStatus(entry.action, theme)} />
-                      </View>
-                      <View style={styles.actionTextContainer}>
-                        <Text style={[styles.actionText, { color: theme.colors.textPrimary }]}>
-                          {statusText}
-                        </Text>
-                        <Text style={[styles.actionTime, { color: theme.colors.textSecondary }]}>
-                          {format(parseISO(entry.timestamp), 'HH:mm')}
-                        </Text>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            ) : (
-              <View style={styles.emptyListContainer}>
-                <Text style={[styles.emptyListText, { color: theme.colors.textSecondary }]}>
-                  {i18n.t('no_history')}
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-
         {/* Trạng thái tuần này */}
         <View style={styles.weeklyStatusSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{i18n.t('weekly_status')}</Text>
-          </View>
-          
-          <View style={[styles.weeklyStatusCard, { backgroundColor: theme.colors.surface }]}>
-            <View style={styles.weekDaysContainer}>
-              {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((day, index) => {
-                const date = addDays(new Date(), index - new Date().getDay() + (index === 6 ? -6 : 1));
-                const dayStatus = weeklyStatus[format(date, 'yyyy-MM-dd')] || 'none';
-                const statusInfo = getDayStatusIcon(dayStatus);
-                
-                return (
-                  <TouchableOpacity 
-                    key={index}
-                    style={styles.weekDayItem}
-                    onPress={() => handleDayStatusPress(format(date, 'yyyy-MM-dd'))}
-                  >
-                    <Text style={[
-                      styles.weekDayText, 
-                      { color: isToday(date) ? theme.colors.primary : theme.colors.textPrimary }
-                    ]}>
-                      {day}
-                    </Text>
-                    <Text style={[
-                      styles.weekDayDate, 
-                      { color: isToday(date) ? theme.colors.primary : theme.colors.textSecondary }
-                    ]}>
-                      {format(date, 'dd')}
-                    </Text>
-                    <View style={[
-                      styles.statusIcon, 
-                      { backgroundColor: isToday(date) ? statusInfo.color : theme.colors.background }
-                    ]}>
-                      <Text style={styles.statusIconText}>
-                        {statusInfo.text}
-                      </Text>
-                    </View>
-                    
-                    {shiftInfo && (
-                      <Text style={styles.shiftTimeText}>
-                        {formatShiftTime(shiftInfo.startTime)} - {formatShiftTime(shiftInfo.endTime)}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
+          <WeeklyStatusGrid 
+            weeklyStatus={weeklyStatus}
+            statusDetails={statusDetails}
+            onStatusChange={handleDayStatusChange}
+          />
         </View>
 
         {/* Ghi chú công việc */}
@@ -1729,52 +1773,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-  },
-  
-  // Lịch sử thao tác
-  actionHistorySection: {
-    marginBottom: 24,
-  },
-  actionHistoryCard: {
-    borderRadius: 12,
-    padding: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  actionHistoryList: {
-    gap: 12,
-  },
-  actionHistoryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  actionIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    marginRight: 12,
-  },
-  actionTextContainer: {
-    flex: 1,
-  },
-  actionText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  actionTime: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  noHistoryText: {
-    textAlign: 'center',
-    padding: 16,
-    fontSize: 14,
   },
   
   // Trạng thái tuần này

@@ -2,19 +2,20 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format, parseISO } from 'date-fns';
+import i18n from '../i18n';
 
 const NoteItem = ({ note, onEdit, onDelete, theme }) => {
   // Format the reminder time to display
   const formatReminderTime = (dateTimeString) => {
     try {
-      if (!dateTimeString) return 'Không có nhắc nhở';
+      if (!dateTimeString) return i18n.t('no_reminder');
       
       // Parse the ISO string
       const date = parseISO(dateTimeString);
-      return `Nhắc nhở: ${format(date, 'dd/MM/yyyy HH:mm')}`;
+      return `${i18n.t('reminder')}: ${format(date, 'dd/MM/yyyy HH:mm')}`;
     } catch (error) {
       console.error('Error formatting reminder time:', error);
-      return dateTimeString || 'Thời gian không hợp lệ';
+      return dateTimeString || i18n.t('invalid_time');
     }
   };
   

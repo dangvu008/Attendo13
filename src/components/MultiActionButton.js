@@ -1,16 +1,17 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, View, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import i18n from '../i18n';
 
 const MultiActionButton = ({ status, label, iconName, color, onPress, disabled }) => {
-  // Hiệu ứng nhấp nháy khi trạng thái là urgent
+  // Animation effect for urgent statuses
   const isUrgent = status === 'check_in' || status === 'check_out';
   
-  // Xác định các kiểu cho từng trạng thái
+  // Define styles for each status
   const getButtonStyle = () => {
     const baseStyle = [styles.button, { backgroundColor: color }, disabled && styles.disabledButton];
     
-    // Thêm các kiểu đặc biệt cho trạng thái khác nhau
+    // Add special styles for different statuses
     switch(status) {
       case 'go_work':
         return [...baseStyle, { borderWidth: 0 }];
@@ -36,7 +37,7 @@ const MultiActionButton = ({ status, label, iconName, color, onPress, disabled }
     >
       <View style={styles.buttonContent}>
         <Ionicons name={iconName} size={35} color="#fff" style={styles.buttonIcon} />
-        <Text style={styles.buttonLabel}>{label}</Text>
+        <Text style={styles.buttonLabel}>{i18n.t(label)}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -49,11 +50,11 @@ const styles = StyleSheet.create({
     borderRadius: 75,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 8,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   buttonContent: {
     alignItems: 'center',
@@ -67,11 +68,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
-    maxWidth: '80%',
   },
   disabledButton: {
     opacity: 0.6,
-  }
+  },
 });
 
 export default MultiActionButton;
