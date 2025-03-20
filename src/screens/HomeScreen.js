@@ -178,6 +178,25 @@ const HomeScreen = () => {
     setActionButtonDisabled(false);
   }, [workStatus, updateInfo]);
 
+  // Tải thông tin ca làm việc
+  const loadShiftInfo = useCallback(async () => {
+    try {
+      // Lấy thông tin ca làm việc từ AsyncStorage
+      const shiftInfoJson = await AsyncStorage.getItem('currentShift');
+      if (shiftInfoJson) {
+        const shift = JSON.parse(shiftInfoJson);
+        setShiftInfo(shift);
+        console.log('Đã tải thông tin ca làm việc:', shift);
+      } else {
+        setShiftInfo(null);
+        console.log('Không có thông tin ca làm việc');
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải thông tin ca làm việc:', error);
+      setShiftInfo(null);
+    }
+  }, []);
+
   // Lấy thông tin ca làm việc và trạng thái khi component được tạo
   useEffect(() => {
     // Khởi tạo thông tin ca làm việc
@@ -250,12 +269,12 @@ const HomeScreen = () => {
   const checkOutEntry = findLatestEntryByStatus('check_out');
   const completeEntry = findLatestEntryByStatus('complete');
 
-  // Kiểm tra xem hành động có cần xác nhận không dựa trên thời gian
+  // Kiểm tra xem hành động có cần xác nhận không dựa trên thởi gian
   const shouldShowConfirmation = (action) => {
     let needsConfirmation = false;
 
     if (action === 'check_in' && goWorkEntry) {
-      // Kiểm tra thời gian giữa go_work và check_in (ít nhất 5 phút)
+      // Kiểm tra thởi gian giữa go_work và check_in (ít nhất 5 phút)
       const goWorkTime = parseISO(goWorkEntry.timestamp);
       const timeDiffMinutes = differenceInMinutes(new Date(), goWorkTime);
       
@@ -266,7 +285,7 @@ const HomeScreen = () => {
       }
     } 
     else if (action === 'check_out' && checkInEntry) {
-      // Kiểm tra thời gian giữa check_in và check_out (ít nhất 2 giờ)
+      // Kiểm tra thởi gian giữa check_in và check_out (ít nhất 2 giờ)
       const checkInTime = parseISO(checkInEntry.timestamp);
       const hoursDiff = differenceInHours(new Date(), checkInTime);
       
@@ -351,7 +370,7 @@ const HomeScreen = () => {
         // Hủy thông báo nhắc nhở xuất phát vì đã thực hiện
         await NotificationService.cancelRemindersByAction('go_work');
         
-        // Kiểm tra thời gian và thêm thông báo trạng thái
+        // Kiểm tra thởi gian và thêm thông báo trạng thái
         const currentShift = await getCurrentShift();
         if (currentShift && currentShift.startTime) {
           const now = new Date();
@@ -403,7 +422,7 @@ const HomeScreen = () => {
         // Hủy thông báo nhắc nhở chấm công vào vì đã thực hiện
         await NotificationService.cancelRemindersByAction('check_in');
         
-        // Kiểm tra thời gian và thêm thông báo trạng thái
+        // Kiểm tra thởi gian và thêm thông báo trạng thái
         const currentShift = await getCurrentShift();
         if (currentShift && currentShift.startTime) {
           const now = new Date();
@@ -464,7 +483,7 @@ const HomeScreen = () => {
         // Hủy thông báo nhắc nhở chấm công ra vì đã thực hiện
         await NotificationService.cancelRemindersByAction('check_out');
         
-        // Kiểm tra thời gian và thêm thông báo trạng thái
+        // Kiểm tra thởi gian và thêm thông báo trạng thái
         const currentShift = await getCurrentShift();
         if (currentShift && currentShift.officeEndTime) {
           const now = new Date();
@@ -1112,7 +1131,7 @@ const HomeScreen = () => {
     }
   };
 
-  // Hiển thị thông tin thởi gian dựa trên trạng thái
+  // Hiển thị thông tin thời gian dựa trên trạng thái
   const renderStatusTime = () => {
     if (!goWorkEntry) {
       return i18n.t('not_started_yet');
@@ -1419,7 +1438,7 @@ const HomeScreen = () => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Vùng thông tin thởi gian */}
+        {/* Vùng thông tin thời gian */}
         <View style={styles.timeInfoSection}>
           <View style={styles.timeDisplayContainer}>
             <Text style={styles.timeDisplay}>
@@ -1641,7 +1660,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
   },
-  // Vùng thông tin thởi gian
+  // Vùng thông tin thời gian
   timeInfoSection: {
     marginBottom: 20,
   },
