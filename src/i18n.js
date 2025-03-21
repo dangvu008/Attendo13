@@ -28,7 +28,7 @@ const resources = {
     workCompleted: 'Work Completed',
     action_required: 'Action required',
     action_confirmation: 'Are you sure you want to perform this action?',
-    action_execution_error: 'There was an error executing the action.',
+    action_execution_error: 'An error occurred while performing the action.',
     work_status_error: 'Error loading work status',
     work_started: 'Work started',
     not_started_yet: 'Not started yet',
@@ -43,12 +43,12 @@ const resources = {
     minimum_time_notice: 'Minimum time not reached',
     
     // Reset
-    reset_work_status: 'Reset work status',
+    reset_work_status: 'Reset Work Status',
     reset_confirm: 'Are you sure you want to reset your work status for today? This action cannot be undone.',
     reset_success: 'Work status has been reset successfully.',
     reset_error: 'Error resetting work status',
     confirm_reset: 'Confirm Reset',
-    confirm_reset_message: 'Are you sure you want to reset? All data will be cleared.',
+    confirm_reset_message: 'Are you sure you want to reset? All data will be deleted.',
     
     // Notes
     add_note: 'Add Note',
@@ -164,6 +164,13 @@ const resources = {
     currently_applied: 'Currently Applied',
     delete_shift_error: 'Error deleting shift',
     
+    // Menu items
+    home: 'Home',
+    shifts: 'Shifts',
+    stats: 'Stats',
+    notes: 'Notes',
+    settings: 'Settings',
+    
     // Reminder types
     reminder_type_none: 'None',
     reminder_type_before_5_min: '5 min before',
@@ -219,9 +226,9 @@ const resources = {
     // Time validations
     time_validation_check_in: 'You are checking in at an unusual time. Do you want to continue?',
     time_validation_check_out: 'You are checking out at an unusual time. Do you want to continue?',
-    must_go_work_first_message: 'You must go to work first before checking in.',
-    must_check_in_first_message: 'You must check in first before checking out.',
-    must_check_out_first_message: 'You must check out first before completing work.',
+    must_go_work_first_message: 'You must start work before checking in.',
+    must_check_in_first_message: 'You must check in before checking out.',
+    must_check_out_first_message: 'You must check out before completing work.',
     early_departure_success: 'Early departure recorded successfully.',
     late_check_in_warning: 'You are checking in late.',
     early_check_out_warning: 'You are checking out early.',
@@ -233,7 +240,22 @@ const resources = {
     
     // Confirmations
     confirm_action: 'Confirm Action',
-    reset_confirmation_message: 'This will reset your work status for today. All check-in/out data will be cleared.',
+    reset_confirmation_message: 'This will reset your work status for today. All check-in data will be deleted.',
+    confirm_reset: 'Confirm Reset',
+    confirm_reset_message: 'Are you sure you want to reset? All data will be deleted.',
+    action_confirmation: 'Are you sure you want to perform this action?',
+    
+    // Action status messages
+    must_go_work_first_message: 'You must start work before checking in.',
+    must_check_in_first_message: 'You must check in before checking out.',
+    must_check_out_first_message: 'You must check out before completing work.',
+    action_execution_error: 'An error occurred while performing the action.',
+    
+    // Reset messages
+    reset_work_status: 'Reset Work Status',
+    reset_confirm: 'Are you sure you want to reset your work status for today? This action cannot be undone.',
+    reset_success: 'Work status has been reset successfully.',
+    reset_error: 'Error resetting work status',
     
     // Shift management
     shift_name: 'Shift Name',
@@ -266,14 +288,18 @@ const resources = {
     shift_name_placeholder: 'Enter shift name',
     select_time: 'Select time',
     apply_to_days: 'Apply to days',
-    day_mon: 'Mon',
-    day_tue: 'Tue',
-    day_wed: 'Wed',
-    day_thu: 'Thu',
-    day_fri: 'Fri',
-    day_sat: 'Sat',
-    day_sun: 'Sun',
-    current: 'Current',
+    day_0: 'Sun',
+    day_1: 'Mon',
+    day_2: 'Tue',
+    day_3: 'Wed',
+    day_4: 'Thu',
+    day_5: 'Fri',
+    day_6: 'Sat',
+    departure_time: 'Departure Time',
+    reminder_options: 'Reminder Options',
+    remind_before_work: 'Remind Before Work',
+    remind_after_work: 'Remind After Work',
+    minutes: 'minutes',
     
     // Monthly stats screen
     monthly_stats: 'Monthly Stats',
@@ -305,22 +331,18 @@ const resources = {
     
     // Shift screen specific
     shift_title: 'Shifts',
+    shifts_title: 'Shifts',
     shift_name_special_chars: 'Shift name contains invalid characters',
     shift_name_max_length: 'Shift name is too long (max 200 characters)',
     shift_times_required: 'Start and end times are required',
     save_shift_confirm: 'Do you want to save this shift?',
     save_shift_error: 'Failed to save shift',
     apply_shift_confirm: 'Apply this shift?',
-    shift_applied_success: 'Shift applied successfully',
+    shift_applied: 'Shift applied successfully',
     shift_applied_error: 'Failed to apply shift',
-    day_mon: 'Monday',
-    day_tue: 'Tuesday',
-    day_wed: 'Wednesday',
-    day_thu: 'Thursday',
-    day_fri: 'Friday',
-    day_sat: 'Saturday',
-    day_sun: 'Sunday',
-    reminder_time: 'Reminder Time',
+    shift_apply_error: 'Error applying shift',
+    no_shifts: 'No shifts available',
+    confirm_reset_form_message: 'Are you sure you want to reset the form? All unsaved changes will be lost.',
     
     // Buttons
     save: 'Save',
@@ -328,6 +350,15 @@ const resources = {
     delete: 'Delete',
     apply: 'Apply',
     cancel: 'Cancel',
+    
+    // Shift confirmations
+    delete_shift_confirm: 'Are you sure you want to delete this shift?',
+    save_shift_confirm: 'Do you want to save this shift?',
+    save_shift_error: 'Failed to save shift',
+    delete_shift_error: 'Error deleting shift',
+    shift_applied: 'Shift applied successfully',
+    shift_applied_error: 'Failed to apply shift',
+    shift_apply_error: 'Error applying shift',
   },
   vi: {
     // Common
@@ -475,20 +506,27 @@ const resources = {
     loading: 'Đang tải...',
     
     // Settings Screen
-    settings_title: 'Cài đặt',
-    general_settings: 'Cài đặt chung',
-    language: 'Ngôn ngữ',
+    settings_title: 'Cài Đặt',
+    general_settings: 'Cài Đặt Chung',
+    language: 'Ngôn Ngữ',
     dark_mode_description: 'Bật chế độ tối cho ứng dụng',
-    shift_reminders: 'Nhắc nhở ca làm việc',
+    shift_reminders: 'Nhắc Nhở Ca Làm',
     shift_reminder_description: 'Nhận thông báo về ca làm việc của bạn',
-    version: 'Phiên bản',
-    confirm_delete: 'Xác nhận xóa',
-    notifications_enabled: 'Bật thông báo',
-    notifications_enabled_description: 'Nhận thông báo về ca làm việc',
-    notification_sound_description: 'Phát âm thanh khi có thông báo',
+    version: 'Phiên Bản',
+    confirm_delete: 'Xác Nhận Xóa',
+    notifications_enabled: 'Bật Thông Báo',
+    notifications_enabled_description: 'Nhận cảnh báo về ca làm việc của bạn',
+    notification_sound_description: 'Phát âm thanh với thông báo',
     notification_vibration_description: 'Rung khi có thông báo',
-    currently_applied: 'Đang áp dụng',
+    currently_applied: 'Đang Áp Dụng',
     delete_shift_error: 'Lỗi khi xóa ca làm việc',
+    
+    // Menu items
+    home: 'Trang Chủ',
+    shifts: 'Ca Làm',
+    stats: 'Thống Kê',
+    notes: 'Ghi Chú',
+    settings: 'Cài Đặt',
     
     // Reminder types
     reminder_type_none: 'Không',
@@ -558,8 +596,23 @@ const resources = {
     no_notes: 'Chưa có ghi chú nào',
     
     // Confirmations
-    confirm_action: 'Xác nhận hành động',
+    confirm_action: 'Xác Nhận Thao Tác',
     reset_confirmation_message: 'Điều này sẽ đặt lại trạng thái làm việc của bạn hôm nay. Tất cả dữ liệu chấm công sẽ bị xóa.',
+    confirm_reset: 'Xác Nhận Đặt Lại',
+    confirm_reset_message: 'Bạn có chắc chắn muốn đặt lại? Tất cả dữ liệu sẽ bị xóa.',
+    action_confirmation: 'Bạn có chắc chắn muốn thực hiện thao tác này?',
+    
+    // Action status messages
+    must_go_work_first_message: 'Bạn phải bắt đầu đi làm trước khi chấm công vào.',
+    must_check_in_first_message: 'Bạn phải chấm công vào trước khi chấm công ra.',
+    must_check_out_first_message: 'Bạn phải chấm công ra trước khi hoàn thành công việc.',
+    action_execution_error: 'Đã xảy ra lỗi khi thực hiện thao tác.',
+    
+    // Reset messages
+    reset_work_status: 'Đặt Lại Trạng Thái Công Việc',
+    reset_confirm: 'Bạn có chắc chắn muốn đặt lại trạng thái công việc cho hôm nay? Hành động này không thể hoàn tác.',
+    reset_success: 'Trạng thái công việc đã được đặt lại thành công.',
+    reset_error: 'Lỗi khi đặt lại trạng thái công việc',
     
     // Shift management
     shift_name: 'Tên Ca',
@@ -592,14 +645,18 @@ const resources = {
     shift_name_placeholder: 'Nhập tên ca làm việc',
     select_time: 'Chọn giờ',
     apply_to_days: 'Áp dụng cho các ngày',
-    day_mon: 'T2',
-    day_tue: 'T3',
-    day_wed: 'T4',
-    day_thu: 'T5',
-    day_fri: 'T6',
-    day_sat: 'T7',
-    day_sun: 'CN',
-    current: 'Hiện tại',
+    day_0: 'CN',
+    day_1: 'T2',
+    day_2: 'T3',
+    day_3: 'T4',
+    day_4: 'T5',
+    day_5: 'T6',
+    day_6: 'T7',
+    departure_time: 'Giờ Ra Về',
+    reminder_options: 'Tùy Chọn Nhắc Nhở',
+    remind_before_work: 'Nhắc Trước Giờ Làm',
+    remind_after_work: 'Nhắc Sau Giờ Làm',
+    minutes: 'phút',
     
     // Monthly stats screen
     monthly_stats: 'Thống kê tháng',
@@ -630,23 +687,19 @@ const resources = {
     delete_note_error: 'Không thể xóa ghi chú',
     
     // Shift screen specific
-    shift_title: 'Ca làm việc',
+    shift_title: 'Ca Làm Việc',
+    shifts_title: 'Ca Làm Việc',
     shift_name_special_chars: 'Tên ca chứa ký tự không hợp lệ',
     shift_name_max_length: 'Tên ca quá dài (tối đa 200 ký tự)',
     shift_times_required: 'Thời gian bắt đầu và kết thúc là bắt buộc',
-    save_shift_confirm: 'Bạn có muốn lưu ca này?',
-    save_shift_error: 'Không thể lưu ca làm việc',
-    apply_shift_confirm: 'Áp dụng ca này?',
-    shift_applied_success: 'Đã áp dụng ca thành công',
-    shift_applied_error: 'Không thể áp dụng ca',
-    day_mon: 'Thứ Hai',
-    day_tue: 'Thứ Ba',
-    day_wed: 'Thứ Tư',
-    day_thu: 'Thứ Năm',
-    day_fri: 'Thứ Sáu',
-    day_sat: 'Thứ Bảy',
-    day_sun: 'Chủ Nhật',
-    reminder_time: 'Thời gian nhắc nhở',
+    save_shift_confirm: 'Bạn có muốn lưu ca làm việc này?',
+    save_shift_error: 'Lỗi khi lưu ca làm việc',
+    apply_shift_confirm: 'Áp dụng ca làm việc này?',
+    shift_applied: 'Đã áp dụng ca làm việc thành công',
+    shift_applied_error: 'Lỗi khi áp dụng ca làm việc',
+    shift_apply_error: 'Lỗi khi áp dụng ca làm việc',
+    no_shifts: 'Không có ca làm việc nào',
+    confirm_reset_form_message: 'Bạn có chắc chắn muốn đặt lại biểu mẫu? Tất cả các thay đổi chưa lưu sẽ bị mất.',
     
     // Buttons
     save: 'Lưu',
@@ -654,6 +707,15 @@ const resources = {
     delete: 'Xóa',
     apply: 'Áp dụng',
     cancel: 'Hủy',
+    
+    // Shift confirmations
+    delete_shift_confirm: 'Bạn có chắc chắn muốn xóa ca làm việc này?',
+    save_shift_confirm: 'Bạn có muốn lưu ca làm việc này?',
+    save_shift_error: 'Lỗi khi lưu ca làm việc',
+    delete_shift_error: 'Lỗi khi xóa ca làm việc',
+    shift_applied: 'Đã áp dụng ca làm việc thành công',
+    shift_applied_error: 'Lỗi khi áp dụng ca làm việc',
+    shift_apply_error: 'Lỗi khi áp dụng ca làm việc',
   }
 };
 
