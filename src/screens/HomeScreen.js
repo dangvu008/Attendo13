@@ -35,6 +35,7 @@ import NoteItem from '../components/NoteItem';
 
 const HomeScreen = () => {
   const { theme, isDarkMode } = useTheme();
+  const navigation = useNavigation();
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isAddNoteModalVisible, setIsAddNoteModalVisible] = useState(false);
@@ -196,6 +197,23 @@ const HomeScreen = () => {
       setShiftInfo(null);
     }
   }, []);
+
+  useEffect(() => {
+    const loadCurrentShift = async () => {
+      try {
+        const shift = await getCurrentShift();
+        if (shift) {
+          setShiftInfo(shift);
+        }
+      } catch (error) {
+        console.error('Error loading current shift:', error);
+      }
+    };
+
+    loadCurrentShift();
+    const unsubscribe = navigation.addListener('focus', loadCurrentShift);
+    return unsubscribe;
+  }, [navigation]);
 
   // Lấy thông tin ca làm việc và trạng thái khi component được tạo
   useEffect(() => {
@@ -1426,6 +1444,12 @@ const HomeScreen = () => {
       console.error('Lỗi khi phân tích giờ ca làm việc:', error);
       return new Date();
     }
+  };
+
+  const handleLanguageChange = async (languageCode) => {
+    await setAppLanguage(languageCode);
+    loadStoredLanguage();
+    updateUI();
   };
 
   return (

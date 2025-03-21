@@ -259,89 +259,15 @@ const resources = {
     
     // Shift management
     shift_name: 'Shift Name',
-    shift_start_time: 'Start Time',
-    shift_end_time: 'End Time',
-    shift_departure_time: 'Departure Time',
-    shift_reminders: 'Reminders',
-    shift_before_work: 'Before Work',
-    shift_after_work: 'After Work',
-    shift_days: 'Applied Days',
-    shift_actions: 'Actions',
-    add_shift: 'Add Shift',
-    edit_shift: 'Edit Shift',
-    delete_shift: 'Delete Shift',
-    delete_shift_confirm: 'Are you sure you want to delete this shift?',
     shift_name_required: 'Shift name is required',
-    shift_name_invalid: 'Shift name contains invalid characters',
-    shift_name_too_long: 'Shift name is too long (max 30 characters)',
-    shift_time_required: 'Time is required',
-    shift_time_invalid: 'Invalid time format (HH:MM)',
-    shift_saved: 'Shift saved successfully',
-    shift_deleted: 'Shift deleted successfully',
-    shift_duplicate: 'A shift with this name already exists',
-    shift_show_button: 'Show action button',
-    shift_active: 'Active',
-    shift_minutes: 'minutes',
-    select_minutes: 'Select Minutes',
-    apply_shift: 'Apply Shift',
-    day_shift: 'Day Shift',
-    shift_name_placeholder: 'Enter shift name',
-    select_time: 'Select time',
-    apply_to_days: 'Apply to days',
-    day_0: 'Sun',
-    day_1: 'Mon',
-    day_2: 'Tue',
-    day_3: 'Wed',
-    day_4: 'Thu',
-    day_5: 'Fri',
-    day_6: 'Sat',
-    departure_time: 'Departure Time',
-    reminder_options: 'Reminder Options',
-    remind_before_work: 'Remind Before Work',
-    remind_after_work: 'Remind After Work',
-    minutes: 'minutes',
-    
-    // Monthly stats screen
-    monthly_stats: 'Monthly Stats',
-    date: 'Date',
-    day_of_week: 'Day',
-    check_in: 'Check In',
-    check_out: 'Check Out',
-    regular_hours: 'Regular',
-    overtime: 'Overtime',
-    total_worked_time: 'Total Worked Time',
-    
-    // Notes screen
-    notes_title: 'Notes',
-    add_note: 'Add Note',
-    edit_note: 'Edit Note',
-    note_title: 'Title',
-    note_content: 'Content',
-    search: 'Search',
-    no_notes_yet: 'No notes yet',
-    add_new_note_hint: 'Tap + to add a new note',
-    note_fields_required: 'Title and content are required',
-    note_title_too_long: 'Title is too long (max {{max}} characters)',
-    note_content_too_long: 'Content is too long (max {{max}} characters)',
-    note_title_duplicate: 'A note with this title already exists',
-    save_note_confirm: 'Save this note?',
-    save_note_error: 'Failed to save note',
-    delete_note_confirm: 'Delete this note?',
-    delete_note_error: 'Failed to delete note',
-    
-    // Shift screen specific
-    shift_title: 'Shifts',
-    shifts_title: 'Shifts',
     shift_name_special_chars: 'Shift name contains invalid characters',
-    shift_name_max_length: 'Shift name is too long (max 200 characters)',
-    shift_times_required: 'Start and end times are required',
-    save_shift_confirm: 'Do you want to save this shift?',
-    save_shift_error: 'Failed to save shift',
-    apply_shift_confirm: 'Apply this shift?',
+    shift_name_max_length: 'Shift name cannot exceed 200 characters',
+    shift_name_duplicate: 'Shift name already exists',
+    shift_times_required: 'Shift times are required',
+    shift_duplicate: 'Shift with same times already exists',
     shift_applied: 'Shift applied successfully',
     shift_applied_error: 'Failed to apply shift',
     shift_apply_error: 'Error applying shift',
-    no_shifts: 'No shifts available',
     confirm_reset_form_message: 'Are you sure you want to reset the form? All unsaved changes will be lost.',
     
     // Buttons
@@ -616,47 +542,16 @@ const resources = {
     
     // Shift management
     shift_name: 'Tên Ca',
-    shift_start_time: 'Giờ Bắt Đầu',
-    shift_end_time: 'Giờ Kết Thúc',
-    shift_departure_time: 'Giờ Ra Về',
-    shift_reminders: 'Nhắc Nhở',
-    shift_before_work: 'Trước Giờ Làm',
-    shift_after_work: 'Sau Giờ Làm',
-    shift_days: 'Ngày Áp Dụng',
-    shift_actions: 'Thao Tác',
-    add_shift: 'Thêm Ca',
-    edit_shift: 'Sửa Ca',
-    delete_shift: 'Xóa Ca',
-    delete_shift_confirm: 'Bạn có chắc chắn muốn xóa ca này?',
     shift_name_required: 'Tên ca là bắt buộc',
-    shift_name_invalid: 'Tên ca chứa ký tự không hợp lệ',
-    shift_name_too_long: 'Tên ca quá dài (tối đa 30 ký tự)',
-    shift_time_required: 'Giờ là bắt buộc',
-    shift_time_invalid: 'Định dạng giờ không hợp lệ (HH:MM)',
-    shift_saved: 'Đã lưu ca thành công',
-    shift_deleted: 'Đã xóa ca thành công',
-    shift_duplicate: 'Ca với tên này đã tồn tại',
-    shift_show_button: 'Hiển thị nút thao tác',
-    shift_active: 'Hoạt động',
-    shift_minutes: 'phút',
-    select_minutes: 'Chọn Phút',
-    apply_shift: 'Áp Dụng Ca',
-    day_shift: 'Ca Ngày',
-    shift_name_placeholder: 'Nhập tên ca làm việc',
-    select_time: 'Chọn giờ',
-    apply_to_days: 'Áp dụng cho các ngày',
-    day_0: 'CN',
-    day_1: 'T2',
-    day_2: 'T3',
-    day_3: 'T4',
-    day_4: 'T5',
-    day_5: 'T6',
-    day_6: 'T7',
-    departure_time: 'Giờ Ra Về',
-    reminder_options: 'Tùy Chọn Nhắc Nhở',
-    remind_before_work: 'Nhắc Trước Giờ Làm',
-    remind_after_work: 'Nhắc Sau Giờ Làm',
-    minutes: 'phút',
+    shift_name_special_chars: 'Tên ca chứa ký tự không hợp lệ',
+    shift_name_max_length: 'Tên ca không được vượt quá 200 ký tự',
+    shift_name_duplicate: 'Tên ca đã tồn tại',
+    shift_times_required: 'Thời gian ca là bắt buộc',
+    shift_duplicate: 'Ca làm việc với thời gian tương tự đã tồn tại',
+    shift_applied: 'Đã áp dụng ca làm việc thành công',
+    shift_applied_error: 'Lỗi khi áp dụng ca làm việc',
+    shift_apply_error: 'Lỗi khi áp dụng ca làm việc',
+    confirm_reset_form_message: 'Bạn có chắc chắn muốn đặt lại biểu mẫu? Tất cả các thay đổi chưa lưu sẽ bị mất.',
     
     // Monthly stats screen
     monthly_stats: 'Thống kê tháng',
@@ -731,14 +626,27 @@ const deviceLocale = Localization.locale.split('-')[0];
 i18n.locale = deviceLocale === 'vi' ? 'vi' : 'en';
 
 // Hàm để tải ngôn ngữ từ storage
-export const loadStoredLanguage = async () => {
+const loadStoredLanguage = async () => {
   try {
-    const storedLanguage = await AsyncStorage.getItem('userLanguage');
+    const storedLanguage = await AsyncStorage.getItem('appLanguage');
     if (storedLanguage) {
       i18n.locale = storedLanguage;
+    } else {
+      i18n.locale = Localization.locale;
+      await AsyncStorage.setItem('appLanguage', i18n.locale);
     }
   } catch (error) {
     console.error('Error loading stored language:', error);
+    i18n.locale = Localization.locale;
+  }
+};
+
+const setAppLanguage = async (languageCode) => {
+  try {
+    i18n.locale = languageCode;
+    await AsyncStorage.setItem('appLanguage', languageCode);
+  } catch (error) {
+    console.error('Error setting app language:', error);
   }
 };
 
@@ -746,3 +654,4 @@ export const loadStoredLanguage = async () => {
 loadStoredLanguage();
 
 export default i18n;
+export { loadStoredLanguage, setAppLanguage };
