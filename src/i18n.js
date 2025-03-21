@@ -693,5 +693,31 @@ const setDefaultLanguage = async () => {
 
 setDefaultLanguage();
 
+// Load stored language from AsyncStorage
+export const loadStoredLanguage = async () => {
+  try {
+    const storedLanguage = await AsyncStorage.getItem("userLanguage");
+    if (storedLanguage) {
+      i18n.locale = storedLanguage;
+      return storedLanguage;
+    }
+    return i18n.locale;
+  } catch (error) {
+    console.error("Error loading stored language:", error);
+    return i18n.locale;
+  }
+};
+
+// Set app language and store it
+export const setAppLanguage = async (language) => {
+  try {
+    await AsyncStorage.setItem("userLanguage", language);
+    i18n.locale = language;
+    return true;
+  } catch (error) {
+    console.error("Error setting app language:", error);
+    return false;
+  }
+};
+
 export default i18n;
-export { loadStoredLanguage, setAppLanguage };

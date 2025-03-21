@@ -116,7 +116,6 @@ export const scheduleNotification = async ({
 
     // Hủy thông báo cũ nếu có
     await cancelNotification(id);
-    }
 
     // Schedule the notification
     await Notifications.scheduleNotificationAsync({
