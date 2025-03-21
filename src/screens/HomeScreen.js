@@ -269,12 +269,12 @@ const HomeScreen = () => {
   const checkOutEntry = findLatestEntryByStatus('check_out');
   const completeEntry = findLatestEntryByStatus('complete');
 
-  // Kiểm tra xem hành động có cần xác nhận không dựa trên thởi gian
+  // Kiểm tra xem hành động có cần xác nhận không dựa trên thời gian
   const shouldShowConfirmation = (action) => {
     let needsConfirmation = false;
 
     if (action === 'check_in' && goWorkEntry) {
-      // Kiểm tra thởi gian giữa go_work và check_in (ít nhất 5 phút)
+      // Kiểm tra thời gian giữa go_work và check_in (ít nhất 5 phút)
       const goWorkTime = parseISO(goWorkEntry.timestamp);
       const timeDiffMinutes = differenceInMinutes(new Date(), goWorkTime);
       
@@ -285,7 +285,7 @@ const HomeScreen = () => {
       }
     } 
     else if (action === 'check_out' && checkInEntry) {
-      // Kiểm tra thởi gian giữa check_in và check_out (ít nhất 2 giờ)
+      // Kiểm tra thời gian giữa check_in và check_out (ít nhất 2 giờ)
       const checkInTime = parseISO(checkInEntry.timestamp);
       const hoursDiff = differenceInHours(new Date(), checkInTime);
       
@@ -370,7 +370,7 @@ const HomeScreen = () => {
         // Hủy thông báo nhắc nhở xuất phát vì đã thực hiện
         await NotificationService.cancelRemindersByAction('go_work');
         
-        // Kiểm tra thởi gian và thêm thông báo trạng thái
+        // Kiểm tra thời gian và thêm thông báo trạng thái
         const currentShift = await getCurrentShift();
         if (currentShift && currentShift.startTime) {
           const now = new Date();
@@ -422,7 +422,7 @@ const HomeScreen = () => {
         // Hủy thông báo nhắc nhở chấm công vào vì đã thực hiện
         await NotificationService.cancelRemindersByAction('check_in');
         
-        // Kiểm tra thởi gian và thêm thông báo trạng thái
+        // Kiểm tra thời gian và thêm thông báo trạng thái
         const currentShift = await getCurrentShift();
         if (currentShift && currentShift.startTime) {
           const now = new Date();
@@ -483,7 +483,7 @@ const HomeScreen = () => {
         // Hủy thông báo nhắc nhở chấm công ra vì đã thực hiện
         await NotificationService.cancelRemindersByAction('check_out');
         
-        // Kiểm tra thởi gian và thêm thông báo trạng thái
+        // Kiểm tra thời gian và thêm thông báo trạng thái
         const currentShift = await getCurrentShift();
         if (currentShift && currentShift.officeEndTime) {
           const now = new Date();
@@ -1159,50 +1159,43 @@ const HomeScreen = () => {
 
   // Xử lý reset work status
   const handleResetPress = () => {
-    // Hiển thị hộp thoại xác nhận trước khi reset
-    Alert.alert(
-      i18n.t('confirm_reset'),
-      i18n.t('confirm_reset_message'),
-      [
-        {
-          text: i18n.t('cancel'),
-          style: 'cancel'
-        },
-        {
-          text: i18n.t('confirm'),
-          onPress: async () => {
-            try {
-              // Reset trạng thái làm việc của ngày hôm nay
-              const success = await resetDayStatus();
-              
-              if (success) {
-                // Cập nhật trạng thái và UI
-                setWorkStatus(null);
-                setTodayEntries([]);
-                
-                // Kích hoạt lại các nhắc nhở
-                await NotificationService.rescheduleAllNotifications();
-                
-                // Hiển thị thông báo thành công
-                showToast(i18n.t('reset_success'));
-              } else {
-                // Hiển thị thông báo lỗi
-                Alert.alert(
-                  i18n.t('error'),
-                  i18n.t('reset_error')
-                );
-              }
-            } catch (error) {
-              console.error('Lỗi khi reset trạng thái:', error);
-              Alert.alert(
-                i18n.t('error'),
-                i18n.t('reset_error')
-              );
-            }
-          }
-        }
-      ]
-    );
+    // Hiển thị modal xác nhận
+    setConfirmResetVisible(true);
+  };
+  
+  // Xử lý xác nhận reset
+  const handleResetConfirm = async () => {
+    try {
+      // Reset trạng thái làm việc của ngày hôm nay
+      const success = await resetDayStatus();
+      
+      if (success) {
+        // Cập nhật trạng thái và UI
+        setWorkStatus(null);
+        setTodayEntries([]);
+        
+        // Kích hoạt lại các nhắc nhở
+        await NotificationService.rescheduleAllNotifications();
+        
+        // Hiển thị thông báo thành công
+        showToast(i18n.t('reset_success'));
+      } else {
+        // Hiển thị thông báo lỗi
+        Alert.alert(
+          i18n.t('error'),
+          i18n.t('reset_error')
+        );
+      }
+    } catch (error) {
+      console.error('Lỗi khi reset trạng thái:', error);
+      Alert.alert(
+        i18n.t('error'),
+        i18n.t('reset_error')
+      );
+    } finally {
+      // Đóng modal xác nhận
+      setConfirmResetVisible(false);
+    }
   };
 
   // Hiển thị lịch sử bấm nút - chỉ hiển thị 3 dòng gần nhất
