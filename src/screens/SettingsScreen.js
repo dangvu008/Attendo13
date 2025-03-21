@@ -1,23 +1,44 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Alert, Modal, TouchableWithoutFeedback } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useTheme } from '../context/ThemeContext';
-import { useLocalization } from '../context/LocalizationContext';
-import { useShift } from '../context/ShiftContext';
-import { useNavigation } from '@react-navigation/native';
-import Constants from 'expo-constants';
-import * as NotificationService from '../services/NotificationService';
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  Modal,
+  TouchableWithoutFeedback,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  Ionicons,
+  MaterialIcons,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
+import { useTheme } from "../context/ThemeContext";
+import { useLocalization } from "../context/LocalizationContext";
+import { useShift } from "../context/ShiftContext";
+import { useNavigation } from "@react-navigation/native";
+import Constants from "expo-constants";
+import * as NotificationService from "../services/NotificationService";
 
 const SettingsScreen = () => {
   const { theme, isDarkMode, toggleTheme } = useTheme();
   const { locale, changeLocale, t } = useLocalization();
-  const { shifts, currentShift, setCurrentShift, addShift, updateShift, deleteShift } = useShift();
+  const {
+    shifts,
+    currentShift,
+    setCurrentShift,
+    addShift,
+    updateShift,
+    deleteShift,
+  } = useShift();
   const navigation = useNavigation();
-  
+
   const [notificationSound, setNotificationSound] = useState(true);
   const [notificationVibration, setNotificationVibration] = useState(true);
-  const [reminderType, setReminderType] = useState('none');
+  const [reminderType, setReminderType] = useState("none");
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedShift, setSelectedShift] = useState(null);
@@ -28,10 +49,10 @@ const SettingsScreen = () => {
     const loadSettings = async () => {
       try {
         setIsLoadingSettings(true);
-        
+
         // Initialize notifications
         await NotificationService.initializeNotifications();
-        
+
         // Load saved settings
         const settings = await NotificationService.loadNotificationSettings();
         setNotificationSound(settings.sound);
@@ -39,12 +60,12 @@ const SettingsScreen = () => {
         setReminderType(settings.reminderType);
         setNotificationsEnabled(settings.enabled);
       } catch (error) {
-        console.error('Error loading notification settings:', error);
+        console.error("Error loading notification settings:", error);
       } finally {
         setIsLoadingSettings(false);
       }
     };
-    
+
     loadSettings();
   }, []);
 
@@ -52,7 +73,7 @@ const SettingsScreen = () => {
   useEffect(() => {
     const saveSettings = async () => {
       if (isLoadingSettings) return;
-      
+
       try {
         const settings = {
           enabled: notificationsEnabled,
@@ -60,36 +81,43 @@ const SettingsScreen = () => {
           vibration: notificationVibration,
           reminderType: reminderType,
         };
-        
+
         await NotificationService.saveNotificationSettings(settings);
-        
+
         // Schedule or cancel reminders based on settings
-        if (notificationsEnabled && reminderType !== 'none' && currentShift) {
+        if (notificationsEnabled && reminderType !== "none" && currentShift) {
           await NotificationService.scheduleShiftReminders(
             currentShift,
             reminderType
           );
-        } else if (!notificationsEnabled || reminderType === 'none') {
+        } else if (!notificationsEnabled || reminderType === "none") {
           await NotificationService.cancelAllShiftNotifications();
         }
       } catch (error) {
-        console.error('Error saving notification settings:', error);
+        console.error("Error saving notification settings:", error);
       }
     };
-    
+
     saveSettings();
-  }, [notificationsEnabled, notificationSound, notificationVibration, reminderType, currentShift, isLoadingSettings]);
+  }, [
+    notificationsEnabled,
+    notificationSound,
+    notificationVibration,
+    reminderType,
+    currentShift,
+    isLoadingSettings,
+  ]);
 
   const handleToggleNotifications = () => {
-    setNotificationsEnabled(prev => !prev);
+    setNotificationsEnabled((prev) => !prev);
   };
 
   const handleToggleSound = () => {
-    setNotificationSound(prev => !prev);
+    setNotificationSound((prev) => !prev);
   };
 
   const handleToggleVibration = () => {
-    setNotificationVibration(prev => !prev);
+    setNotificationVibration((prev) => !prev);
   };
 
   const handleSelectShift = (shift) => {
@@ -108,105 +136,121 @@ const SettingsScreen = () => {
         setDeleteModalVisible(false);
         setSelectedShift(null);
       } else {
-        Alert.alert(t('error'), t('delete_shift_error'));
+        Alert.alert(t("error"), t("delete_shift_error"));
       }
     }
   };
 
   const handleEditShift = (shift) => {
-    navigation.navigate('EditShift', { shift });
+    navigation.navigate("EditShift", { shift });
   };
 
   const handleAddShift = () => {
-    navigation.navigate('AddShift');
+    navigation.navigate("AddShift");
   };
 
-  const handleChangeLanguage = (newLocale) => {
+  const handleChangeLanguage = async (newLocale) => {
     changeLocale(newLocale);
+    await setAppLanguage(newLocale);
+    loadStoredLanguage();
   };
-  
+
   const handleSelectReminderType = async (type) => {
     setReminderType(type);
-    
+
     // Schedule or cancel reminders based on the new type
-    if (type !== 'none' && notificationsEnabled && currentShift) {
-      await NotificationService.scheduleShiftReminders(
-        currentShift,
-        type
-      );
-    } else if (type === 'none' && currentShift) {
+    if (type !== "none" && notificationsEnabled && currentShift) {
+      await NotificationService.scheduleShiftReminders(currentShift, type);
+    } else if (type === "none" && currentShift) {
       await NotificationService.cancelAllShiftNotifications(currentShift.id);
     }
   };
 
   const renderShiftItem = (shift) => {
     const isActive = currentShift && currentShift.id === shift.id;
-    
+
     return (
-      <View 
-        key={shift.id} 
+      <View
+        key={shift.id}
         style={[
-          styles.shiftItem, 
-          { 
+          styles.shiftItem,
+          {
             backgroundColor: theme.colors.surface,
-            ...(isActive ? { borderLeftWidth: 4, borderLeftColor: theme.colors.primary } : {})
-          }
+            ...(isActive
+              ? { borderLeftWidth: 4, borderLeftColor: theme.colors.primary }
+              : {}),
+          },
         ]}
       >
         <View style={styles.shiftItemContent}>
           <Text style={[styles.shiftName, { color: theme.colors.text }]}>
             {shift.name}
           </Text>
-          <Text style={[styles.shiftTime, { color: theme.colors.textSecondary }]}>
+          <Text
+            style={[styles.shiftTime, { color: theme.colors.textSecondary }]}
+          >
             {shift.startWorkTime} - {shift.endWorkTime}
           </Text>
           {isActive && (
             <View style={styles.activeShiftBadge}>
-              <Text style={[styles.activeShiftText, { color: theme.colors.primary }]}>
-                {t('currently_applied')}
+              <Text
+                style={[
+                  styles.activeShiftText,
+                  { color: theme.colors.primary },
+                ]}
+              >
+                {t("currently_applied")}
               </Text>
             </View>
           )}
         </View>
         <View style={styles.shiftActions}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.shiftActionButton, 
-              { 
-                borderColor: isActive ? theme.colors.primary : theme.colors.border,
-                backgroundColor: isActive ? theme.colors.primaryLight : 'transparent'
-              }
-            ]} 
+              styles.shiftActionButton,
+              {
+                borderColor: isActive
+                  ? theme.colors.primary
+                  : theme.colors.border,
+                backgroundColor: isActive
+                  ? theme.colors.primaryLight
+                  : "transparent",
+              },
+            ]}
             onPress={() => handleSelectShift(shift)}
           >
-            <Ionicons 
-              name="checkmark" 
-              size={20} 
-              color={isActive ? theme.colors.primary : theme.colors.textSecondary} 
+            <Ionicons
+              name="checkmark"
+              size={20}
+              color={
+                isActive ? theme.colors.primary : theme.colors.textSecondary
+              }
             />
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.shiftActionButton, { borderColor: theme.colors.border }]} 
+          <TouchableOpacity
+            style={[
+              styles.shiftActionButton,
+              { borderColor: theme.colors.border },
+            ]}
             onPress={() => handleEditShift(shift)}
           >
-            <Ionicons 
-              name="create-outline" 
-              size={20} 
-              color={theme.colors.primary} 
+            <Ionicons
+              name="create-outline"
+              size={20}
+              color={theme.colors.primary}
             />
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.shiftActionButton, 
-              { backgroundColor: theme.colors.error, borderColor: theme.colors.error }
-            ]} 
+              styles.shiftActionButton,
+              {
+                backgroundColor: theme.colors.error,
+                borderColor: theme.colors.error,
+              },
+            ]}
             onPress={() => handleDeleteShift(shift)}
           >
-            <Ionicons 
-              name="trash-outline" 
-              size={20} 
-              color="#fff" 
-            />
+            <Ionicons name="trash-outline" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
@@ -215,15 +259,22 @@ const SettingsScreen = () => {
 
   const renderSettingItem = (icon, title, description, control) => {
     return (
-      <View style={[
-        styles.settingItem, 
-        { 
-          backgroundColor: theme.colors.surface,
-          ...theme.elevation.small
-        }
-      ]}>
+      <View
+        style={[
+          styles.settingItem,
+          {
+            backgroundColor: theme.colors.surface,
+            ...theme.elevation.small,
+          },
+        ]}
+      >
         <View style={styles.settingItemLeft}>
-          <View style={[styles.settingIcon, { backgroundColor: theme.colors.primaryLight }]}>
+          <View
+            style={[
+              styles.settingIcon,
+              { backgroundColor: theme.colors.primaryLight },
+            ]}
+          >
             {icon}
           </View>
           <View style={styles.settingTextContainer}>
@@ -231,7 +282,12 @@ const SettingsScreen = () => {
               {title}
             </Text>
             {description && (
-              <Text style={[styles.settingDescription, { color: theme.colors.textSecondary }]}>
+              <Text
+                style={[
+                  styles.settingDescription,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
                 {description}
               </Text>
             )}
@@ -243,20 +299,33 @@ const SettingsScreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.colors.surface, ...theme.elevation.small }]}>
-        <TouchableOpacity 
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: theme.colors.surface, ...theme.elevation.small },
+        ]}
+      >
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={24} color={theme.colors.primary} />
+          <Ionicons
+            name="chevron-back"
+            size={24}
+            color={theme.colors.primary}
+          />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('settings_title')}</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+          {t("settings_title")}
+        </Text>
         <View style={styles.headerRight} />
       </View>
-      
-      <ScrollView 
+
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -264,53 +333,86 @@ const SettingsScreen = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleContainer}>
-              <MaterialIcons name="notifications-none" size={22} color={theme.colors.primary} />
+              <MaterialIcons
+                name="notifications-none"
+                size={22}
+                color={theme.colors.primary}
+              />
               <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                {t('shift_reminders')}
+                {t("shift_reminders")}
               </Text>
             </View>
-            <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary }]}>
-              {t('shift_reminder_description')}
+            <Text
+              style={[
+                styles.sectionSubtitle,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              {t("shift_reminder_description")}
             </Text>
           </View>
-          
+
           {renderSettingItem(
-            <MaterialIcons name="access-time" size={20} color={theme.colors.primary} />,
-            t('reminder_type'),
+            <MaterialIcons
+              name="access-time"
+              size={20}
+              color={theme.colors.primary}
+            />,
+            t("reminder_type"),
             null,
             <View style={styles.reminderSelector}>
-              <ScrollView 
-                horizontal 
+              <ScrollView
+                horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.reminderSelectorContainer}
               >
-                {['none', 'before_5_min', 'before_15_min', 'before_30_min'].map((type) => (
-                  <TouchableOpacity
-                    key={type}
-                    style={[
-                      styles.reminderChip,
-                      reminderType === type ? 
-                        { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary } : 
-                        { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }
-                    ]}
-                    onPress={() => handleSelectReminderType(type)}
-                    disabled={!notificationsEnabled}
-                  >
-                    <Text style={[
-                      styles.reminderChipText, 
-                      { 
-                        color: reminderType === type ? '#fff' : 
-                          notificationsEnabled ? theme.colors.text : theme.colors.disabled,
-                        fontWeight: reminderType === type ? 'bold' : 'normal'
-                      }
-                    ]}>
-                      {t(`reminder_type_${type}`)}
-                    </Text>
-                    {reminderType === type && (
-                      <Ionicons name="checkmark" size={16} color="#fff" style={styles.chipIcon} />
-                    )}
-                  </TouchableOpacity>
-                ))}
+                {["none", "before_5_min", "before_15_min", "before_30_min"].map(
+                  (type) => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[
+                        styles.reminderChip,
+                        reminderType === type
+                          ? {
+                              backgroundColor: theme.colors.primary,
+                              borderColor: theme.colors.primary,
+                            }
+                          : {
+                              backgroundColor: theme.colors.surface,
+                              borderColor: theme.colors.border,
+                            },
+                      ]}
+                      onPress={() => handleSelectReminderType(type)}
+                      disabled={!notificationsEnabled}
+                    >
+                      <Text
+                        style={[
+                          styles.reminderChipText,
+                          {
+                            color:
+                              reminderType === type
+                                ? "#fff"
+                                : notificationsEnabled
+                                ? theme.colors.text
+                                : theme.colors.disabled,
+                            fontWeight:
+                              reminderType === type ? "bold" : "normal",
+                          },
+                        ]}
+                      >
+                        {t(`reminder_type_${type}`)}
+                      </Text>
+                      {reminderType === type && (
+                        <Ionicons
+                          name="checkmark"
+                          size={16}
+                          color="#fff"
+                          style={styles.chipIcon}
+                        />
+                      )}
+                    </TouchableOpacity>
+                  )
+                )}
               </ScrollView>
             </View>
           )}
@@ -320,48 +422,68 @@ const SettingsScreen = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleContainer}>
-              <Ionicons name="notifications-outline" size={22} color={theme.colors.primary} />
+              <Ionicons
+                name="notifications-outline"
+                size={22}
+                color={theme.colors.primary}
+              />
               <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                {t('notification_settings')}
+                {t("notification_settings")}
               </Text>
             </View>
           </View>
-          
+
           {renderSettingItem(
-            <Ionicons name="notifications" size={20} color={theme.colors.primary} />,
-            t('notifications_enabled'),
-            t('notifications_enabled_description'),
+            <Ionicons
+              name="notifications"
+              size={20}
+              color={theme.colors.primary}
+            />,
+            t("notifications_enabled"),
+            t("notifications_enabled_description"),
             <Switch
               value={notificationsEnabled}
               onValueChange={handleToggleNotifications}
-              trackColor={{ false: '#767577', true: theme.colors.primaryLight }}
-              thumbColor={notificationsEnabled ? theme.colors.primary : '#f4f3f4'}
+              trackColor={{ false: "#767577", true: theme.colors.primaryLight }}
+              thumbColor={
+                notificationsEnabled ? theme.colors.primary : "#f4f3f4"
+              }
               ios_backgroundColor="#3e3e3e"
             />
           )}
-          
+
           {renderSettingItem(
-            <Ionicons name="volume-high-outline" size={20} color={theme.colors.primary} />,
-            t('notification_sound'),
-            t('notification_sound_description'),
+            <Ionicons
+              name="volume-high-outline"
+              size={20}
+              color={theme.colors.primary}
+            />,
+            t("notification_sound"),
+            t("notification_sound_description"),
             <Switch
               value={notificationSound}
               onValueChange={handleToggleSound}
-              trackColor={{ false: '#767577', true: theme.colors.primaryLight }}
-              thumbColor={notificationSound ? theme.colors.primary : '#f4f3f4'}
+              trackColor={{ false: "#767577", true: theme.colors.primaryLight }}
+              thumbColor={notificationSound ? theme.colors.primary : "#f4f3f4"}
               ios_backgroundColor="#3e3e3e"
             />
           )}
-          
+
           {renderSettingItem(
-            <MaterialCommunityIcons name="vibrate" size={20} color={theme.colors.primary} />,
-            t('notification_vibration'),
-            t('notification_vibration_description'),
+            <MaterialCommunityIcons
+              name="vibrate"
+              size={20}
+              color={theme.colors.primary}
+            />,
+            t("notification_vibration"),
+            t("notification_vibration_description"),
             <Switch
               value={notificationVibration}
               onValueChange={handleToggleVibration}
-              trackColor={{ false: '#767577', true: theme.colors.primaryLight }}
-              thumbColor={notificationVibration ? theme.colors.primary : '#f4f3f4'}
+              trackColor={{ false: "#767577", true: theme.colors.primaryLight }}
+              thumbColor={
+                notificationVibration ? theme.colors.primary : "#f4f3f4"
+              }
               ios_backgroundColor="#3e3e3e"
             />
           )}
@@ -371,68 +493,93 @@ const SettingsScreen = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleContainer}>
-              <Ionicons name="settings-outline" size={22} color={theme.colors.primary} />
+              <Ionicons
+                name="settings-outline"
+                size={22}
+                color={theme.colors.primary}
+              />
               <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-                {t('general_settings')}
+                {t("general_settings")}
               </Text>
             </View>
           </View>
-          
+
           {renderSettingItem(
-            <Ionicons name="moon-outline" size={20} color={theme.colors.primary} />,
-            t('dark_mode'),
-            t('dark_mode_description'),
+            <Ionicons
+              name="moon-outline"
+              size={20}
+              color={theme.colors.primary}
+            />,
+            t("dark_mode"),
+            t("dark_mode_description"),
             <Switch
               value={isDarkMode}
               onValueChange={toggleTheme}
-              trackColor={{ false: '#767577', true: theme.colors.primaryLight }}
-              thumbColor={isDarkMode ? theme.colors.primary : '#f4f3f4'}
+              trackColor={{ false: "#767577", true: theme.colors.primaryLight }}
+              thumbColor={isDarkMode ? theme.colors.primary : "#f4f3f4"}
               ios_backgroundColor="#3e3e3e"
             />
           )}
-          
+
           {renderSettingItem(
-            <Ionicons name="language-outline" size={20} color={theme.colors.primary} />,
-            t('language'),
+            <Ionicons
+              name="language-outline"
+              size={20}
+              color={theme.colors.primary}
+            />,
+            t("language"),
             null,
             <View style={styles.languageSelector}>
-              {['en', 'vi'].map((lang) => (
+              {["en", "vi"].map((lang) => (
                 <TouchableOpacity
                   key={lang}
                   style={[
                     styles.languageOption,
-                    locale === lang ? { 
-                      backgroundColor: theme.colors.primaryLight,
-                      borderColor: theme.colors.primary,
-                    } : {
-                      backgroundColor: theme.colors.surface,
-                      borderColor: theme.colors.border,
-                    }
+                    locale === lang
+                      ? {
+                          backgroundColor: theme.colors.primaryLight,
+                          borderColor: theme.colors.primary,
+                        }
+                      : {
+                          backgroundColor: theme.colors.surface,
+                          borderColor: theme.colors.border,
+                        },
                   ]}
                   onPress={() => handleChangeLanguage(lang)}
                 >
-                  <Text style={[
-                    styles.languageText, 
-                    { 
-                      color: locale === lang ? theme.colors.primary : theme.colors.text,
-                      fontWeight: locale === lang ? 'bold' : 'normal'
-                    }
-                  ]}>
-                    {lang === 'vi' ? 'Tiếng Việt' : 'English'}
+                  <Text
+                    style={[
+                      styles.languageText,
+                      {
+                        color:
+                          locale === lang
+                            ? theme.colors.primary
+                            : theme.colors.text,
+                        fontWeight: locale === lang ? "bold" : "normal",
+                      },
+                    ]}
+                  >
+                    {lang === "vi" ? "Tiếng Việt" : "English"}
                   </Text>
                   {locale === lang && (
-                    <Ionicons name="checkmark" size={18} color={theme.colors.primary} />
+                    <Ionicons
+                      name="checkmark"
+                      size={18}
+                      color={theme.colors.primary}
+                    />
                   )}
                 </TouchableOpacity>
               ))}
             </View>
           )}
         </View>
-        
+
         {/* Version Info */}
         <View style={styles.versionInfo}>
-          <Text style={[styles.versionText, { color: theme.colors.textSecondary }]}>
-            {t('version')}: {Constants.expoConfig?.version || '1.0.0'}
+          <Text
+            style={[styles.versionText, { color: theme.colors.textSecondary }]}
+          >
+            {t("version")}: {Constants.expoConfig?.version || "1.0.0"}
           </Text>
         </View>
       </ScrollView>
@@ -446,36 +593,70 @@ const SettingsScreen = () => {
       >
         <TouchableWithoutFeedback onPress={() => setDeleteModalVisible(false)}>
           <View style={styles.modalOverlay}>
-            <View style={[styles.deleteModalContent, { backgroundColor: theme.colors.surface }]}>
+            <View
+              style={[
+                styles.deleteModalContent,
+                { backgroundColor: theme.colors.surface },
+              ]}
+            >
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: theme.colors.text }]}>{t('confirm_delete')}</Text>
-                <TouchableOpacity onPress={() => setDeleteModalVisible(false)} style={styles.closeButton}>
+                <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+                  {t("confirm_delete")}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setDeleteModalVisible(false)}
+                  style={styles.closeButton}
+                >
                   <Ionicons name="close" size={24} color={theme.colors.text} />
                 </TouchableOpacity>
               </View>
               <View style={styles.deleteModalBody}>
                 <Text style={[styles.deleteText, { color: theme.colors.text }]}>
-                  {t('delete_shift_confirm')}
+                  {t("delete_shift_confirm")}
                 </Text>
                 {selectedShift && (
-                  <Text style={[styles.shiftName, { color: theme.colors.text, marginTop: 8 }]}>
+                  <Text
+                    style={[
+                      styles.shiftName,
+                      { color: theme.colors.text, marginTop: 8 },
+                    ]}
+                  >
                     {selectedShift.name}
                   </Text>
                 )}
               </View>
               <View style={styles.deleteModalActions}>
-                <TouchableOpacity 
-                  style={[styles.deleteModalButton, styles.cancelButton, { borderColor: theme.colors.border }]} 
+                <TouchableOpacity
+                  style={[
+                    styles.deleteModalButton,
+                    styles.cancelButton,
+                    { borderColor: theme.colors.border },
+                  ]}
                   onPress={() => setDeleteModalVisible(false)}
                 >
-                  <Text style={[styles.buttonText, { color: theme.colors.text }]}>{t('cancel')}</Text>
+                  <Text
+                    style={[styles.buttonText, { color: theme.colors.text }]}
+                  >
+                    {t("cancel")}
+                  </Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.deleteModalButton, styles.deleteButton, { backgroundColor: theme.colors.error }]} 
+                <TouchableOpacity
+                  style={[
+                    styles.deleteModalButton,
+                    styles.deleteButton,
+                    { backgroundColor: theme.colors.error },
+                  ]}
                   onPress={confirmDeleteShift}
                 >
-                  <Ionicons name="trash-outline" size={18} color="#fff" style={styles.buttonIcon} />
-                  <Text style={[styles.buttonText, { color: '#fff' }]}>{t('delete')}</Text>
+                  <Ionicons
+                    name="trash-outline"
+                    size={18}
+                    color="#fff"
+                    style={styles.buttonIcon}
+                  />
+                  <Text style={[styles.buttonText, { color: "#fff" }]}>
+                    {t("delete")}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -491,15 +672,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: 16,
     paddingHorizontal: 16,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   backButton: {
     padding: 4,
@@ -516,15 +697,15 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     marginBottom: 16,
-    position: 'relative',
+    position: "relative",
   },
   sectionTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 8,
   },
   sectionSubtitle: {
@@ -532,22 +713,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginLeft: 30,
   },
-  addButton: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  shiftList: {
-    marginTop: 8,
-  },
   shiftItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     padding: 16,
     marginBottom: 16,
     borderRadius: 12,
@@ -557,7 +725,7 @@ const styles = StyleSheet.create({
   },
   shiftName: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 4,
   },
   shiftTime: {
@@ -568,40 +736,40 @@ const styles = StyleSheet.create({
   },
   activeShiftText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   shiftActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   shiftActionButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginLeft: 8,
     borderWidth: 1,
   },
   settingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 16,
     marginBottom: 16,
     borderRadius: 12,
   },
   settingItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   settingIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   settingTextContainer: {
@@ -609,7 +777,7 @@ const styles = StyleSheet.create({
   },
   settingLabel: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 4,
   },
   settingDescription: {
@@ -622,9 +790,9 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   reminderChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
@@ -639,7 +807,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   deleteModalContent: {
-    width: '90%',
+    width: "90%",
     borderRadius: 16,
     padding: 24,
   },
@@ -651,40 +819,29 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   deleteModalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   deleteModalButton: {
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 12,
-    minWidth: '45%',
-    alignItems: 'center',
+    minWidth: "45%",
+    alignItems: "center",
   },
   cancelButton: {
     borderWidth: 1,
   },
-  deleteButton: {
-  },
+  deleteButton: {},
   buttonText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   buttonIcon: {
     marginRight: 8,
   },
-  emptyState: {
-    padding: 30,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyStateText: {
-    marginTop: 12,
-    fontSize: 16,
-  },
   versionInfo: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 16,
     marginBottom: 20,
   },
@@ -692,14 +849,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   languageSelector: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '60%',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "60%",
   },
   languageOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
@@ -709,6 +866,25 @@ const styles = StyleSheet.create({
   languageText: {
     fontSize: 14,
     marginRight: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  closeButton: {
+    padding: 8,
   },
 });
 

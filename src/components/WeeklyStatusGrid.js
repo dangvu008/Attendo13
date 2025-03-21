@@ -338,9 +338,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 8,
   },
-  todayText: {
-    color: '#4a86f7',
-  },
   statusIconContainer: {
     width: 28,
     height: 28,

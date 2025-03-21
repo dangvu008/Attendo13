@@ -1677,7 +1677,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
   },
-  // Vùng thông tin thời gian
+  // Vùng thông tin thởi gian
   timeInfoSection: {
     marginBottom: 20,
   },

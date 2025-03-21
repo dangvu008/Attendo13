@@ -259,16 +259,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
-    flexDirection: 'row',
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginRight: 4,
-  },
-  addButtonIcon: {
-    marginLeft: 4,
   },
 });
 

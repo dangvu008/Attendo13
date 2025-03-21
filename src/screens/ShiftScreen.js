@@ -169,6 +169,14 @@ const ShiftScreen = () => {
       Alert.alert(t('error'), t('shift_times_required'));
       return;
     }
+
+    // Validate time format and convert to 24h
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(newShift.startWorkTime) || !timeRegex.test(newShift.endWorkTime) ||
+        (newShift.departureTime && !timeRegex.test(newShift.departureTime))) {
+      Alert.alert(t('error'), t('invalid_time_format'));
+      return;
+    }
     
     if (nameError) {
       Alert.alert(t('error'), nameError);
@@ -177,6 +185,12 @@ const ShiftScreen = () => {
     
     if (isDuplicateShift(newShift)) {
       Alert.alert(t('error'), t('shift_duplicate'));
+      return;
+    }
+    
+    // Validate reminder times
+    if (newShift.remindBeforeWork < 0 || newShift.remindAfterWork < 0) {
+      Alert.alert(t('error'), t('invalid_reminder_time'));
       return;
     }
     
@@ -243,11 +257,25 @@ const ShiftScreen = () => {
   const handleTimeChange = (time) => {
     let formattedTime = time;
     if (time && time.length) {
-      if (time.length <= 2) {
-        formattedTime = time + ':00';
-      } else if (!time.includes(':')) {
-        formattedTime = time.substring(0, 2) + ':' + time.substring(2, 4);
+      // Remove any non-digit and non-colon characters
+      formattedTime = time.replace(/[^0-9:]/g, '');
+      
+      // Handle different input formats
+      if (!formattedTime.includes(':')) {
+        if (formattedTime.length <= 2) {
+          formattedTime = formattedTime.padStart(2, '0') + ':00';
+        } else {
+          formattedTime = formattedTime.substring(0, 2) + ':' + formattedTime.substring(2, 4).padEnd(2, '0');
+        }
+      } else {
+        const [hours, minutes] = formattedTime.split(':');
+        formattedTime = hours.padStart(2, '0') + ':' + (minutes || '00').padEnd(2, '0');
       }
+      
+      // Validate 24-hour format
+      const [hours, minutes] = formattedTime.split(':');
+      if (parseInt(hours) > 23) formattedTime = '23:' + minutes;
+      if (parseInt(minutes) > 59) formattedTime = hours + ':59';
     }
 
     setNewShift({...newShift, [timePickerFor]: formattedTime});
@@ -822,11 +850,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginRight: 8,
   },
-  applyButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
   actionButton: {
     width: 36,
     height: 36,
@@ -875,161 +898,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  modalBody: {
-    padding: 16,
-  },
   inputGroup: {
     marginBottom: 16,
   },
   inputLabel: {
     fontSize: 16,
-    marginBottom: 8,
-  },
-  textInput: {
-    height: 48,
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 12,
-    fontSize: 16,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  halfInput: {
-    flex: 1,
-    marginRight: 8,
-  },
-  timePickerButton: {
-    height: 48,
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  timePickerText: {
-    fontSize: 16,
-  },
-  dropdownButton: {
-    height: 48,
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  dropdownText: {
-    fontSize: 16,
-  },
-  switchGroup: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  switchLabel: {
-    fontSize: 16,
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  footerButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 4,
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#3e3e42',
-  },
-  saveButton: {
-    backgroundColor: '#6200ee',
-    marginLeft: 8,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  timePickerContainer: {
-    padding: 16,
-  },
-  timePickerInput: {
-    height: 48,
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 12,
-    fontSize: 16,
-  },
-  timePickerHelp: {
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  reminderOptionsContainer: {
-    padding: 16,
-  },
-  reminderOption: {
-    padding: 12,
-    marginBottom: 8,
-    borderRadius: 4,
-  },
-  reminderOptionText: {
-    fontSize: 16,
-  },
-  appliedDaysGroup: {
-    marginBottom: 16,
-  },
-  appliedDaysList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  dayButton: {
-    padding: 8,
-    marginRight: 8,
-    marginBottom: 8,
-    borderRadius: 4,
-  },
-  dayButtonSelected: {
-    backgroundColor: '#6200ee',
-  },
-  dayButtonUnselected: {
-    backgroundColor: '#fff',
-    borderColor: '#ddd',
-    borderWidth: 1,
-  },
-  dayButtonText: {
-    fontSize: 14,
-  },
-  dayButtonTextSelected: {
-    color: '#fff',
-  },
-  dayButtonTextUnselected: {
-    color: '#333',
-  },
-  errorText: {
-    fontSize: 14,
-    color: '#ff0000',
-  },
-  charCountText: {
-    fontSize: 14,
-    color: '#757575',
-  },
-  nameInputFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  appliedWeekText: {
-    fontSize: 14,
     marginBottom: 8,
   },
   input: {
@@ -1073,6 +946,15 @@ const styles = StyleSheet.create({
   daysContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+  },
+  dayButton: {
+    padding: 8,
+    marginRight: 8,
+    marginBottom: 8,
+    borderRadius: 4,
+  },
+  dayText: {
+    fontSize: 14,
   },
   reminderOption: {
     flexDirection: 'row',
@@ -1131,14 +1013,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#3e3e42',
+    borderColor: '#ccc',
   },
   saveButton: {
     backgroundColor: '#6200ee',
     marginLeft: 8,
   },
   cancelButtonText: {
-    color: '#fff',
+    color: '#666',
     fontWeight: 'bold',
   },
   saveButtonText: {
@@ -1156,6 +1038,39 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   resetButtonText: {
+    fontSize: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#ff0000',
+  },
+  appliedWeekText: {
+    fontSize: 14,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timePickerContainer: {
+    padding: 16,
+  },
+  timePickerInput: {
+    height: 48,
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    fontSize: 16,
+  },
+  timePickerHelp: {
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  reminderOptionsContainer: {
+    padding: 16,
+  },
+  reminderOptionText: {
     fontSize: 16,
   },
 });
