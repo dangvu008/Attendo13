@@ -162,8 +162,61 @@ const HomeScreen = () => {
     }
   };
 
-  // Cập nhật thông tin khi có thay đổi
+  // Update work status and schedule notifications
   const updateInfo = useCallback(async () => {
+    // Load shift info
+    const currentShift = await AsyncStorage.getItem("currentShift");
+    const shiftData = currentShift ? JSON.parse(currentShift) : null;
+
+    if (shiftData) {
+      // Schedule notifications for the shift
+      const now = new Date();
+      const startTime = parse(shiftData.startWorkTime, "HH:mm", now);
+      const endTime = parse(shiftData.endWorkTime, "HH:mm", now);
+      const departureTime = shiftData.departureTime
+        ? parse(shiftData.departureTime, "HH:mm", now)
+        : null;
+
+      // Schedule departure reminder
+      if (departureTime && shiftData.remindBeforeWork > 0) {
+        await NotificationService.scheduleNotification({
+          id: `departure_${shiftData.id}`,
+          title: t("departure_reminder"),
+          message: t("departure_reminder_message", {
+            time: shiftData.departureTime,
+          }),
+          date: addMinutes(departureTime, -shiftData.remindBeforeWork),
+          data: { type: "departure", shiftId: shiftData.id },
+        });
+      }
+
+      // Schedule check-in reminder
+      if (shiftData.remindBeforeWork > 0) {
+        await NotificationService.scheduleNotification({
+          id: `checkin_${shiftData.id}`,
+          title: t("checkin_reminder"),
+          message: t("checkin_reminder_message", {
+            time: shiftData.startWorkTime,
+          }),
+          date: addMinutes(startTime, -shiftData.remindBeforeWork),
+          data: { type: "checkin", shiftId: shiftData.id },
+        });
+      }
+
+      // Schedule check-out reminder
+      if (shiftData.remindAfterWork > 0) {
+        await NotificationService.scheduleNotification({
+          id: `checkout_${shiftData.id}`,
+          title: t("checkout_reminder"),
+          message: t("checkout_reminder_message", {
+            time: shiftData.endWorkTime,
+          }),
+          date: addMinutes(endTime, -shiftData.remindAfterWork),
+          data: { type: "checkout", shiftId: shiftData.id },
+        });
+      }
+    }
+
     // Cập nhật lịch sử trạng thái
     const today = await getTodayEntries();
     setTodayEntries(today);

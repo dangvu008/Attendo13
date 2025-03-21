@@ -11,6 +11,7 @@ import * as Notifications from 'expo-notifications';
 
 // Contexts
 import { ThemeProvider } from './src/context/ThemeContext';
+import { LanguageProvider } from './src/context/LanguageContext';
 import { LocalizationProvider } from './src/context/LocalizationContext';
 import { ShiftProvider } from './src/context/ShiftContext';
 
@@ -78,16 +79,18 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <LocalizationProvider>
-          <ShiftProvider>
-            <View style={{ flex: 1 }}>
-              <StatusBar style="auto" />
-              <NavigationContainer>
-                <MainNavigator />
-              </NavigationContainer>
-            </View>
-          </ShiftProvider>
-        </LocalizationProvider>
+        <LanguageProvider>
+          <LocalizationProvider>
+            <ShiftProvider>
+              <View style={{ flex: 1 }}>
+                <StatusBar style="auto" />
+                <NavigationContainer>
+                  <MainNavigator />
+                </NavigationContainer>
+              </View>
+            </ShiftProvider>
+          </LocalizationProvider>
+        </LanguageProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
