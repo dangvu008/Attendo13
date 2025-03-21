@@ -18,6 +18,13 @@ i18n.locale = Localization.locale;
 // When a value is missing from a language it'll fall back to another language with the key present
 i18n.enableFallback = true;
 
+// Load and set stored language
+export const loadStoredLanguage = async () => {
+  const language = await getStoredLanguage();
+  i18n.locale = language;
+  return language;
+};
+
 // Get stored language
 export const getStoredLanguage = async () => {
   try {
