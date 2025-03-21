@@ -32,7 +32,8 @@ import {
   differenceInMilliseconds,
   parse,
 } from "date-fns";
-import { vi, enUS } from "date-fns/locale";
+import { vi } from "date-fns/locale/vi";
+import { enUS } from "date-fns/locale/en-US";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
