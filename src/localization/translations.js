@@ -387,6 +387,18 @@ export const en = {
   // Common
   appName: "Attendo13",
 
+  // Work history
+  workHistory: "Work History",
+  currentStatus: "Current Status",
+  statusIdle: "Not Started",
+  statusWorking: "Working",
+  statusCheckedIn: "Checked In",
+  statusCheckedOut: "Checked Out",
+  statusCompleted: "Completed",
+  no_history_today: "No activity today",
+  // Common
+  appName: "Attendo13",
+
   // Shifts
   shifts_title: "Work Shifts",
   currently_applied: "Currently Applied",
