@@ -98,19 +98,7 @@ export const scheduleNotification = async ({
   repeatInterval = null,
 }) => {
   try {
-    // Tạo trigger dựa vào thời gian
-    const trigger = new Date(date);
-
-    // Đảm bảo trigger trong tương lai
-    if (trigger <= new Date()) {
-      console.log("Notification date is in the past, not scheduling");
-      return null;
-    }
-
-    // Hủy thông báo cũ nếu có
-    await cancelNotification(id);
-
-    // Configure notification trigger based on repeat settings
+    // Tạo trigger dựa vào thời gian và cài đặt lặp lại
     let trigger;
     if (repeat && repeatType && repeatInterval) {
       trigger = {
@@ -119,6 +107,15 @@ export const scheduleNotification = async ({
       };
     } else {
       trigger = new Date(date);
+      // Đảm bảo trigger trong tương lai
+      if (trigger <= new Date()) {
+        console.log("Notification date is in the past, not scheduling");
+        return null;
+      }
+    }
+
+    // Hủy thông báo cũ nếu có
+    await cancelNotification(id);
     }
 
     // Schedule the notification

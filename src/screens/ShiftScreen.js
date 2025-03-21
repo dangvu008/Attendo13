@@ -215,30 +215,8 @@ const ShiftScreen = () => {
       return;
     }
 
-    // Validate time format and convert to 24h
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (
-      !timeRegex.test(newShift.startWorkTime) ||
-      !timeRegex.test(newShift.endWorkTime) ||
-      (newShift.departureTime && !timeRegex.test(newShift.departureTime))
-    ) {
-      Alert.alert(t("error"), t("invalid_time_format"));
-      return;
-    }
-
-    if (nameError) {
-      Alert.alert(t("error"), nameError);
-      return;
-    }
-
     if (isDuplicateShift(newShift)) {
       Alert.alert(t("error"), t("shift_duplicate"));
-      return;
-    }
-
-    // Validate reminder times
-    if (newShift.remindBeforeWork < 0 || newShift.remindAfterWork < 0) {
-      Alert.alert(t("error"), t("invalid_reminder_time"));
       return;
     }
 

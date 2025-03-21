@@ -92,7 +92,7 @@ const HomeScreen = () => {
     // Cập nhật mỗi 1 phút
     const intervalId = setInterval(loadReminders, 60000);
     return () => clearInterval(intervalId);
-  }, []);
+  }, [loadActionLogs]);
 
   // Cập nhật đồng hồ mỗi giây
   useEffect(() => {
@@ -101,7 +101,7 @@ const HomeScreen = () => {
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, []);
+  }, [getActionButton]);
 
   // Thêm một mục mới vào trạng thái làm việc
   const addWorkEntry = async (status) => {
@@ -264,7 +264,7 @@ const HomeScreen = () => {
       console.error("Lỗi khi tải thông tin ca làm việc:", error);
       setShiftInfo(null);
     }
-  }, []);
+  }, [getActionButton]);
 
   useEffect(() => {
     const loadCurrentShift = async () => {
