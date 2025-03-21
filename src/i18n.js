@@ -2,12 +2,15 @@ import * as Localization from "expo-localization";
 import { I18n } from "i18n-js";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { I18nManager } from "react-native";
+import { vi } from "./localization/translations";
 
 // Create a new i18n instance
 const i18n = new I18n();
 
 // Set translations
-i18n.translations = resources;
+i18n.translations = {
+  vi,
+};
 
 // Set the default locale
 i18n.locale = Localization.locale;
