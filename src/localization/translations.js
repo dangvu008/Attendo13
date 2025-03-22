@@ -119,6 +119,8 @@ export const vi = {
   notes_add_note: "Thêm ghi chú",
   notes_edit_note: "Sửa ghi chú",
   no_notes: "Chưa có ghi chú nào",
+  no_notes_yet: "Chưa có ghi chú nào",
+  add_new_note_hint: "Nhấn nút + để thêm ghi chú mới",
   noteTitle: "Tiêu đề",
   noteContent: "Nội dung",
   note: "Ghi chú",
@@ -246,7 +248,8 @@ export const vi = {
 
   // Additional work shift form translations
   work_time: "Thời gian làm việc",
-  work_select_time: "Chọn thởi gian",
+  work_select_time: "Chọn thời gian",
+  vi_select_time: "Chọn thời gian",
   apply_to_days: "Áp dụng vào các ngày",
   day_0: "CN",
   day_1: "T2",
@@ -338,6 +341,7 @@ export const vi = {
   confirm_reset_message:
     "Bạn có chắc chắn muốn reset dữ liệu chấm công ngày hôm nay không?",
   confirm_action_title: "Cần xác nhận",
+  confirm_action: "Xác nhận",
   confirm_early_check_in:
     "Bạn đang thực hiện check-in sớm hơn thởi gian quy định (cần ít nhất 5 phút sau khi bấm Đi làm). Bạn có chắc chắn muốn tiếp tục?",
   confirm_early_check_out:
@@ -545,6 +549,9 @@ export const en = {
   notes_title: "Work Notes",
   notes_add_note: "Add Note",
   notes_edit_note: "Edit Note",
+  no_notes: "No notes yet",
+  no_notes_yet: "No notes yet",
+  add_new_note_hint: "Press + button to add a new note",
   noteTitle: "Title",
   noteContent: "Content",
   note: "Note",
@@ -689,6 +696,7 @@ export const en = {
   // Additional work shift form translations
   work_time: "Work Time",
   work_select_time: "Select time",
+  vi_select_time: "Select time",
   apply_to_days: "Apply to days",
   day_0: "Sun",
   day_1: "Mon",
@@ -778,6 +786,7 @@ export const en = {
   confirm_reset_title: "Confirm Reset",
   confirm_reset_message: "Are you sure you want to reset today's work status?",
   confirm_action_title: "Confirm Action",
+  confirm_action: "Confirm",
   confirm_early_check_in:
     "You are checking in earlier than the scheduled time (at least 5 minutes after going to work). Are you sure you want to continue?",
   confirm_early_check_out:

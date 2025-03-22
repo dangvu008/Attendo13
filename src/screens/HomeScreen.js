@@ -42,6 +42,7 @@ import Constants from "expo-constants";
 
 // Contexts & Services
 import { useTheme } from "../context/ThemeContext";
+import { useLocalization } from "../context/LocalizationContext";
 import i18n from "../i18n";
 import { NotificationService } from "../services/NotificationService";
 import MultiActionButton from "../components/MultiActionButton";
@@ -51,6 +52,7 @@ import NoteItem from "../components/NoteItem";
 
 const HomeScreen = () => {
   const { theme, isDarkMode } = useTheme();
+  const { t } = useLocalization();
   const navigation = useNavigation();
 
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -1598,6 +1600,23 @@ const HomeScreen = () => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
+      <StatusBar
+        barStyle={isDarkMode ? "light-content" : "dark-content"}
+        backgroundColor={theme.colors.background}
+      />
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={[
+            styles.languageButton,
+            { backgroundColor: theme.colors.surface },
+          ]}
+          onPress={() => changeLocale(locale === "vi" ? "en" : "vi")}
+        >
+          <Text style={[styles.languageText, { color: theme.colors.text }]}>
+            {locale === "vi" ? "EN" : "VI"}
+          </Text>
+        </TouchableOpacity>
+      </View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Vùng thông tin thời gian */}
         <View style={styles.timeInfoSection}>
@@ -1920,6 +1939,22 @@ const HomeScreen = () => {
 
 // Styles
 const styles = StyleSheet.create({
+  languageButton: {
+    padding: 8,
+    borderRadius: 8,
+    position: "absolute",
+    right: 16,
+    top: 16,
+  },
+  languageText: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  header: {
+    width: "100%",
+    position: "relative",
+    height: 60,
+  },
   container: {
     flex: 1,
   },
