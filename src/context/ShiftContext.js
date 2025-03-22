@@ -325,37 +325,53 @@ export const ShiftProvider = ({ children }) => {
     ];
   };
 
-  // Create fake weekly status
+  // Create fake weekly status with more diverse scenarios
   const createFakeWeeklyStatus = () => {
     const today = new Date();
     const weeklyStatus = {};
+
+    // Status codes:
+    // ✓ - Full work day
+    // ? - Unknown/Pending
+    // ! - Incomplete
+    // P - Leave/Vacation
+    // B - Sick leave
+    // RV - Late arrival
+    // RS - Early departure
+    // X - Absent
+    // H - Holiday
+    // RVS - Both late arrival and early departure
 
     // Fill past 7 days with different statuses
     for (let i = 6; i >= 0; i--) {
       const day = subDays(today, i);
       const dateKey = format(day, "yyyy-MM-dd");
+      const dayOfWeek = getDay(day); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 
-      if (i === 0) {
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        // Weekend - Holiday
+        weeklyStatus[dateKey] = "H";
+      } else if (i === 0) {
         // Today - default to ? or current status if exists
         weeklyStatus[dateKey] = "?";
       } else if (i === 1) {
-        // Yesterday - complete
-        weeklyStatus[dateKey] = "✓";
+        // Yesterday - late arrival and early departure
+        weeklyStatus[dateKey] = "RVS";
       } else if (i === 2) {
-        // 2 days ago - incomplete
-        weeklyStatus[dateKey] = "!";
+        // 2 days ago - early departure
+        weeklyStatus[dateKey] = "RS";
       } else if (i === 3) {
-        // 3 days ago - vacation
-        weeklyStatus[dateKey] = "P";
+        // 3 days ago - full work day
+        weeklyStatus[dateKey] = "✓";
       } else if (i === 4) {
-        // 4 days ago - sick
+        // 4 days ago - sick leave
         weeklyStatus[dateKey] = "B";
       } else if (i === 5) {
-        // 5 days ago - came late
+        // 5 days ago - late arrival
         weeklyStatus[dateKey] = "RV";
-      } else if (i === 6) {
-        // 6 days ago - absent
-        weeklyStatus[dateKey] = "X";
+      } else {
+        // 6 days ago - leave/vacation
+        weeklyStatus[dateKey] = "P";
       }
     }
 

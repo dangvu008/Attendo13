@@ -270,14 +270,23 @@ const HomeScreen = () => {
   }, [getActionButton]);
 
   useEffect(() => {
-    const loadCurrentShift = async () => {
+    const loadData = async () => {
       try {
-        const shift = await getCurrentShift();
+        // Load weekly status from database
+        const weeklyStatusData = await DatabaseService.getWeeklyStatus();
+        setWeeklyStatus(weeklyStatusData);
+
+        // Load status details from database
+        const statusDetailsData = await DatabaseService.getStatusDetails();
+        setStatusDetails(statusDetailsData);
+
+        // Load current shift
+        const shift = await DatabaseService.getCurrentShift();
         if (shift) {
           setShiftInfo(shift);
         }
       } catch (error) {
-        console.error("Error loading current shift:", error);
+        console.error("Error loading data:", error);
       }
     };
 
@@ -1551,13 +1560,13 @@ const HomeScreen = () => {
   // Hàm xử lý thay đổi trạng thái ngày thủ công
   const handleDayStatusChange = async (dateStr, newStatus) => {
     try {
-      // Cập nhật weeklyStatus
+      // Update weekly status
       const updatedStatus = { ...weeklyStatus };
       updatedStatus[dateStr] = newStatus;
       setWeeklyStatus(updatedStatus);
-      await AsyncStorage.setItem("weeklyStatus", JSON.stringify(updatedStatus));
+      await DatabaseService.saveWeeklyStatus(updatedStatus);
 
-      // Cập nhật statusDetails nếu cần
+      // Update status details if needed
       if (statusDetails[dateStr]) {
         const updatedDetails = { ...statusDetails };
         updatedDetails[dateStr] = {
@@ -1565,15 +1574,13 @@ const HomeScreen = () => {
           status: newStatus,
         };
         setStatusDetails(updatedDetails);
-        await AsyncStorage.setItem(
-          "statusDetails",
-          JSON.stringify(updatedDetails)
-        );
+        await DatabaseService.saveStatusDetails(updatedDetails);
       }
 
-      console.log(`Đã cập nhật trạng thái cho ngày ${dateStr}: ${newStatus}`);
+      console.log(`Updated status for date ${dateStr}: ${newStatus}`);
     } catch (error) {
-      console.error("Lỗi khi thay đổi trạng thái ngày:", error);
+      console.error("Error changing day status:", error);
+      Alert.alert(t("error"), t("error_saving_status"));
     }
   };
 

@@ -1,10 +1,9 @@
 // Translations for Vietnamese and English
 
-
-
 export const vi = {
   // Common
   appName: "Attendo13",
+  search: "Search",
 
   // Time and Date
   date: "Ngày",
@@ -83,6 +82,8 @@ export const vi = {
   total: "Tổng cộng",
   time_minutes: "phút",
   time_select: "Chọn thởi gian",
+  vi_select_time: "Chọn thời gian",
+  select_time: "Chọn thời gian",
 
   // Shift information
   shift_start_time: "Giờ bắt đầu",
@@ -400,11 +401,13 @@ export const vi = {
   statusCheckedOut: "Đã chấm công ra",
   statusCompleted: "Đã hoàn thành",
   no_history_today: "Chưa có hoạt động nào hôm nay",
+  work_started: "Đã bắt đầu làm việc",
 };
 
 export const en = {
   // Common
   appName: "Attendo13",
+  search: "Search",
 
   // Time and Date
   date: "Date",

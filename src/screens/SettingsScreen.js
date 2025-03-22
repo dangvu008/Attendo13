@@ -560,7 +560,7 @@ const SettingsScreen = () => {
                       },
                     ]}
                   >
-                    {lang === "vi" ? "English" : "Tiếng Việt"}
+                    {lang === "vi" ? "Tiếng Việt" : "English"}
                   </Text>
                   {locale === lang && (
                     <Ionicons
