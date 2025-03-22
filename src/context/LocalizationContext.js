@@ -65,11 +65,6 @@ export const LocalizationProvider = ({ children }) => {
     }
   }, [locale, isReady]);
 
-  // Change locale function
-  const changeLocale = (newLocale) => {
-    setLocale(newLocale);
-  };
-
   // Translate function using the i18n.js
   const t = (key, options = {}) => {
     return i18n.t(key, options);
