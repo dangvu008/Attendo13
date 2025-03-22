@@ -8,7 +8,7 @@ const LocalizationContext = createContext();
 export const useLocalization = () => useContext(LocalizationContext);
 
 export const LocalizationProvider = ({ children }) => {
-  const [locale, setLocale] = useState("vi");
+  const [locale, setLocale] = useState(i18n.locale || "vi");
   const [isReady, setIsReady] = useState(false);
 
   // Load locale preference from storage
@@ -18,18 +18,18 @@ export const LocalizationProvider = ({ children }) => {
         const storedLocale = await AsyncStorage.getItem("appLanguage");
         if (storedLocale !== null) {
           setLocale(storedLocale);
-          i18n.locale = storedLocale;
+          await setAppLanguage(storedLocale);
         } else {
           // Use device locale or default to Vietnamese if not available
           const deviceLocale = Localization.locale.split("-")[0];
           const newLocale = deviceLocale === "en" ? "en" : "vi";
           setLocale(newLocale);
-          i18n.locale = newLocale;
+          await setAppLanguage(newLocale);
         }
       } catch (error) {
         console.error("Error loading locale preference:", error);
         setLocale("vi"); // Default to Vietnamese if error
-        i18n.locale = "vi";
+        await setAppLanguage("vi");
       } finally {
         setIsReady(true);
       }
@@ -40,11 +40,13 @@ export const LocalizationProvider = ({ children }) => {
 
   // Save locale preference to storage when it changes
   useEffect(() => {
-    if (isReady) {
-      AsyncStorage.setItem("appLanguage", locale);
-      i18n.locale = locale;
-      loadStoredLanguage();
-    }
+    const updateLocale = async () => {
+      if (isReady) {
+        await AsyncStorage.setItem("appLanguage", locale);
+        await setAppLanguage(locale);
+      }
+    };
+    updateLocale();
   }, [locale, isReady]);
 
   // Change locale function

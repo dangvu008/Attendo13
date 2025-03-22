@@ -22,6 +22,7 @@ import { useShift } from "../context/ShiftContext";
 import { useNavigation } from "@react-navigation/native";
 import Constants from "expo-constants";
 import * as NotificationService from "../services/NotificationService";
+import i18n, { setAppLanguage, loadStoredLanguage } from "../i18n";
 
 const SettingsScreen = () => {
   const { theme, isDarkMode, toggleTheme } = useTheme();
