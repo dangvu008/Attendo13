@@ -1,8 +1,54 @@
 // Translations for Vietnamese and English
 
+export const en = {
+  // Common
+  appName: "Attendo13",
+
+  // Time and Date
+  date: "Date",
+  day_of_week: "Day",
+  check_in: "Check In",
+  check_out: "Check Out",
+  regular_hours: "Work Hours",
+  checked_out: "Completed",
+
+  // Tabs navigation
+  home: "Home",
+  shifts: "Shifts",
+  notes: "Notes",
+  settings: "Settings",
+  stats: "Statistics",
+
+  // Work status
+  goToWork: "Go to Work",
+  checkIn: "Check In",
+  checkOut: "Check Out",
+  complete: "Complete",
+  current: "Current",
+
+  // Status messages
+  working: "Working",
+  not_started: "Not Started",
+  gone_to_work: "Gone to Work",
+  clocked_in: "Clocked In",
+  clocked_out: "Clocked Out",
+  checked_out: "Checked Out",
+  action_history: "Action History",
+  no_history_today: "No activity today",
+  workHistory: "Work History",
+};
+
 export const vi = {
   // Common
   appName: "Attendo13",
+
+  // Time and Date
+  date: "Ngày",
+  day_of_week: "Thứ",
+  check_in: "Giờ vào",
+  check_out: "Giờ ra",
+  regular_hours: "Giờ làm việc",
+  checked_out: "Đã hoàn thành",
 
   // Tabs navigation
   home: "Trang chủ",
@@ -395,6 +441,14 @@ export const vi = {
 export const en = {
   // Common
   appName: "Attendo13",
+
+  // Time and Date
+  date: "Date",
+  day_of_week: "Day of Week",
+  check_in: "Check In Time",
+  check_out: "Check Out Time",
+  regular_hours: "Regular Hours",
+  checked_out: "Completed",
 
   // Work history
   workHistory: "Work History",
