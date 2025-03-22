@@ -52,7 +52,7 @@ import NoteItem from "../components/NoteItem";
 
 const HomeScreen = () => {
   const { theme, isDarkMode } = useTheme();
-  const { t } = useLocalization();
+  const { t, locale, changeLocale } = useLocalization();
   const navigation = useNavigation();
 
   const [currentTime, setCurrentTime] = useState(new Date());
