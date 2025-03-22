@@ -24,6 +24,7 @@ export const vi = {
   gone_to_work: "Đã đi làm",
   clocked_in: "Đã check in",
   clocked_out: "Đã tan làm",
+  checked_out: "Đã hoàn thành",
   action_history: "Lịch sử hoạt động",
   no_history_today: "Không có hoạt động nào hôm nay",
   workHistory: "Lịch sử làm việc",
@@ -43,6 +44,9 @@ export const vi = {
   work_status_rv: "Vào muộn/Ra sớm (RV)",
   work_status_absent: "Nghỉ (❌)",
   regular_work_hours: "Giờ làm việc thường",
+  check_in: "Giờ vào",
+  check_out: "Giờ ra",
+  regular_hours: "Giờ làm việc",
   hours: "giờ",
 
   // Messages
@@ -114,6 +118,7 @@ export const vi = {
   notes_title: "Ghi chú công việc",
   notes_add_note: "Thêm ghi chú",
   notes_edit_note: "Sửa ghi chú",
+  no_notes: "Chưa có ghi chú nào",
   noteTitle: "Tiêu đề",
   noteContent: "Nội dung",
   note: "Ghi chú",
