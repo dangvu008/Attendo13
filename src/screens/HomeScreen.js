@@ -1631,25 +1631,29 @@ const HomeScreen = () => {
     updateUI();
   };
 
-  loadCurrentShift = async () => {
+  const loadCurrentShift = async () => {
     try {
-      // Fetch current shift data from your data source
-      const currentShiftData = await fetchShiftData(); // Replace with your actual data fetching logic
-      
-      this.setState({
-        currentShift: currentShiftData,
-        isLoading: false
-      });
+      // Fetch current shift data
+      const shiftInfoJson = await AsyncStorage.getItem("currentShift");
+      if (shiftInfoJson) {
+        const shift = JSON.parse(shiftInfoJson);
+        setShiftInfo(shift);
+        console.log("Loaded current shift:", shift);
+      } else {
+        setShiftInfo(null);
+        console.log("No shift information found");
+      }
     } catch (error) {
-      console.error('Error loading current shift:', error);
-      this.setState({ isLoading: false, error: true });
+      console.error("Error loading current shift:", error);
+      setShiftInfo(null);
     }
   };
 
-  componentDidMount() {
-    this.loadCurrentShift();
-    // ...existing code...
-  }
+  useEffect(() => {
+    loadCurrentShift();
+    const unsubscribe = navigation.addListener("focus", loadCurrentShift);
+    return unsubscribe;
+  }, [navigation]);
 
   return (
     <SafeAreaView
