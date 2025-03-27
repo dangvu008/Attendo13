@@ -488,6 +488,25 @@ const SettingsScreen = () => {
               ios_backgroundColor="#3e3e3e"
             />
           )}
+
+          {renderSettingItem(
+            <MaterialIcons
+              name="touch-app"
+              size={20}
+              color={theme.colors.primary}
+            />,
+            t("multi_action_button"),
+            t("multi_action_button_description"),
+            <Switch
+              value={multiActionButtonEnabled}
+              onValueChange={handleToggleMultiActionButton}
+              trackColor={{ false: "#767577", true: theme.colors.primaryLight }}
+              thumbColor={
+                multiActionButtonEnabled ? theme.colors.primary : "#f4f3f4"
+              }
+              ios_backgroundColor="#3e3e3e"
+            />
+          )}
         </View>
 
         {/* General Settings */}

@@ -1,0 +1,38 @@
+ // Bảng lưu thông tin lịch sử hoạt động
+ TABLE work_log (
+    id SERIAL PRIMARY KEY,            -- ID tự tăng cho mỗi bản ghi
+    work_date DATE NOT NULL,          -- Ngày làm việc
+    day_of_week VARCHAR(10) NOT NULL, -- Thứ trong tuần (VD: Thứ Hai, Thứ Ba)
+    check_in TIME,                    -- Giờ chấm công vào
+    check_out TIME,                   -- Giờ chấm công ra
+    regular_hours FLOAT DEFAULT 0,    -- Số giờ làm việc tiêu chuẩn
+    ot_150 FLOAT DEFAULT 0,           -- Giờ tăng ca 150%
+    ot_200 FLOAT DEFAULT 0,           -- Giờ tăng ca 200%
+    ot_300 FLOAT DEFAULT 0,           -- Giờ tăng ca 300%
+    work_shift_id INT REFERENCES work_shift(id), -- Liên kết với ca làm việc
+    created_at TIMESTAMP DEFAULT NOW() -- Thời gian tạo bản ghi
+);
+//Bảng lưu trữ thông tin cài đặt
+ TABLE app_settings (
+    id SERIAL PRIMARY KEY,       
+    language VARCHAR(10) DEFAULT 'vi',  -- Ngôn ngữ mặc định
+    notification_sound BOOLEAN DEFAULT TRUE,  -- Bật/Tắt âm báo
+    vibration BOOLEAN DEFAULT TRUE,          -- Bật/Tắt rung
+    dark_mode BOOLEAN DEFAULT FALSE,         -- Bật/Tắt chế độ tối
+    created_at TIMESTAMP DEFAULT NOW(),
+	multi_purpose_mode boolean,              -- Nút đa năng hay chỉ một nút duy nhất	
+    updated_at TIMESTAMP DEFAULT NOW() ON UPDATE NOW()
+);
+// Bản lưu trữ thông tin ca 
+TABLE work_shift (
+    id SERIAL PRIMARY KEY,         -- ID duy nhất của ca làm việc
+    name VARCHAR(50) NOT NULL,     -- Tên ca làm việc
+    departure_time TIME,           -- Thời gian xuất phát (nhắc nhở rời nhà)
+    start_time TIME NOT NULL,      -- Giờ bắt đầu ca làm việc
+    office_end_time TIME NOT NULL, -- Giờ kết thúc giờ làm việc tiêu chuẩn
+    end_time TIME NOT NULL,        -- Giờ kết thúc ca làm việc
+    remind_before_start INT,       -- Số phút nhắc nhở trước giờ vào
+    remind_after_end INT,          -- Số phút nhắc nhở sau giờ kết thúc
+    show_signing BOOLEAN DEFAULT TRUE, -- Hiển thị nút Ký công
+    days_applied INT[]             -- Các ngày áp dụng (lưu danh sách ngày)
+);

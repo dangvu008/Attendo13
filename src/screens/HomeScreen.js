@@ -45,6 +45,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useLocalization } from "../context/LocalizationContext";
 import i18n from "../i18n";
 import { NotificationService } from "../services/NotificationService";
+import { loadMultiActionButtonState } from "../storage/MultiActionButtonStorage";
 import MultiActionButton from "../components/MultiActionButton";
 import WeeklyStatusGrid from "../components/WeeklyStatusGrid";
 import AddNoteModal from "../components/AddNoteModal";
@@ -75,8 +76,19 @@ const HomeScreen = () => {
   const [notes, setNotes] = useState([]);
   const [actionHistory, setActionHistory] = useState([]);
   const [actionLogs, setActionLogs] = useState([]);
+  const [multiActionButtonEnabled, setMultiActionButtonEnabled] =
+    useState(true);
 
   // Lấy thông tin nhắc nhở hiện tại
+  // Load multi-action button state
+  useEffect(() => {
+    const loadMultiActionState = async () => {
+      const state = await loadMultiActionButtonState();
+      setMultiActionButtonEnabled(state);
+    };
+    loadMultiActionState();
+  }, []);
+
   useEffect(() => {
     const loadReminders = async () => {
       try {
@@ -1309,6 +1321,22 @@ const HomeScreen = () => {
       default:
         return i18n.t("not_started_yet");
     }
+  };
+
+  const renderActionButton = () => {
+    if (!multiActionButtonEnabled) {
+      return (
+        <MultiActionButton
+          status="go_work"
+          color={theme.colors.primary}
+          onPress={handleSingleButtonPress}
+          disabled={workStatus === "completed"}
+        />
+      );
+    }
+
+    // Return the appropriate multi-action button based on current status
+    return getActionButton();
   };
 
   const actionButton = getActionButton();
