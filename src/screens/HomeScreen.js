@@ -1631,6 +1631,26 @@ const HomeScreen = () => {
     updateUI();
   };
 
+  loadCurrentShift = async () => {
+    try {
+      // Fetch current shift data from your data source
+      const currentShiftData = await fetchShiftData(); // Replace with your actual data fetching logic
+      
+      this.setState({
+        currentShift: currentShiftData,
+        isLoading: false
+      });
+    } catch (error) {
+      console.error('Error loading current shift:', error);
+      this.setState({ isLoading: false, error: true });
+    }
+  };
+
+  componentDidMount() {
+    this.loadCurrentShift();
+    // ...existing code...
+  }
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
