@@ -12,6 +12,7 @@ export const vi = {
   check_out: "Giờ ra",
   regular_hours: "Giờ làm việc",
   checked_out: "Đã hoàn thành",
+  checked_in: "Đã chấm công vào", // Added the missing translation here
 
   // Tabs navigation
   home: "Trang chủ",
