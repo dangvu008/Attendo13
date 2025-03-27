@@ -44,6 +44,7 @@ const SettingsScreen = () => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedShift, setSelectedShift] = useState(null);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [multiActionButtonEnabled, setMultiActionButtonEnabled] = useState(true);
 
   // Load notification settings
   useEffect(() => {
@@ -60,6 +61,10 @@ const SettingsScreen = () => {
         setNotificationVibration(settings.vibration);
         setReminderType(settings.reminderType);
         setNotificationsEnabled(settings.enabled);
+        
+        // Load multi-action button setting
+        const multiActionValue = await AsyncStorage.getItem('multiActionButtonEnabled');
+        setMultiActionButtonEnabled(multiActionValue === null ? true : JSON.parse(multiActionValue));
       } catch (error) {
         console.error("Error loading notification settings:", error);
       } finally {
@@ -84,6 +89,9 @@ const SettingsScreen = () => {
         };
 
         await NotificationService.saveNotificationSettings(settings);
+        
+        // Save multi-action button setting
+        await AsyncStorage.setItem('multiActionButtonEnabled', JSON.stringify(multiActionButtonEnabled));
 
         // Schedule or cancel reminders based on settings
         if (notificationsEnabled && reminderType !== "none" && currentShift) {
@@ -107,6 +115,7 @@ const SettingsScreen = () => {
     reminderType,
     currentShift,
     isLoadingSettings,
+    multiActionButtonEnabled, // Add this to the dependency array
   ]);
 
   const handleToggleNotifications = () => {
@@ -119,6 +128,10 @@ const SettingsScreen = () => {
 
   const handleToggleVibration = () => {
     setNotificationVibration((prev) => !prev);
+  };
+
+  const handleToggleMultiActionButton = () => {
+    setMultiActionButtonEnabled(prev => !prev);
   };
 
   const handleSelectShift = (shift) => {
