@@ -495,14 +495,14 @@ const SettingsScreen = () => {
               size={20}
               color={theme.colors.primary}
             />,
-            t("multi_action_button"),
-            t("multi_action_button_description"),
+            t("multi_purpose_mode"),
+            t("multi_purpose_mode_description"),
             <Switch
-              value={multiActionButtonEnabled}
-              onValueChange={handleToggleMultiActionButton}
+              value={multiPurposeModeEnabled}
+              onValueChange={handleToggleMultiPurposeMode}
               trackColor={{ false: "#767577", true: theme.colors.primaryLight }}
               thumbColor={
-                multiActionButtonEnabled ? theme.colors.primary : "#f4f3f4"
+                multiPurposeModeEnabled ? theme.colors.primary : "#f4f3f4"
               }
               ios_backgroundColor="#3e3e3e"
             />
