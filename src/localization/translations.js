@@ -12,6 +12,7 @@ export const vi = {
   check_out: "Giờ ra",
   regular_hours: "Giờ làm việc",
   checked_out: "Đã hoàn thành",
+  checked_in: "Đã chấm công vào", // Added the missing translation here
 
   // Tabs navigation
   home: "Trang chủ",
@@ -402,6 +403,10 @@ export const vi = {
   statusCompleted: "Đã hoàn thành",
   no_history_today: "Chưa có hoạt động nào hôm nay",
   work_started: "Đã bắt đầu làm việc",
+
+  // Add these translation keys inside your Vietnamese translations object
+  multi_action_button: "Nút đa thao tác",
+  multi_action_button_description: "Bật theo dõi chấm công từng bước",
 };
 
 export const en = {
@@ -855,4 +860,8 @@ export const en = {
   statusCheckedOut: "Checked out",
   statusCompleted: "Completed",
   no_history_today: "No activity today",
+
+  // Add these translation keys inside your English translations object
+  multi_action_button: "Multi-action Button",
+  multi_action_button_description: "Enable step-by-step attendance tracking",
 };

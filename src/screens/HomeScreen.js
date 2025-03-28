@@ -1726,17 +1726,35 @@ const HomeScreen = () => {
         {/* Nút đa năng */}
         <View style={styles.multiActionSection}>
           <View style={styles.buttonContainer}>
-            {actionButton.visible && (
-              <MultiActionButton
-                status={actionButton.status}
-                label={actionButton.label}
-                iconName={actionButton.icon}
-                color={actionButton.color}
-                onPress={handleActionButtonPress}
-                disabled={
-                  actionButtonDisabled || actionButton.status === "completed"
-                }
-              />
+            {multiActionButtonEnabled ? (
+              // Render the full multi-action button when enabled
+              actionButton.visible && (
+                <MultiActionButton
+                  status={actionButton.status}
+                  label={actionButton.label}
+                  iconName={actionButton.icon}
+                  color={actionButton.color}
+                  onPress={handleActionButtonPress}
+                  disabled={
+                    actionButtonDisabled || actionButton.status === "completed"
+                  }
+                />
+              )
+            ) : (
+              // Render simple "Go to work" button when disabled
+              <TouchableOpacity
+                style={[
+                  styles.singleActionButton,
+                  { backgroundColor: theme.colors.primary },
+                ]}
+                onPress={() => handleWorkConfirmation()}
+                disabled={actionButton.status === "completed"}
+              >
+                <Ionicons name="briefcase-outline" size={24} color="#fff" />
+                <Text style={styles.singleActionButtonText}>
+                  {i18n.t("go_to_work")}
+                </Text>
+              </TouchableOpacity>
             )}
 
             {/* Nút reset - chỉ hiển thị sau khi bấm "Đi Làm" và trước khi hoàn thành */}
