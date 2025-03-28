@@ -10,6 +10,7 @@ import {
   Modal,
   TouchableWithoutFeedback,
 } from "react-native";
+import * as AppSettingsStorage from "../storage/AppSettingsStorage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Ionicons,
@@ -45,6 +46,7 @@ const SettingsScreen = () => {
   const [selectedShift, setSelectedShift] = useState(null);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [multiActionButtonEnabled, setMultiActionButtonEnabled] = useState(true);
+  const [multiPurposeModeEnabled, setMultiPurposeModeEnabled] = useState(true);
 
   // Load notification settings
   useEffect(() => {
@@ -65,6 +67,10 @@ const SettingsScreen = () => {
         // Load multi-action button setting
         const multiActionValue = await AsyncStorage.getItem('multiActionButtonEnabled');
         setMultiActionButtonEnabled(multiActionValue === null ? true : JSON.parse(multiActionValue));
+
+        // Load multi-purpose mode setting
+        const multiPurposeMode = await AppSettingsStorage.getMultiPurposeMode();
+        setMultiPurposeModeEnabled(multiPurposeMode);
       } catch (error) {
         console.error("Error loading notification settings:", error);
       } finally {
@@ -132,6 +138,12 @@ const SettingsScreen = () => {
 
   const handleToggleMultiActionButton = () => {
     setMultiActionButtonEnabled(prev => !prev);
+  };
+
+  const handleToggleMultiPurposeMode = async () => {
+    const newValue = !multiPurposeModeEnabled;
+    setMultiPurposeModeEnabled(newValue);
+    await AppSettingsStorage.setMultiPurposeMode(newValue);
   };
 
   const handleSelectShift = (shift) => {
