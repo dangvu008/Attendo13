@@ -32,7 +32,7 @@ import {
   differenceInMilliseconds,
   parse,
 } from "date-fns";
-import { vi } from "date-fns/locale/vi";
+import { vi } from "../utils/viLocale";
 import { enUS } from "date-fns/locale/en-US";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -45,7 +45,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useLocalization } from "../context/LocalizationContext";
 import i18n from "../i18n";
 import { NotificationService } from "../services/NotificationService";
-import { loadMultiActionButtonState } from "../storage/MultiActionButtonStorage";
+import * as AppSettingsStorage from "../storage/AppSettingsStorage";
 import MultiActionButton from "../components/MultiActionButton";
 import WeeklyStatusGrid from "../components/WeeklyStatusGrid";
 import AddNoteModal from "../components/AddNoteModal";
@@ -83,7 +83,7 @@ const HomeScreen = () => {
   // Load multi-action button state
   useEffect(() => {
     const loadMultiActionState = async () => {
-      const state = await loadMultiActionButtonState();
+      const state = await AppSettingsStorage.getMultiPurposeMode();
       setMultiActionButtonEnabled(state);
     };
     loadMultiActionState();

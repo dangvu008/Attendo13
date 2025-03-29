@@ -65,8 +65,8 @@ const SettingsScreen = () => {
         setNotificationsEnabled(settings.enabled);
         
         // Load multi-action button setting
-        const multiActionValue = await AsyncStorage.getItem('multiActionButtonEnabled');
-        setMultiActionButtonEnabled(multiActionValue === null ? true : JSON.parse(multiActionValue));
+        const multiActionValue = await AppSettingsStorage.getMultiPurposeMode();
+        setMultiActionButtonEnabled(multiActionValue);
 
         // Load multi-purpose mode setting
         const multiPurposeMode = await AppSettingsStorage.getMultiPurposeMode();
@@ -97,7 +97,7 @@ const SettingsScreen = () => {
         await NotificationService.saveNotificationSettings(settings);
         
         // Save multi-action button setting
-        await AsyncStorage.setItem('multiActionButtonEnabled', JSON.stringify(multiActionButtonEnabled));
+        await AppSettingsStorage.setMultiPurposeMode(multiActionButtonEnabled);
 
         // Schedule or cancel reminders based on settings
         if (notificationsEnabled && reminderType !== "none" && currentShift) {
