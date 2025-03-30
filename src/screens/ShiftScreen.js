@@ -224,7 +224,7 @@ const ShiftScreen = () => {
     Alert.alert(t("confirm"), t("save_shift_confirm"), [
       { text: t("cancel"), style: "cancel" },
       {
-        text: t("confirm"),
+        text: t("save"),
         onPress: async () => {
           let success = false;
           if (editingShift) {
@@ -393,7 +393,7 @@ const ShiftScreen = () => {
           <View style={styles.timeItem}>
             <Ionicons
               name="time-outline"
-              size={16}
+              size={20}
               color={theme.colors.primary}
             />
             <Text

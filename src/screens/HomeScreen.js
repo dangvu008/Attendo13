@@ -76,8 +76,8 @@ const HomeScreen = () => {
   const [notes, setNotes] = useState([]);
   const [actionHistory, setActionHistory] = useState([]);
   const [actionLogs, setActionLogs] = useState([]);
-  const [multiActionButtonEnabled, setMultiActionButtonEnabled] =
-    useState(true);
+  const [multiActionButtonEnabled, setMultiActionButtonEnabled] = useState(true);
+  const [showResetButton, setShowResetButton] = useState(false);
 
   // Lấy thông tin nhắc nhở hiện tại
   // Load multi-action button state
@@ -695,8 +695,17 @@ const HomeScreen = () => {
         // Hủy thông báo nhắc nhở hoàn tất vì đã thực hiện
         await NotificationService.cancelRemindersByAction("complete");
 
+        // Lưu lịch sử làm việc (work_log)
+        await saveWorkLog();
+
+        // Tính toán giờ công
+        await calculateAndSaveWorkHours();
+
         // Cập nhật trạng thái tuần
         await updateWeeklyStatus();
+
+        // Hiển thị nút reset nhỏ ở góc của nút đa năng
+        setShowResetButton(true);
 
         // Hiển thị thông báo
         showToast(i18n.t("work_completed_success"));
@@ -989,6 +998,15 @@ const HomeScreen = () => {
 
         // Hủy tất cả các thông báo nhắc nhở
         await NotificationService.cancelAllShiftNotifications();
+
+        // Lưu lịch sử làm việc (work_log)
+        await saveWorkLog();
+
+        // Tính toán giờ công
+        await calculateAndSaveWorkHours();
+
+        // Hiển thị nút reset nhỏ ở góc của nút đa năng
+        setShowResetButton(true);
 
         // Hiển thị thông báo thành công
         showToast(i18n.t("work_completed_automatically"));
@@ -1421,7 +1439,7 @@ const HomeScreen = () => {
   const actionButton = getActionButton();
 
   // Nút reset hiển thị sau khi bấm "Đi làm" và sau khi hoàn thành
-  const showResetButton = workStatus !== null;
+  // Đã chuyển thành state để có thể điều khiển hiển thị
 
   // Xử lý reset work status
   const handleResetPress = () => {
@@ -1670,6 +1688,127 @@ const HomeScreen = () => {
     const diffMinutes = differenceInMinutes(checkOutTime, checkInTime);
 
     return (diffMinutes / 60).toFixed(2);
+  };
+
+  // Lưu lịch sử làm việc vào work_log
+  const saveWorkLog = async () => {
+    try {
+      if (!checkInEntry || !checkOutEntry) {
+        console.error("Không thể lưu lịch sử làm việc: thiếu thông tin check-in hoặc check-out");
+        return false;
+      }
+
+      const today = format(new Date(), "yyyy-MM-dd");
+      const checkInTime = new Date(checkInEntry.timestamp);
+      const checkOutTime = new Date(checkOutEntry.timestamp);
+
+      // Tạo bản ghi lịch sử làm việc
+      const workLog = {
+        date: today,
+        checkInTime: checkInEntry.timestamp,
+        checkOutTime: checkOutEntry.timestamp,
+        completeTime: new Date().toISOString(),
+        totalWorkHours: calculateWorkHours(),
+        status: workDayStatus || "full",
+      };
+
+      // Lấy lịch sử hiện tại
+      const workLogsJson = await AsyncStorage.getItem("work_logs");
+      const workLogs = workLogsJson ? JSON.parse(workLogsJson) : [];
+
+      // Thêm bản ghi mới
+      workLogs.push(workLog);
+
+      // Lưu lại
+      await AsyncStorage.setItem("work_logs", JSON.stringify(workLogs));
+      console.log("Đã lưu lịch sử làm việc:", workLog);
+
+      return true;
+    } catch (error) {
+      console.error("Lỗi khi lưu lịch sử làm việc:", error);
+      return false;
+    }
+  };
+
+  // Tính toán và lưu giờ công
+  const calculateAndSaveWorkHours = async () => {
+    try {
+      if (!checkInEntry || !checkOutEntry || !shiftInfo) {
+        console.error("Không thể tính giờ công: thiếu thông tin cần thiết");
+        return false;
+      }
+
+      const checkInTime = new Date(checkInEntry.timestamp);
+      const checkOutTime = new Date(checkOutEntry.timestamp);
+      
+      // Lấy các mốc thời gian từ ca làm việc
+      const startTime = parseShiftTime(shiftInfo.startTime);
+      const officeEndTime = parseShiftTime(shiftInfo.officeEndTime);
+      const endTime = parseShiftTime(shiftInfo.endTime);
+
+      // Xác định trạng thái làm việc
+      let workStatus = "full"; // Mặc định là đủ công
+      let checkInStatus = "normal";
+      let checkOutStatus = "normal";
+
+      // Kiểm tra vào muộn
+      if (checkInTime > startTime) {
+        const minutesLate = differenceInMinutes(checkInTime, startTime);
+        if (minutesLate > 5) { // Nếu vào muộn quá 5 phút
+          checkInStatus = "late";
+          workStatus = "rv"; // Vào muộn
+        }
+      }
+
+      // Kiểm tra ra sớm
+      if (checkOutTime < officeEndTime) {
+        const minutesEarly = differenceInMinutes(officeEndTime, checkOutTime);
+        if (minutesEarly > 5) { // Nếu ra sớm quá 5 phút
+          checkOutStatus = "early";
+          workStatus = "rv"; // Ra sớm
+        }
+      }
+
+      // Tính giờ làm tiêu chuẩn và giờ tăng ca
+      const standardWorkMinutes = differenceInMinutes(officeEndTime, startTime);
+      const actualWorkMinutes = differenceInMinutes(checkOutTime, checkInTime);
+      
+      // Giờ làm tiêu chuẩn (tối đa là thời gian tiêu chuẩn)
+      const standardHours = Math.min(actualWorkMinutes, standardWorkMinutes) / 60;
+      
+      // Giờ tăng ca (nếu làm quá giờ hành chính)
+      let overtimeHours = 0;
+      if (checkOutTime > officeEndTime) {
+        const overtimeMinutes = differenceInMinutes(checkOutTime, officeEndTime);
+        overtimeHours = overtimeMinutes / 60;
+      }
+
+      // Tạo đối tượng thống kê giờ công
+      const workHoursData = {
+        date: format(new Date(), "yyyy-MM-dd"),
+        standardHours: Number(standardHours.toFixed(2)),
+        overtimeHours: Number(overtimeHours.toFixed(2)),
+        totalHours: Number((standardHours + overtimeHours).toFixed(2)),
+        checkInStatus,
+        checkOutStatus,
+        workStatus,
+      };
+
+      // Lưu thống kê giờ công
+      const today = format(new Date(), "yyyy-MM-dd");
+      await AsyncStorage.setItem(`workHours_${today}`, JSON.stringify(workHoursData));
+
+      // Cập nhật trạng thái làm việc
+      setWorkDayStatus(workStatus);
+      setCheckInStatus(checkInStatus);
+      setCheckOutStatus(checkOutStatus);
+
+      console.log("Đã tính toán và lưu giờ công:", workHoursData);
+      return true;
+    } catch (error) {
+      console.error("Lỗi khi tính toán và lưu giờ công:", error);
+      return false;
+    }
   };
 
   // Hàm xử lý thay đổi trạng thái ngày thủ công

@@ -80,6 +80,7 @@ export const vi = {
   shift_applied_message: "Đã áp dụng ca làm việc thành công",
   shift_apply_error: "Có lỗi xảy ra khi áp dụng ca làm việc",
   reset_error: "Lỗi khi đặt lại",
+  reset_success: "Đã đặt lại trạng thái thành công",
 
   // Time labels
   today: "Hôm nay",
@@ -430,6 +431,8 @@ export const vi = {
   confirm_reset: "Xác nhận đặt lại",
   reset_confirmation_message:
     "Bạn có chắc chắn muốn đặt lại trạng thái làm việc không?",
+  action_execution_error: "Lỗi thực thi hành động",
+  ok: "OK",
 };
 
 export const en = {
@@ -554,6 +557,7 @@ export const en = {
   shift_applied_message: "Shift applied successfully",
   shift_apply_error: "Error applying shift",
   reset_error: "Reset error",
+  reset_success: "Status reset successfully",
 
   // Time labels
   today: "Today",
@@ -651,7 +655,7 @@ export const en = {
   delete_note_confirm: "Are you sure you want to delete this note?",
   delete_note_error: "Could not delete note",
   continue_editing: "Continue editing",
-  exit: "Exit"
+  exit: "Exit",
   notes_reminder_date: "Reminder Date",
   notes_reminder_time: "Reminder Time",
 
@@ -773,23 +777,23 @@ export const en = {
   currently_applied: "Currently applied for this week",
 
   // Additional work shift form translations
-  work_time: "Work Time",
-  work_select_time: "Select time",
-  vi_select_time: "Select time",
-  apply_to_days: "Apply to days",
-  day_0: "Sun",
-  day_1: "Mon",
-  day_2: "Tue",
-  day_3: "Wed",
-  day_4: "Thu",
-  day_5: "Fri",
-  day_6: "Sat",
-  reminder_options: "Reminder Options",
-  minutes: "minutes",
-  confirm_reset_form_message: "Are you sure you want to reset this form?",
-  add_shift: "Add New Work Shift",
-  shift_show_sign_button: "Show Sign Button",
-  delete_shift: "Delete Shift",
+  work_time: "Thời gian làm việc",
+  work_select_time: "Chọn thời gian",
+  vi_select_time: "Chọn thời gian",
+  apply_to_days: "Áp dụng vào các ngày",
+  day_0: "CN",
+  day_1: "T2",
+  day_2: "T3",
+  day_3: "T4",
+  day_4: "T5",
+  day_5: "T6",
+  day_6: "T7",
+  reminder_options: "Tùy chọn nhắc nhở",
+  minutes: "phút",
+  confirm_reset_form_message: "Bạn có chắc chắn muốn đặt lại form này?",
+  add_shift: "Thêm ca làm việc mới",
+  shift_show_sign_button: "Hiển thị nút ký",
+  delete_shift: "Xóa ca làm việc",
 
   // Reminders
   remind_before_work: "Reminder Before Work",

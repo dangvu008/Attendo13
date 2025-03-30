@@ -44,7 +44,7 @@ import Constants from "expo-constants";
 import { useTheme } from "../context/ThemeContext";
 import { useLocalization } from "../context/LocalizationContext";
 import i18n from "../i18n";
-import { NotificationService } from "../services/NotificationService";
+import * as NotificationService from "../services/NotificationService";
 import * as AppSettingsStorage from "../storage/AppSettingsStorage";
 import MultiActionButton from "../components/MultiActionButton";
 import WeeklyStatusGrid from "../components/WeeklyStatusGrid";
@@ -92,10 +92,12 @@ const HomeScreen = () => {
   useEffect(() => {
     const loadReminders = async () => {
       try {
-        const reminders = await NotificationService.getScheduledNotifications();
-        if (reminders) {
-          const remindersList = Object.values(reminders);
-          setCurrentReminders(remindersList);
+        if (NotificationService && typeof NotificationService.getScheduledNotifications === 'function') {
+          const reminders = await NotificationService.getScheduledNotifications();
+          if (reminders) {
+            const remindersList = Object.values(reminders);
+            setCurrentReminders(remindersList);
+          }
         }
       } catch (error) {
         console.error("Error loading reminders:", error);
@@ -107,7 +109,7 @@ const HomeScreen = () => {
     // Cập nhật mỗi 1 phút
     const intervalId = setInterval(loadReminders, 60000);
     return () => clearInterval(intervalId);
-  }, [loadActionLogs]);
+  }, []);
 
   // Cập nhật đồng hồ mỗi giây
   useEffect(() => {
@@ -234,7 +236,11 @@ const HomeScreen = () => {
         }
 
         // Hủy tất cả các thông báo nhắc nhở
-        await NotificationService.cancelAllShiftNotifications();
+        try {
+          await NotificationService.cancelAllShiftNotifications();
+        } catch (error) {
+          console.error("Error canceling all notifications:", error);
+        }
 
         // Hiển thị thông báo thành công
         showToast(i18n.t("work_started_success"));
@@ -290,7 +296,11 @@ const HomeScreen = () => {
         }, 500);
 
         // Hủy thông báo nhắc nhở tương ứng
-        await NotificationService.cancelRemindersByAction(action);
+        try {
+          await NotificationService.cancelNotification(action);
+        } catch (error) {
+          console.error(`Error canceling ${action} notification:`, error);
+        }
 
         // Lưu lịch sử vào thống kê
         await saveWorkActionHistory(action);
@@ -385,8 +395,8 @@ const HomeScreen = () => {
       case "completed":
         return {
           status: "completed",
-          label: i18n.t("workCompleted"),
-          icon: "checkmark-circle-outline",
+          label: "",
+          icon: "",
           color: theme.colors.completeButton,
           visible: false,
         };
@@ -408,7 +418,7 @@ const HomeScreen = () => {
           status="go_work"
           color={theme.colors.primary}
           onPress={handleSingleButtonPress}
-          disabled={workStatus === "completed"}
+          disabled={false}
         />
       );
     }
@@ -443,7 +453,38 @@ const HomeScreen = () => {
         setTodayEntries([]);
 
         // Kích hoạt lại các nhắc nhở
-        await NotificationService.rescheduleAllNotifications();
+        try {
+          if (NotificationService && typeof NotificationService.scheduleNotification === 'function') {
+            // Lấy thông tin ca làm việc
+            const currentShift = await getCurrentShift();
+            if (currentShift) {
+              const now = new Date();
+              const startTime = parse(currentShift.startWorkTime, "HH:mm", now);
+              const endTime = parse(currentShift.endWorkTime, "HH:mm", now);
+              
+              // Lên lịch thông báo cho ca làm việc
+              if (currentShift.remindBeforeWork > 0) {
+                await NotificationService.scheduleNotification(
+                  t("checkin_reminder"),
+                  t("checkin_reminder_message", { time: currentShift.startWorkTime }),
+                  { date: addMinutes(startTime, -currentShift.remindBeforeWork) },
+                  { type: "checkin", shiftId: currentShift.id }
+                );
+              }
+              
+              if (currentShift.remindAfterWork > 0) {
+                await NotificationService.scheduleNotification(
+                  t("checkout_reminder"),
+                  t("checkout_reminder_message", { time: currentShift.endWorkTime }),
+                  { date: addMinutes(endTime, -currentShift.remindAfterWork) },
+                  { type: "checkout", shiftId: currentShift.id }
+                );
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error rescheduling notifications:", error);
+        }
 
         // Hiển thị thông báo thành công
         showToast(i18n.t("reset_success"));
