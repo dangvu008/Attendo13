@@ -13,6 +13,7 @@ import {
   Image,
   StatusBar,
   Dimensions,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -1006,61 +1007,47 @@ const HomeScreen = () => {
 
   // Xử lý khi bấm nút đơn trong chế độ multi_purpose_mode = false
   const handleSingleButtonPress = async () => {
-    console.log("Single button pressed in simplified mode");
-
-    // Kiểm tra nếu nút đã bị vô hiệu hóa
-    if (
-      actionButtonDisabled ||
-      workStatus === "completed" ||
-      workStatus === "go_work"
-    ) {
-      return;
-    }
-
-    // Vô hiệu hóa nút để tránh nhấn nhiều lần
-    setActionButtonDisabled(true);
-
     try {
-      // Thêm mục "Đi làm" vào danh sách
-      const newEntry = await addWorkEntry("go_work");
+      console.log("Single button pressed in simplified mode");
 
-      if (newEntry) {
-        console.log('Đã thêm mục "Đi làm":', newEntry);
+      // Xử lý nút đơn
+      const timestamp = new Date().toISOString();
+      await addWorkEntry("go_work");
 
-        // Cập nhật danh sách
-        const updatedEntries = await getTodayEntries();
-        setTodayEntries(updatedEntries);
+      // Lưu lịch sử
+      await saveActionLog("go_work");
 
-        // Cập nhật trạng thái làm việc
-        setWorkStatus("go_work");
+      // Sử dụng hàm showToast thay vì gọi trực tiếp
+      showToast("success", t("action_saved"));
 
-        // Hiển thị nút reset
-        setShowResetButton(true);
+      // Cập nhật danh sách
+      const updatedEntries = await getTodayEntries();
+      setTodayEntries(updatedEntries);
 
-        // Hủy thông báo nhắc nhở xuất phát vì đã thực hiện
-        await NotificationService.cancelRemindersByAction("go_work");
+      // Cập nhật trạng thái làm việc
+      setWorkStatus("go_work");
 
-        // Lưu lịch sử vào thống kê
-        await saveWorkActionHistory("go_work");
+      // Hiển thị nút reset
+      setShowResetButton(true);
 
-        // Hiển thị thông báo thành công
-        Toast.show({
-          type: "success",
-          text1: t("work_started"),
-          position: "bottom",
-        });
+      // Hủy thông báo nhắc nhở xuất phát vì đã thực hiện
+      await NotificationService.cancelRemindersByAction("go_work");
 
-        // Cập nhật UI
-        await updateInfo();
-      }
+      // Lưu lịch sử vào thống kê
+      await saveWorkActionHistory("go_work");
+
+      // Hiển thị thông báo thành công
+      Toast.show({
+        type: "success",
+        text1: t("work_started"),
+        position: "bottom",
+      });
+
+      // Cập nhật UI
+      await updateInfo();
     } catch (error) {
       console.error("Lỗi khi xử lý nút đơn:", error);
-      Alert.alert(i18n.t("error"), i18n.t("action_execution_error"), [
-        { text: i18n.t("ok") },
-      ]);
-
-      // Kích hoạt lại nút trong trường hợp lỗi
-      setActionButtonDisabled(false);
+      showToast("error", t("action_error"));
     }
   };
 
@@ -1491,6 +1478,9 @@ const HomeScreen = () => {
       const success = await resetDayStatus();
 
       if (success) {
+        // Sử dụng hàm showToast thay vì gọi trực tiếp
+        showToast("success", t("reset_success"));
+
         // Cập nhật trạng thái và UI
         setWorkStatus(null);
         setTodayEntries([]);
@@ -1512,13 +1502,6 @@ const HomeScreen = () => {
             console.log("Đã khởi động lại các thông báo nhắc nhở");
           }
         }
-
-        // Hiển thị thông báo thành công
-        Toast.show({
-          type: "success",
-          text1: t("reset_success"),
-          position: "bottom",
-        });
       } else {
         // Hiển thị thông báo lỗi
         Toast.show({
@@ -1529,11 +1512,7 @@ const HomeScreen = () => {
       }
     } catch (error) {
       console.error("Lỗi khi reset trạng thái:", error);
-      Toast.show({
-        type: "error",
-        text1: t("reset_error"),
-        position: "bottom",
-      });
+      showToast("error", t("reset_error"));
     } finally {
       // Đóng modal xác nhận
       setConfirmResetVisible(false);
@@ -1971,124 +1950,129 @@ const HomeScreen = () => {
   useEffect(() => {
     const configurePushNotifications = async () => {
       try {
-        // Kiểm tra và yêu cầu quyền thông báo trước
-        const { status: existingStatus } =
-          await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
-
-        if (existingStatus !== "granted") {
-          const { status } = await Notifications.requestPermissionsAsync();
-          finalStatus = status;
-        }
-
-        if (finalStatus !== "granted") {
-          console.log("Permission not granted for notifications");
-          return;
-        }
-
-        // Cấu hình thông báo với Expo Notifications
-        await Notifications.setNotificationChannelAsync("default", {
-          name: "default",
-          importance: Notifications.AndroidImportance.HIGH,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: "#FF231F7C",
+        // Cấu hình Expo Notifications
+        await Notifications.setNotificationHandler({
+          handleNotification: async () => ({
+            shouldShowAlert: true,
+            shouldPlaySound: true,
+            shouldSetBadge: true,
+          }),
         });
 
-        // Cấu hình PushNotification
-        if (PushNotification) {
-          PushNotification.configure({
-            onRegister: function (token) {
-              console.log("TOKEN:", token);
-            },
-            onNotification: function (notification) {
-              console.log("NOTIFICATION:", notification);
+        // Yêu cầu quyền thông báo
+        if (Platform.OS !== "web") {
+          const { status: existingStatus } =
+            await Notifications.getPermissionsAsync();
+          let finalStatus = existingStatus;
 
-              // Xử lý thông báo khi nhận được
-              notification.finish(PushNotification.FetchResult.NoData);
-            },
-            onAction: function (notification) {
-              console.log("ACTION:", notification.action);
-              console.log("NOTIFICATION:", notification);
-            },
-            onRegistrationError: function (err) {
-              console.error(err.message, err);
-            },
-            permissions: {
-              alert: true,
-              badge: true,
-              sound: true,
-            },
-            popInitialNotification: true,
-            requestPermissions: true,
-          });
+          if (existingStatus !== "granted") {
+            const { status } = await Notifications.requestPermissionsAsync();
+            finalStatus = status;
+          }
 
-          // Tạo channel cho Android
-          PushNotification.createChannel(
-            {
-              channelId: "default",
-              channelName: "Default Channel",
-              channelDescription: "Default notification channel",
-              soundName: "default",
-              importance: 4,
-              vibrate: true,
-            },
-            (created) => console.log(`Channel created: ${created}`)
-          );
+          if (finalStatus !== "granted") {
+            console.log("Không có quyền thông báo!");
+            return;
+          }
+
+          // Tạo kênh thông báo cho Android
+          if (Platform.OS === "android") {
+            await Notifications.setNotificationChannelAsync("default", {
+              name: "Mặc định",
+              importance: Notifications.AndroidImportance.MAX,
+              vibrationPattern: [0, 250, 250, 250],
+              lightColor: "#FF231F7C",
+            });
+          }
         }
       } catch (error) {
-        console.error("Error configuring push notifications:", error);
+        console.error("Lỗi khi cấu hình thông báo:", error);
       }
     };
 
     configurePushNotifications();
   }, []);
 
-  // Sửa lại các hàm xử lý thông báo
+  // Sửa hàm handleCancelReminders tại khoảng dòng 2047
   const handleCancelReminders = async (action) => {
     try {
-      if (!PushNotification) {
-        console.warn("PushNotification is not initialized");
+      // Hủy tất cả thông báo
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      console.log(`Đã hủy tất cả thông báo cho hành động: ${action}`);
+    } catch (error) {
+      console.error("Lỗi khi hủy thông báo:", error);
+    }
+  };
+
+  // Sửa hàm handleScheduleNotification tại khoảng dòng 2066
+  const handleScheduleNotification = async (notificationData) => {
+    try {
+      if (!notificationData || !notificationData.minutes) {
+        console.warn("Dữ liệu thông báo không hợp lệ");
         return;
       }
 
-      // Hủy thông báo theo action
-      await new Promise((resolve) => {
-        PushNotification.cancelAllLocalNotifications();
-        resolve();
+      // Sử dụng addMinutes từ date-fns
+      const scheduledTime = addMinutes(new Date(), notificationData.minutes);
+
+      // Lên lịch thông báo sử dụng Expo Notifications
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: notificationData.title || "Nhắc nhở",
+          body: notificationData.message || "Bạn có một thông báo mới",
+          data: notificationData.data || {},
+        },
+        trigger: {
+          date: scheduledTime,
+        },
       });
 
-      console.log(`Cancelled reminders for action: ${action}`);
+      console.log(
+        `Đã lên lịch thông báo cho: ${scheduledTime.toLocaleString()}`
+      );
     } catch (error) {
-      console.error("Error canceling reminders:", error);
+      console.error("Lỗi khi lên lịch thông báo:", error);
     }
   };
 
-  const handleScheduleNotification = async (notificationData) => {
-    try {
-      if (PushNotification) {
-        // Nếu bạn đã import thư viện date-fns
-        const scheduledTime = addMinutes(
-          new Date(),
-          notificationData.minutes || 0
+  // Thêm hàm showToast tự định nghĩa
+  const showToast = (type, message1, message2 = "") => {
+    Toast.show({
+      type: type || "info",
+      text1: message1 || "",
+      text2: message2 || "",
+      position: "bottom",
+      visibilityTime: 4000,
+    });
+  };
+
+  // Sửa xử lý sự kiện chạm trong HomeScreen
+  useEffect(() => {
+    // Hàm xử lý lỗi chạm
+    const fixTouchIssues = () => {
+      if (Platform.OS === "web") {
+        // Fix cho lỗi "Cannot record touch end without a touch start" trên web
+        document.addEventListener(
+          "touchend",
+          (e) => {
+            if (!e.target || !e.target._reactEvents) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          },
+          true
         );
-
-        // Hoặc nếu bạn sử dụng helper function
-        // const scheduledTime = addMinutesToDate(new Date(), notificationData.minutes || 0);
-
-        await PushNotification.localNotificationSchedule({
-          channelId: "default",
-          title: notificationData.title || t("notification_title"),
-          message: notificationData.message || t("notification_message"),
-          date: scheduledTime,
-          userInfo: notificationData.userInfo || {},
-        });
-      } else {
-        console.warn("PushNotification is not initialized");
       }
-    } catch (error) {
-      console.error("Error scheduling notification:", error);
-    }
-  };
+    };
+
+    fixTouchIssues();
+
+    return () => {
+      if (Platform.OS === "web") {
+        document.removeEventListener("touchend", fixTouchIssues, true);
+      }
+    };
+  }, []);
 
   return (
     <SafeAreaView
