@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useShift } from "../context/ShiftContext";
 import { useTheme } from "../context/ThemeContext";
 import { useLocalization } from "../context/LocalizationContext";
+import TimePicker from "../components/TimePicker";
 
 const ShiftScreen = () => {
   const {
