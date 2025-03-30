@@ -1,0 +1,578 @@
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+  TextInput,
+  Alert,
+  TouchableWithoutFeedback,
+  FlatList,
+  Image,
+  StatusBar,
+  Dimensions,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  Ionicons,
+  MaterialIcons,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
+import {
+  format,
+  differenceInMinutes,
+  differenceInHours,
+  isToday,
+  parseISO,
+  addDays,
+  startOfWeek,
+  isBefore,
+  differenceInMilliseconds,
+  parse,
+} from "date-fns";
+import { vi } from "../utils/viLocale";
+import { enUS } from "date-fns/locale/en-US";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
+
+// Contexts & Services
+import { useTheme } from "../context/ThemeContext";
+import { useLocalization } from "../context/LocalizationContext";
+import i18n from "../i18n";
+import { NotificationService } from "../services/NotificationService";
+import * as AppSettingsStorage from "../storage/AppSettingsStorage";
+import MultiActionButton from "../components/MultiActionButton";
+import WeeklyStatusGrid from "../components/WeeklyStatusGrid";
+import AddNoteModal from "../components/AddNoteModal";
+import NoteItem from "../components/NoteItem";
+
+const HomeScreen = () => {
+  const { theme, isDarkMode } = useTheme();
+  const { t, locale, changeLocale } = useLocalization();
+  const navigation = useNavigation();
+
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [isAddNoteModalVisible, setIsAddNoteModalVisible] = useState(false);
+  const [selectedNote, setSelectedNote] = useState(null);
+  const [actionButtonDisabled, setActionButtonDisabled] = useState(false);
+  const [confirmResetVisible, setConfirmResetVisible] = useState(false);
+  const [confirmActionVisible, setConfirmActionVisible] = useState(false);
+  const [nextAction, setNextAction] = useState(null);
+  const [currentReminders, setCurrentReminders] = useState([]);
+  const [todayEntries, setTodayEntries] = useState([]);
+  const [confirmMessage, setConfirmMessage] = useState("");
+  const [workStatus, setWorkStatus] = useState(null);
+  const [checkInStatus, setCheckInStatus] = useState("normal"); // 'normal', 'late'
+  const [checkOutStatus, setCheckOutStatus] = useState("normal"); // 'normal', 'early'
+  const [workDayStatus, setWorkDayStatus] = useState("full"); // 'full', 'rv', 'absent'
+  const [shiftInfo, setShiftInfo] = useState(null);
+  const [weeklyStatus, setWeeklyStatus] = useState({});
+  const [statusDetails, setStatusDetails] = useState({});
+  const [notes, setNotes] = useState([]);
+  const [actionHistory, setActionHistory] = useState([]);
+  const [actionLogs, setActionLogs] = useState([]);
+  const [multiActionButtonEnabled, setMultiActionButtonEnabled] =
+    useState(true);
+
+  // Lấy thông tin nhắc nhở hiện tại
+  // Load multi-action button state
+  useEffect(() => {
+    const loadMultiActionState = async () => {
+      const state = await AppSettingsStorage.getMultiPurposeMode();
+      setMultiActionButtonEnabled(state);
+    };
+    loadMultiActionState();
+  }, []);
+
+  useEffect(() => {
+    const loadReminders = async () => {
+      try {
+        const reminders = await NotificationService.getScheduledNotifications();
+        if (reminders) {
+          const remindersList = Object.values(reminders);
+          setCurrentReminders(remindersList);
+        }
+      } catch (error) {
+        console.error("Error loading reminders:", error);
+      }
+    };
+
+    loadReminders();
+
+    // Cập nhật mỗi 1 phút
+    const intervalId = setInterval(loadReminders, 60000);
+    return () => clearInterval(intervalId);
+  }, [loadActionLogs]);
+
+  // Cập nhật đồng hồ mỗi giây
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [getActionButton]);
+
+  // Thêm một mục mới vào trạng thái làm việc
+  const addWorkEntry = async (status) => {
+    try {
+      const entry = {
+        id: Date.now().toString(),
+        status,
+        timestamp: new Date().toISOString(),
+      };
+
+      // Lấy danh sách hiện tại
+      const entriesJson = await AsyncStorage.getItem("workEntries");
+      const entries = entriesJson ? JSON.parse(entriesJson) : [];
+
+      // Thêm mục mới
+      entries.push(entry);
+
+      // Lưu lại
+      await AsyncStorage.setItem("workEntries", JSON.stringify(entries));
+
+      return entry;
+    } catch (error) {
+      console.error("Lỗi khi thêm mục vào trạng thái làm việc:", error);
+      return null;
+    }
+  };
+
+  // Lấy danh sách mục của ngày hôm nay
+  const getTodayEntries = async () => {
+    try {
+      const entriesJson = await AsyncStorage.getItem("workEntries");
+      const entries = entriesJson ? JSON.parse(entriesJson) : [];
+
+      // Lọc chỉ lấy các mục của ngày hôm nay
+      return entries.filter((entry) => isToday(parseISO(entry.timestamp)));
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách mục của ngày hôm nay:", error);
+      return [];
+    }
+  };
+
+  // Reset trạng thái làm việc của ngày hôm nay
+  const resetDayStatus = async () => {
+    try {
+      const entriesJson = await AsyncStorage.getItem("workEntries");
+      let entries = entriesJson ? JSON.parse(entriesJson) : [];
+
+      // Lọc bỏ các mục của ngày hôm nay
+      entries = entries.filter((entry) => !isToday(parseISO(entry.timestamp)));
+
+      // Lưu lại
+      await AsyncStorage.setItem("workEntries", JSON.stringify(entries));
+
+      return true;
+    } catch (error) {
+      console.error("Lỗi khi reset trạng thái của ngày hôm nay:", error);
+      return false;
+    }
+  };
+
+  // Xử lý hành động từ nút đa năng
+  const handleActionButtonPress = () => {
+    console.log("Action pressed:", actionButton.status);
+
+    // Vô hiệu hóa nút để tránh nhấn nhiều lần
+    setActionButtonDisabled(true);
+
+    // Lấy hành động từ trạng thái nút
+    const action = actionButton.status;
+
+    // Kiểm tra nếu hành động đã hoàn thành
+    if (action === "completed") {
+      setActionButtonDisabled(false);
+      return;
+    }
+
+    // Đặt nextAction
+    setNextAction(action);
+
+    // Kiểm tra nếu cần xác nhận (kiểm tra thời gian)
+    const needsConfirmation = shouldShowConfirmation(action);
+    if (needsConfirmation) {
+      setConfirmActionVisible(true);
+    } else {
+      // Nếu không cần xác nhận, thực hiện hành động ngay lập tức
+      performAction(action);
+    }
+  };
+
+  // Xử lý khi bấm nút đơn trong chế độ multi_purpose_mode = false
+  const handleSingleButtonPress = async () => {
+    console.log("Single button pressed");
+
+    // Vô hiệu hóa nút để tránh nhấn nhiều lần
+    setActionButtonDisabled(true);
+
+    try {
+      // Thêm mục "Đi làm" vào danh sách
+      const newEntry = await addWorkEntry("go_work");
+
+      if (newEntry) {
+        console.log('Đã thêm mục "Đi làm":', newEntry);
+
+        // Cập nhật danh sách
+        const updatedEntries = await getTodayEntries();
+        setTodayEntries(updatedEntries);
+
+        // Cập nhật trạng thái làm việc
+        setWorkStatus("check_in");
+
+        // Thêm mục "Chấm công vào" vào danh sách
+        const checkInEntry = await addWorkEntry("check_in");
+        if (checkInEntry) {
+          console.log('Đã tự động thêm mục "Chấm công vào":', checkInEntry);
+        }
+
+        // Hủy tất cả các thông báo nhắc nhở
+        await NotificationService.cancelAllShiftNotifications();
+
+        // Hiển thị thông báo thành công
+        showToast(i18n.t("work_started_success"));
+
+        // Lưu lịch sử vào thống kê
+        await saveWorkActionHistory("go_work");
+        await saveWorkActionHistory("check_in");
+
+        // Cập nhật UI
+        await updateInfo();
+      }
+    } catch (error) {
+      console.error("Lỗi khi xử lý nút đơn:", error);
+      Alert.alert(i18n.t("error"), i18n.t("action_execution_error"), [
+        { text: i18n.t("ok") },
+      ]);
+    } finally {
+      // Đặt lại nút để có thể sử dụng lại
+      setTimeout(() => {
+        setActionButtonDisabled(false);
+      }, 500);
+    }
+  };
+
+  // Thực hiện hành động
+  const executeAction = async (action) => {
+    let success = false;
+
+    try {
+      console.log(`Đang thực hiện hành động: ${action}`);
+
+      // Lưu lịch sử bấm nút ngay khi bắt đầu thực hiện hành động
+      await saveActionLog(action);
+
+      // Xử lý theo loại hành động
+      if (action === "go_work") {
+        success = await handleGoWork();
+      } else if (action === "check_in") {
+        success = await handleCheckIn();
+      } else if (action === "check_out") {
+        success = await handleCheckOut();
+      } else if (action === "complete") {
+        success = await handleComplete();
+      }
+
+      if (success) {
+        // Cập nhật giao diện người dùng
+        await updateInfo();
+
+        // Đặt lại nút để có thể sử dụng lại
+        setTimeout(() => {
+          setActionButtonDisabled(false);
+        }, 500);
+
+        // Hủy thông báo nhắc nhở tương ứng
+        await NotificationService.cancelRemindersByAction(action);
+
+        // Lưu lịch sử vào thống kê
+        await saveWorkActionHistory(action);
+      } else {
+        setActionButtonDisabled(false);
+      }
+    } catch (error) {
+      console.error("Lỗi khi thực hiện hành động:", error);
+      Alert.alert(i18n.t("error"), i18n.t("action_execution_error"), [
+        { text: i18n.t("ok") },
+      ]);
+      setActionButtonDisabled(false);
+    } finally {
+      // Đóng dialog xác nhận nếu đang mở
+      setConfirmActionVisible(false);
+    }
+  };
+
+  // Lưu lịch sử hành động vào thống kê
+  const saveWorkActionHistory = async (action) => {
+    try {
+      // Lấy thời gian hiện tại
+      const now = new Date();
+      const today = format(now, "yyyy-MM-dd");
+
+      // Tạo đối tượng lịch sử hành động
+      const actionHistory = {
+        action,
+        timestamp: now.toISOString(),
+        weekNumber: getWeekNumber(now),
+        month: format(now, "MM-yyyy"),
+      };
+
+      // Lấy lịch sử hành động hiện có
+      const historyJson = await AsyncStorage.getItem("workActionHistory");
+      let history = historyJson ? JSON.parse(historyJson) : [];
+
+      // Thêm hành động mới vào lịch sử
+      history.push(actionHistory);
+
+      // Lưu lịch sử cập nhật
+      await AsyncStorage.setItem("workActionHistory", JSON.stringify(history));
+      console.log(`Đã lưu lịch sử hành động: ${action}`);
+
+      // Cập nhật thống kê tuần/tháng
+      await updateWorkStatistics(action, now);
+
+      return true;
+    } catch (error) {
+      console.error("Lỗi khi lưu lịch sử hành động:", error);
+      return false;
+    }
+  };
+
+  // Hàm xác định nút hành động dựa vào trạng thái hiện tại
+  const getActionButton = () => {
+    switch (workStatus) {
+      case null:
+      case "inactive":
+        return {
+          status: "go_work",
+          label: i18n.t("goToWork"),
+          icon: "briefcase-outline",
+          color: theme.colors.goWorkButton,
+          visible: true,
+        };
+      case "go_work":
+        return {
+          status: "check_in",
+          label: i18n.t("checkIn"),
+          icon: "log-in-outline",
+          color: theme.colors.checkInButton,
+          visible: true,
+        };
+      case "check_in":
+        return {
+          status: "check_out",
+          label: i18n.t("checkOut"),
+          icon: "log-out-outline",
+          color: theme.colors.checkOutButton,
+          visible: true,
+        };
+      case "check_out":
+        return {
+          status: "complete",
+          label: i18n.t("complete"),
+          icon: "checkmark-done-outline",
+          color: theme.colors.completeButton,
+          visible: true,
+        };
+      case "complete":
+      case "completed":
+        return {
+          status: "completed",
+          label: i18n.t("workCompleted"),
+          icon: "checkmark-circle-outline",
+          color: theme.colors.completeButton,
+          visible: false,
+        };
+      default:
+        return {
+          status: "go_work",
+          label: i18n.t("goToWork"),
+          icon: "briefcase-outline",
+          color: theme.colors.goWorkButton,
+          visible: true,
+        };
+    }
+  };
+
+  const renderActionButton = () => {
+    if (!multiActionButtonEnabled) {
+      return (
+        <MultiActionButton
+          status="go_work"
+          color={theme.colors.primary}
+          onPress={handleSingleButtonPress}
+          disabled={workStatus === "completed"}
+        />
+      );
+    }
+
+    // Return the appropriate multi-action button based on current status
+    return getActionButton();
+  };
+
+  const actionButton = getActionButton();
+
+  // Nút reset chỉ hiển thị sau khi bấm "Đi làm" và trước khi hoàn thành
+  const showResetButton =
+    workStatus !== null &&
+    workStatus !== "completed" &&
+    workStatus !== "complete";
+
+  // Xử lý reset work status
+  const handleResetPress = () => {
+    // Hiển thị modal xác nhận
+    setConfirmResetVisible(true);
+  };
+
+  // Xử lý xác nhận reset
+  const handleResetConfirm = async () => {
+    try {
+      // Reset trạng thái làm việc của ngày hôm nay
+      const success = await resetDayStatus();
+
+      if (success) {
+        // Cập nhật trạng thái và UI
+        setWorkStatus(null);
+        setTodayEntries([]);
+
+        // Kích hoạt lại các nhắc nhở
+        await NotificationService.rescheduleAllNotifications();
+
+        // Hiển thị thông báo thành công
+        showToast(i18n.t("reset_success"));
+      } else {
+        // Hiển thị thông báo lỗi
+        Alert.alert(i18n.t("error"), i18n.t("reset_error"));
+      }
+    } catch (error) {
+      console.error("Lỗi khi reset trạng thái:", error);
+      Alert.alert(i18n.t("error"), i18n.t("reset_error"));
+    } finally {
+      // Đóng modal xác nhận
+      setConfirmResetVisible(false);
+    }
+  };
+
+  return (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
+      <StatusBar
+        barStyle={isDarkMode ? "light-content" : "dark-content"}
+        backgroundColor={theme.colors.background}
+      />
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={[
+            styles.languageButton,
+            { backgroundColor: theme.colors.surface },
+          ]}
+          onPress={() => changeLocale(locale === "vi" ? "en" : "vi")}
+        >
+          <Text style={[styles.languageText, { color: theme.colors.text }]}>
+            {locale === "vi" ? "EN" : "VI"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Vùng thông tin thời gian */}
+        <View style={styles.timeInfoSection}>
+          <View style={styles.timeDisplayContainer}>
+            <Text style={styles.timeDisplay}>
+              {format(currentTime, "HH:mm", {
+                locale: i18n.locale === "vi" ? vi : enUS,
+              })}
+            </Text>
+            <Text
+              style={[
+                styles.dateDisplay,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              {formatDate(currentTime)}
+            </Text>
+          </View>
+
+          {shiftInfo && (
+            <View
+              style={[
+                styles.shiftInfoContainer,
+                { backgroundColor: theme.colors.surface },
+              ]}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={20}
+                color={theme.colors.primary}
+              />
+              <Text style={[styles.shiftName, { color: theme.colors.primary }]}>
+                {shiftInfo.name}
+              </Text>
+              <Text
+                style={[
+                  styles.shiftTime,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
+                {formatShiftTime(shiftInfo.startTime)} →{" "}
+                {formatShiftTime(shiftInfo.endTime)}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Nút đa năng */}
+        <View style={styles.multiActionSection}>
+          <View style={styles.buttonContainer}>
+            {multiActionButtonEnabled ? (
+              // Render the full multi-action button when enabled
+              actionButton.visible && (
+                <MultiActionButton
+                  status={actionButton.status}
+                  label={actionButton.label}
+                  iconName={actionButton.icon}
+                  color={actionButton.color}
+                  onPress={handleActionButtonPress}
+                  disabled={
+                    actionButtonDisabled || actionButton.status === "completed"
+                  }
+                />
+              )
+            ) : (
+              // Render simple "Go to work" button when disabled
+              <MultiActionButton
+                status="go_work"
+                color={theme.colors.primary}
+                onPress={handleSingleButtonPress}
+                disabled={workStatus === "completed"}
+              />
+            )}
+
+            {/* Nút reset - chỉ hiển thị sau khi bấm "Đi Làm" và trước khi hoàn thành */}
+            {showResetButton && (
+              <TouchableOpacity
+                style={styles.resetButton}
+                onPress={handleResetPress}
+              >
+                <Ionicons
+                  name="refresh-outline"
+                  size={24}
+                  color={theme.colors.resetButton}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+export default HomeScreen;

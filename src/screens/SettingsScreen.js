@@ -11,6 +11,7 @@ import {
   TouchableWithoutFeedback,
 } from "react-native";
 import * as AppSettingsStorage from "../storage/AppSettingsStorage";
+import * as MultiActionButtonStorage from "../storage/MultiActionButtonStorage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Ionicons,
@@ -45,7 +46,8 @@ const SettingsScreen = () => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedShift, setSelectedShift] = useState(null);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
-  const [multiActionButtonEnabled, setMultiActionButtonEnabled] = useState(true);
+  const [multiActionButtonEnabled, setMultiActionButtonEnabled] =
+    useState(true);
   const [multiPurposeModeEnabled, setMultiPurposeModeEnabled] = useState(true);
 
   // Load notification settings
@@ -63,10 +65,15 @@ const SettingsScreen = () => {
         setNotificationVibration(settings.vibration);
         setReminderType(settings.reminderType);
         setNotificationsEnabled(settings.enabled);
-        
-        // Load multi-action button setting
-        const multiActionValue = await AppSettingsStorage.getMultiPurposeMode();
-        setMultiActionButtonEnabled(multiActionValue);
+
+        // Load multi-action button setting from MultiActionButtonStorage
+        try {
+          const multiActionValue = await MultiActionButtonStorage.loadMultiActionButtonState();
+          setMultiActionButtonEnabled(multiActionValue !== null ? multiActionValue : true);
+        } catch (error) {
+          console.error("Error loading multi-action button state:", error);
+          setMultiActionButtonEnabled(true); // Default to true on error
+        }
 
         // Load multi-purpose mode setting
         const multiPurposeMode = await AppSettingsStorage.getMultiPurposeMode();
@@ -95,9 +102,11 @@ const SettingsScreen = () => {
         };
 
         await NotificationService.saveNotificationSettings(settings);
-        
+
         // Save multi-action button setting
-        await AppSettingsStorage.setMultiPurposeMode(multiActionButtonEnabled);
+        await MultiActionButtonStorage.saveMultiActionButtonState(
+          multiActionButtonEnabled
+        );
 
         // Schedule or cancel reminders based on settings
         if (notificationsEnabled && reminderType !== "none" && currentShift) {
@@ -137,7 +146,7 @@ const SettingsScreen = () => {
   };
 
   const handleToggleMultiActionButton = () => {
-    setMultiActionButtonEnabled(prev => !prev);
+    setMultiActionButtonEnabled((prev) => !prev);
   };
 
   const handleToggleMultiPurposeMode = async () => {
@@ -528,6 +537,25 @@ const SettingsScreen = () => {
               trackColor={{ false: "#767577", true: theme.colors.primaryLight }}
               thumbColor={
                 multiPurposeModeEnabled ? theme.colors.primary : "#f4f3f4"
+              }
+              ios_backgroundColor="#3e3e3e"
+            />
+          )}
+
+          {renderSettingItem(
+            <MaterialIcons
+              name="touch-app"
+              size={20}
+              color={theme.colors.primary}
+            />,
+            t("multi_action_button"),
+            t("multi_action_button_description"),
+            <Switch
+              value={multiActionButtonEnabled}
+              onValueChange={handleToggleMultiActionButton}
+              trackColor={{ false: "#767577", true: theme.colors.primaryLight }}
+              thumbColor={
+                multiActionButtonEnabled ? theme.colors.primary : "#f4f3f4"
               }
               ios_backgroundColor="#3e3e3e"
             />

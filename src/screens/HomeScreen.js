@@ -936,6 +936,59 @@ const HomeScreen = () => {
     }
   };
 
+  // Xử lý khi bấm nút đơn trong chế độ multi_purpose_mode = false
+  const handleSingleButtonPress = async () => {
+    console.log("Single button pressed");
+
+    // Vô hiệu hóa nút để tránh nhấn nhiều lần
+    setActionButtonDisabled(true);
+
+    try {
+      // Thêm mục "Đi làm" vào danh sách
+      const newEntry = await addWorkEntry("go_work");
+
+      if (newEntry) {
+        console.log('Đã thêm mục "Đi làm":', newEntry);
+
+        // Cập nhật danh sách
+        const updatedEntries = await getTodayEntries();
+        setTodayEntries(updatedEntries);
+
+        // Cập nhật trạng thái làm việc
+        setWorkStatus("check_in");
+
+        // Thêm mục "Chấm công vào" vào danh sách
+        const checkInEntry = await addWorkEntry("check_in");
+        if (checkInEntry) {
+          console.log('Đã tự động thêm mục "Chấm công vào":', checkInEntry);
+        }
+
+        // Hủy tất cả các thông báo nhắc nhở
+        await NotificationService.cancelAllShiftNotifications();
+
+        // Hiển thị thông báo thành công
+        showToast(i18n.t("work_started_success"));
+
+        // Lưu lịch sử vào thống kê
+        await saveWorkActionHistory("go_work");
+        await saveWorkActionHistory("check_in");
+
+        // Cập nhật UI
+        await updateInfo();
+      }
+    } catch (error) {
+      console.error("Lỗi khi xử lý nút đơn:", error);
+      Alert.alert(i18n.t("error"), i18n.t("action_execution_error"), [
+        { text: i18n.t("ok") },
+      ]);
+    } finally {
+      // Đặt lại nút để có thể sử dụng lại
+      setTimeout(() => {
+        setActionButtonDisabled(false);
+      }, 500);
+    }
+  };
+
   // Thực hiện hành động
   const executeAction = async (action) => {
     let success = false;
