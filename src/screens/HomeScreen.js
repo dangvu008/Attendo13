@@ -39,6 +39,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
+import PushNotification from "react-native-push-notification"; // Thêm import này nếu chưa có
 
 // Contexts & Services
 import { useTheme } from "../context/ThemeContext";
@@ -1931,6 +1932,50 @@ const HomeScreen = () => {
     const unsubscribe = navigation.addListener("focus", loadCurrentShift);
     return unsubscribe;
   }, [navigation]);
+
+  // Thêm đoạn này vào đầu component hoặc trong constructor
+  useEffect(() => {
+    PushNotification.configure({
+      // Cấu hình cơ bản
+      onRegister: function (token) {
+        console.log("TOKEN:", token);
+      },
+      onNotification: function (notification) {
+        console.log("NOTIFICATION:", notification);
+      },
+      permissions: {
+        alert: true,
+        badge: true,
+        sound: true,
+      },
+      popInitialNotification: true,
+    });
+  }, []);
+
+  // Sửa lại các hàm xử lý notification
+  const handleCancelReminders = async (action) => {
+    try {
+      if (PushNotification) {
+        await PushNotification.cancelRemindersByAction(action);
+      } else {
+        console.warn("PushNotification is not initialized");
+      }
+    } catch (error) {
+      console.error("Error canceling reminders:", error);
+    }
+  };
+
+  const handleScheduleNotification = async (notificationData) => {
+    try {
+      if (PushNotification) {
+        await PushNotification.scheduleNotification(notificationData);
+      } else {
+        console.warn("PushNotification is not initialized");
+      }
+    } catch (error) {
+      console.error("Error scheduling notification:", error);
+    }
+  };
 
   return (
     <SafeAreaView

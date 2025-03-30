@@ -1,0 +1,92 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have toNgữ cảnh và mục tiêu:
+
+Dự án là ứng dụng Attendo (React Native, Expo – chạy trên snack.expo.dev).
+
+Mục tiêu cập nhật: Khi người dùng chỉ cần bấm nút "Đi Làm" (theo chế độ tắt các chức năng check_in, check_out) thì ứng dụng vẫn phải:
+
+Lưu dữ liệu bấm nút (với thông tin thời gian và trạng thái "Hoàn tất") vào database/AsyncStorage.
+
+Hiển thị lịch sử bấm nút chỉ gồm "Đi Làm" và "Hoàn tất" (nếu có) và loại bỏ dữ liệu bấm nút khác.
+
+Sau khi bấm "Hoàn tất", nút đa năng chuyển sang trạng thái disabled và hiển thị nút Reset nhỏ ở góc.
+
+Nút Reset cho phép người dùng đặt lại trạng thái ngày làm việc, reset lại dữ liệu làm việc (và kích hoạt lại các nhắc nhở).
+
+Các yêu cầu cụ thể:
+
+Logic Nút Đa Năng:
+
+Nếu chế độ “Chỉ Đi Làm” được bật (multi_purpose_mode = true):
+
+Nút đa năng chỉ hiển thị chức năng “Đi Làm”.
+
+Khi bấm nút “Đi Làm”, ứng dụng lưu thời gian bấm, tự động đánh dấu trạng thái là “Hoàn tất” và tính công đầy đủ cho ngày đó (theo ca làm việc hiện tại).
+
+Các trạng thái check_in/check_out (nếu có) sẽ bị loại bỏ khỏi lịch sử.
+
+Nếu chế độ bình thường (multi_purpose_mode = false):
+
+Nút đa năng hiển thị đầy đủ các trạng thái (Đi Làm, Check-in, Check-out, Hoàn tất) theo logic ban đầu.
+
+Xử lý Sau Khi Hoàn Tất:
+
+Sau khi người dùng bấm nút “Hoàn tất” (dù trong chế độ chỉ “Đi Làm” hay đầy đủ trạng thái):
+
+Nút đa năng chuyển sang trạng thái disabled, không cho bấm lại.
+
+Hiển thị nút Reset nhỏ ở góc của nút đa năng.
+
+Lịch sử bấm nút hiển thị thông tin thời gian bấm nút (chỉ những thao tác liên quan đến “Đi Làm” và “Hoàn tất” trong chế độ chỉ “Đi Làm”).
+
+Dữ liệu bấm nút khác (nếu có) sẽ được xoá/ẩn.
+
+Dữ liệu được lưu vào bảng work_log (với thông tin thời gian, trạng thái làm việc được tính đúng – đủ công, vào muộn, tăng ca,…).
+
+Nút Reset:
+
+Nút Reset (hiển thị nhỏ ở góc nút đa năng) chỉ xuất hiện sau khi người dùng bấm nút “Đi Làm”.
+
+Khi bấm Reset, hiển thị hộp thoại xác nhận.
+
+Nếu xác nhận, reset lại trạng thái làm việc của ngày hiện tại:
+
+Nút đa năng trở về trạng thái ban đầu ("Đi Làm").
+
+Các nhắc nhở trong ngày được kích hoạt lại.
+
+Dữ liệu lịch sử bấm nút của ngày đó được xóa hoặc reset.
+
+Yêu cầu về giao diện và đồng bộ dữ liệu:
+
+Giao diện HomeScreen cần cập nhật trạng thái nút đa năng theo giá trị multi_purpose_mode từ AsyncStorage.
+
+Cập nhật dữ liệu cài đặt trong AsyncStorage và đồng bộ với bảng app_settings (nếu có upgrade backend).
+
+Kiểm tra và đảm bảo rằng khi chuyển đổi giữa các chế độ, giao diện được cập nhật ngay lập tức (ví dụ: ẩn/hiện các trạng thái nút không cần thiết).
+
+Lịch sử bấm nút hiển thị đến khi ca làm việc mới được áp dụng hoặc cho đến khi người dùng reset.
+
+Quy tắc về kiểm tra và bảo trì:
+
+Đảm bảo các thao tác bấm nút và reset hoạt động mượt mà, không gây lỗi UI.
+
+Xử lý đầy đủ các trường hợp sai lệch (ví dụ: thời gian bấm không đủ khoảng cách quy định, lỗi lưu dữ liệu).
+
+Viết unit test cho các chức năng liên quan đến nút đa năng và chức năng reset.
+
+Cấu trúc dữ liệu liên quan (dữ liệu mẫu):
+
+app_settings: Phải chứa trường multi_purpose_mode để xác định chế độ nút đa năng.
+
+work_log: Lưu lại các thông tin bấm nút với timestamp và trạng thái làm việc được tính (đủ công, vào muộn, tăng ca,…). Trong chế độ chỉ "Đi Làm", chỉ lưu dữ liệu liên quan đến thao tác đó.
+
+AsyncStorage: Lưu trữ cài đặt và ca làm việc hiện tại.
