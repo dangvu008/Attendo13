@@ -2418,10 +2418,14 @@ const HomeScreen = () => {
       <Toast />
     </SafeAreaView>
   );
-};
+}; // Đảm bảo đã đóng ngoặc nhọn và có dấu chấm phẩy ở đây
 
 // Styles
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+  },
   languageButton: {
     padding: 8,
     borderRadius: 8,
@@ -2437,9 +2441,6 @@ const styles = StyleSheet.create({
     width: "100%",
     position: "relative",
     height: 60,
-  },
-  container: {
-    flex: 1,
   },
   scrollContent: {
     padding: 16,
@@ -2534,22 +2535,23 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   resetButton: {
-    position: "absolute",
-    right: -10,
-    top: -10,
-    backgroundColor: "white",
-    borderRadius: 20,
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
+    position: 'absolute',
+    right: 5,
+    bottom: 5,
+    backgroundColor: '#eeeeee',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: "#ddd",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   currentStatusText: {
     marginTop: 2,
@@ -2760,6 +2762,11 @@ const styles = StyleSheet.create({
   },
 });
 
+export default HomeScreen;
+
+    shadowColor: "#4285F4",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
     shadowRadius: 4,
     elevation: 5,
   },
