@@ -1076,6 +1076,12 @@ const HomeScreen = () => {
 
         // Lưu lịch sử vào thống kê
         await saveWorkActionHistory(action);
+
+        // Nếu là hành động hoàn tất, vô hiệu hóa nút
+        if (action === "complete") {
+          setActionButtonDisabled(true);
+          setShowResetButton(true);
+        }
       } else {
         setActionButtonDisabled(false);
       }
