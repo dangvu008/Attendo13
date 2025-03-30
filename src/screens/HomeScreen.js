@@ -39,13 +39,13 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
-import PushNotification from "react-native-push-notification"; // Thêm import này nếu chưa có
+import PushNotification from "react-native-push-notification";
 
 // Contexts & Services
 import { useTheme } from "../context/ThemeContext";
 import { useLocalization } from "../context/LocalizationContext";
 import i18n from "../i18n";
-import { NotificationService } from "../services/NotificationService";
+import * as NotificationService from "../services/NotificationService";
 import * as AppSettingsStorage from "../storage/AppSettingsStorage";
 import MultiActionButton from "../components/MultiActionButton";
 import WeeklyStatusGrid from "../components/WeeklyStatusGrid";

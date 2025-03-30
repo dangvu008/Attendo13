@@ -44,7 +44,7 @@ import Constants from "expo-constants";
 import { useTheme } from "../context/ThemeContext";
 import { useLocalization } from "../context/LocalizationContext";
 import i18n from "../i18n";
-import * as NotificationService from "../services/NotificationService";
+import NotificationService from "../services/NotificationService";
 import * as AppSettingsStorage from "../storage/AppSettingsStorage";
 import MultiActionButton from "../components/MultiActionButton";
 import WeeklyStatusGrid from "../components/WeeklyStatusGrid";
