@@ -41,7 +41,7 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import PushNotification from "react-native-push-notification";
-import Toast from 'react-native-toast-message';
+import Toast from "react-native-toast-message";
 
 // Contexts & Services
 import { useTheme } from "../context/ThemeContext";
@@ -554,9 +554,9 @@ const HomeScreen = () => {
           // Nếu đi làm sớm, không cần hiển thị thông báo
           if (now < startTime) {
             Toast.show({
-              type: 'success',
-              text1: t('early_departure_success'),
-              position: 'bottom'
+              type: "success",
+              text1: t("early_departure_success"),
+              position: "bottom",
             });
           }
         }
@@ -612,9 +612,9 @@ const HomeScreen = () => {
             const minutesLate = differenceInMinutes(now, startTime);
             if (minutesLate > 5) {
               Toast.show({
-                type: 'warning',
-                text1: t('late_check_in_warning'),
-                position: 'bottom'
+                type: "warning",
+                text1: t("late_check_in_warning"),
+                position: "bottom",
               });
 
               // Cập nhật trạng thái là "RV" (vào muộn)
@@ -677,9 +677,9 @@ const HomeScreen = () => {
             const minutesEarly = differenceInMinutes(endTime, now);
             if (minutesEarly > 5) {
               Toast.show({
-                type: 'warning',
-                text1: t('early_check_out_warning'),
-                position: 'bottom'
+                type: "warning",
+                text1: t("early_check_out_warning"),
+                position: "bottom",
               });
 
               // Cập nhật trạng thái là "RV" (ra sớm)
@@ -741,9 +741,9 @@ const HomeScreen = () => {
 
         // Hiển thị thông báo
         Toast.show({
-          type: 'success',
-          text1: t('work_completed_success'),
-          position: 'bottom'
+          type: "success",
+          text1: t("work_completed_success"),
+          position: "bottom",
         });
 
         return true;
@@ -1045,9 +1045,9 @@ const HomeScreen = () => {
 
         // Hiển thị thông báo thành công
         Toast.show({
-          type: 'success',
-          text1: t('work_started'),
-          position: 'bottom'
+          type: "success",
+          text1: t("work_started"),
+          position: "bottom",
         });
 
         // Cập nhật UI
@@ -1515,24 +1515,24 @@ const HomeScreen = () => {
 
         // Hiển thị thông báo thành công
         Toast.show({
-          type: 'success',
-          text1: t('reset_success'),
-          position: 'bottom'
+          type: "success",
+          text1: t("reset_success"),
+          position: "bottom",
         });
       } else {
         // Hiển thị thông báo lỗi
         Toast.show({
-          type: 'error',
-          text1: t('reset_error'),
-          position: 'bottom'
+          type: "error",
+          text1: t("reset_error"),
+          position: "bottom",
         });
       }
     } catch (error) {
       console.error("Lỗi khi reset trạng thái:", error);
       Toast.show({
-        type: 'error',
-        text1: t('reset_error'),
-        position: 'bottom'
+        type: "error",
+        text1: t("reset_error"),
+        position: "bottom",
       });
     } finally {
       // Đóng modal xác nhận
@@ -2067,23 +2067,26 @@ const HomeScreen = () => {
     try {
       if (PushNotification) {
         // Nếu bạn đã import thư viện date-fns
-        const scheduledTime = addMinutes(new Date(), notificationData.minutes || 0);
-        
+        const scheduledTime = addMinutes(
+          new Date(),
+          notificationData.minutes || 0
+        );
+
         // Hoặc nếu bạn sử dụng helper function
         // const scheduledTime = addMinutesToDate(new Date(), notificationData.minutes || 0);
-        
+
         await PushNotification.localNotificationSchedule({
-          channelId: 'default',
-          title: notificationData.title || t('notification_title'),
-          message: notificationData.message || t('notification_message'),
+          channelId: "default",
+          title: notificationData.title || t("notification_title"),
+          message: notificationData.message || t("notification_message"),
           date: scheduledTime,
           userInfo: notificationData.userInfo || {},
         });
       } else {
-        console.warn('PushNotification is not initialized');
+        console.warn("PushNotification is not initialized");
       }
     } catch (error) {
-      console.error('Error scheduling notification:', error);
+      console.error("Error scheduling notification:", error);
     }
   };
 
@@ -2443,10 +2446,16 @@ const HomeScreen = () => {
         editNote={selectedNote}
         theme={theme}
       />
+      <AddNoteModal
+        visible={isAddNoteModalVisible}
+        onClose={() => setIsAddNoteModalVisible(false)}
+        onSave={handleSaveNote}
+        editNote={selectedNote}
+        theme={theme}
+      />
+      {/* Thêm Toast Container ở cuối component */}
+      <Toast />
     </SafeAreaView>
-    
-    {/* Thêm Toast Container ở cuối component */}
-    <Toast />
   );
 };
 
@@ -2789,8 +2798,3 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
 });
-
-export default HomeScreen;
-
-
-export default HomeScreen;
