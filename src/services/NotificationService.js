@@ -16,9 +16,9 @@ Notifications.setNotificationHandler({
   handleNotification: async () => {
     const settings = await getNotificationSettings();
     return {
-      shouldShowAlert: true,
+    shouldShowAlert: true,
       shouldPlaySound: settings.soundEnabled,
-      shouldSetBadge: true,
+    shouldSetBadge: true,
     };
   },
 });
@@ -76,9 +76,9 @@ export const getNotificationSettings = async () => {
       soundEnabled: true,
       vibrationEnabled: true,
       // Giữ lại các cài đặt khác
-      enabled: true,
+          enabled: true,
       reminderType: "default",
-    };
+        };
   } catch (error) {
     console.error("Error getting notification settings:", error);
     return {

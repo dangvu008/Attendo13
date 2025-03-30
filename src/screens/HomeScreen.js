@@ -33,7 +33,7 @@ import {
   parse,
 } from "date-fns";
 import { vi } from "../utils/viLocale";
-import { enUS } from "date-fns/locale";
+import { enUS } from "date-fns/locale/en-US";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -490,15 +490,23 @@ const HomeScreen = () => {
   };
 
   // Xác nhận hành động từ popup
-  const confirmAction = () => {
-    // Đóng popup xác nhận
-    setConfirmActionVisible(false);
+  const confirmAction = async () => {
+    try {
+      // Đóng popup xác nhận
+      setConfirmActionVisible(false);
 
-    if (nextAction) {
-      // Thực hiện hành động đã được xác nhận
-      performAction(nextAction);
+      if (nextAction) {
+        // Thực hiện hành động đã được xác nhận
+        await executeAction(nextAction);
 
-      // Đặt lại nextAction để tránh xung đột
+        // Đặt lại nextAction để tránh xung đột
+        setNextAction(null);
+      }
+    } catch (error) {
+      console.error("Lỗi khi xác nhận công việc:", error);
+      Alert.alert(i18n.t("error"), i18n.t("action_execution_error"), [
+        { text: i18n.t("ok") },
+      ]);
       setNextAction(null);
     }
   };
