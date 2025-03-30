@@ -2161,30 +2161,18 @@ const HomeScreen = () => {
         {/* Nút đa năng */}
         <View style={styles.multiActionSection}>
           <View style={styles.buttonContainer}>
-            {multiActionButtonEnabled ? (
-              // Chế độ nút đa năng: hiển thị một nút duy nhất thay đổi theo trạng thái
-              <MultiActionButton
-                status={actionButton.status}
-                label={actionButton.label}
-                iconName={actionButton.icon}
-                color={actionButton.color}
-                onPress={handleActionButtonPress}
-                disabled={
-                  actionButtonDisabled || actionButton.status === "completed"
-                }
-              />
-            ) : (
-              // Khi tắt chế độ nút đa năng, chỉ hiển thị nút "Đi làm" duy nhất
-              <MultiActionButton
-                status="go_work"
-                label={i18n.t("goToWork")}
-                iconName="briefcase-outline"
-                color={theme.colors.goWorkButton}
-                onPress={handleSingleButtonPress}
-                disabled={actionButtonDisabled || workStatus === "completed"}
-              />
+            {renderActionButton()}
+            ) : ( // Khi tắt chế độ nút đa năng, chỉ hiển thị nút "Đi làm" duy
+            nhất
+            <MultiActionButton
+              status="go_work"
+              label={i18n.t("goToWork")}
+              iconName="briefcase-outline"
+              color={theme.colors.goWorkButton}
+              onPress={handleSingleButtonPress}
+              disabled={actionButtonDisabled || workStatus === "completed"}
+            />
             )}
-
             {/* Nút reset - hiển thị sau khi bấm "Đi Làm" và sau khi hoàn thành */}
             {showResetButton && (
               <TouchableOpacity
