@@ -12,7 +12,7 @@ export const vi = {
   check_out: "Giờ ra",
   regular_hours: "Giờ làm việc",
   checked_out: "Đã hoàn thành",
-  checked_in: "Đã chấm công vào", // Added the missing translation here
+  checked_in: "Đã chấm công vào",
 
   // Tabs navigation
   home: "Trang chủ",
@@ -27,6 +27,9 @@ export const vi = {
   checkOut: "Check Out",
   complete: "Hoàn thành",
   current: "Hiện tại",
+  go_work: "Đi làm",
+  check_in: "Check In",
+  check_out: "Check Out",
 
   // Status messages
   working: "Đang làm việc",
@@ -233,6 +236,14 @@ export const vi = {
   notification_before_5_min: "Trước 5 phút",
   notification_before_15_min: "Trước 15 phút",
   notification_before_30_min: "Trước 30 phút",
+  reminderTime: "Thời gian nhắc nhở",
+  reminder_time: "Thời gian nhắc nhở",
+  no_reminder: "Không nhắc nhở",
+  reminder_type: "Loại nhắc nhở",
+  reminderTime: "Thời gian nhắc nhở",
+  reminder_time: "Thời gian nhắc nhở",
+  no_reminder: "Không nhắc nhở",
+  reminder_type: "Loại nhắc nhở",
 
   // Statistics
   monthlyStats: "Thống kê tháng",
@@ -488,6 +499,9 @@ export const en = {
   checkOut: "Check Out",
   complete: "Complete",
   current: "Current",
+  go_work: "Go to Work",
+  check_in: "Check In",
+  check_out: "Check Out",
   work_completed: "Work Completed",
 
   // Status messages
@@ -607,7 +621,7 @@ export const en = {
   notes_edit_note: "Edit Note",
   no_notes: "No notes yet",
   no_notes_yet: "No notes yet",
-  add_new_note_hint: "Press + button to add a new note",
+  add_new_note_hint: "Press Add button to create a new note",
   noteTitle: "Title",
   noteContent: "Content",
   note: "Note",
@@ -629,6 +643,15 @@ export const en = {
   notes_tag_personal: "Personal",
   notes_tag_important: "Important",
   notes_tag_urgent: "Urgent",
+  max_title_chars: "Maximum 100 characters",
+  max_content_chars: "Maximum 300 characters",
+  show_on_days: "Select days of week",
+  work_notes: "Work Notes",
+  search: "Search",
+  delete_note_confirm: "Are you sure you want to delete this note?",
+  delete_note_error: "Could not delete note",
+  continue_editing: "Continue editing",
+  exit: "Exit"
   notes_reminder_date: "Reminder Date",
   notes_reminder_time: "Reminder Time",
 
