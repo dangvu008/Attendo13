@@ -33,7 +33,7 @@ import {
   parse,
 } from "date-fns";
 import { vi } from "../utils/viLocale";
-import { enUS } from "date-fns/locale/en-US";
+import { enUS } from "date-fns/locale";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -83,8 +83,15 @@ const HomeScreen = () => {
   // Load multi-action button state
   useEffect(() => {
     const loadMultiActionState = async () => {
-      const state = await AppSettingsStorage.getMultiPurposeMode();
-      setMultiActionButtonEnabled(state);
+      try {
+        // Ưu tiên lấy từ MultiActionButtonStorage để đảm bảo tính nhất quán
+        const state =
+          await MultiActionButtonStorage.loadMultiActionButtonState();
+        setMultiActionButtonEnabled(state !== null ? state : true);
+      } catch (error) {
+        console.error("Error loading multi-action button state:", error);
+        setMultiActionButtonEnabled(true); // Default to true on error
+      }
     };
     loadMultiActionState();
   }, []);

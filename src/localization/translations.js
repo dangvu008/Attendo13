@@ -64,6 +64,9 @@ export const vi = {
   confirmCheckOut: "Xác nhận check out?",
   confirmComplete: "Xác nhận hoàn thành ca làm việc?",
   confirmReset: "Xác nhận đặt lại trạng thái của hôm nay?",
+  confirm_reset: "Xác nhận đặt lại",
+  reset_confirmation_message:
+    "Bạn có chắc chắn muốn đặt lại trạng thái làm việc không?",
   confirm_reset_today:
     "Bạn có chắc chắn muốn đặt lại trạng thái làm việc hôm nay không?",
   confirm_apply_shift: "Bạn có chắc chắn muốn áp dụng ca làm việc này không?",
@@ -404,9 +407,15 @@ export const vi = {
   no_history_today: "Chưa có hoạt động nào hôm nay",
   work_started: "Đã bắt đầu làm việc",
 
-  // Add these translation keys inside your Vietnamese translations object
+  // Cài đặt nút đa năng
   multi_action_button: "Nút đa thao tác",
   multi_action_button_description: "Bật theo dõi chấm công từng bước",
+  multi_purpose_mode: "Chế độ nút đa năng",
+  multi_purpose_mode_description:
+    "Bật chế độ nút đa năng để theo dõi quá trình chấm công từng bước",
+  confirm_reset: "Xác nhận đặt lại",
+  reset_confirmation_message:
+    "Bạn có chắc chắn muốn đặt lại trạng thái làm việc không?",
 };
 
 export const en = {
@@ -489,14 +498,21 @@ export const en = {
   workHistory: "Work History",
 
   // Time status
-  late_check_in_warning: "You are late! Your work hours today may be reduced.",
+  late_check_in_warning: "You are late! Your work hours may be reduced.",
   early_check_out_warning:
-    "You are leaving early! Your work hours today may be reduced.",
+    "You are leaving early! Your work hours may be reduced.",
   must_go_work_first_message:
-    'You need to tap "Go to Work" before checking in.',
+    'You need to press "Go to Work" before checking in.',
   must_check_in_first_message: "You need to check in before checking out.",
   must_check_out_first_message:
     "You need to check out before completing your shift.",
+
+  // Multi-purpose mode settings
+  multi_purpose_mode: "Multi-purpose Button Mode",
+  multi_purpose_mode_description:
+    "Enable multi-purpose button mode to track check-in process step by step",
+  confirm_reset: "Confirm Reset",
+  reset_confirmation_message: "Are you sure you want to reset the work status?",
 
   // Work hours summary
   work_hours_summary: "Work Hours Summary",

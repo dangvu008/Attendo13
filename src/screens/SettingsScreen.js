@@ -68,8 +68,16 @@ const SettingsScreen = () => {
 
         // Load multi-action button setting from MultiActionButtonStorage
         try {
-          const multiActionValue = await MultiActionButtonStorage.loadMultiActionButtonState();
-          setMultiActionButtonEnabled(multiActionValue !== null ? multiActionValue : true);
+          const multiActionValue =
+            await MultiActionButtonStorage.loadMultiActionButtonState();
+          setMultiActionButtonEnabled(
+            multiActionValue !== null ? multiActionValue : true
+          );
+
+          // Đồng bộ giá trị với AppSettingsStorage
+          await AppSettingsStorage.setMultiPurposeMode(
+            multiActionValue !== null ? multiActionValue : true
+          );
         } catch (error) {
           console.error("Error loading multi-action button state:", error);
           setMultiActionButtonEnabled(true); // Default to true on error
@@ -145,15 +153,15 @@ const SettingsScreen = () => {
     setNotificationVibration((prev) => !prev);
   };
 
-  const handleToggleMultiActionButton = () => {
-    setMultiActionButtonEnabled((prev) => !prev);
-  };
+  const handleToggleMultiActionButton = async () => {
+    const newValue = !multiActionButtonEnabled;
+    setMultiActionButtonEnabled(newValue);
 
-  const handleToggleMultiPurposeMode = async () => {
-    const newValue = !multiPurposeModeEnabled;
-    setMultiPurposeModeEnabled(newValue);
+    // Đồng bộ giá trị với AppSettingsStorage
     await AppSettingsStorage.setMultiPurposeMode(newValue);
   };
+
+  // Đã hợp nhất với handleToggleMultiActionButton
 
   const handleSelectShift = (shift) => {
     setCurrentShift(shift);
@@ -531,25 +539,6 @@ const SettingsScreen = () => {
             />,
             t("multi_purpose_mode"),
             t("multi_purpose_mode_description"),
-            <Switch
-              value={multiPurposeModeEnabled}
-              onValueChange={handleToggleMultiPurposeMode}
-              trackColor={{ false: "#767577", true: theme.colors.primaryLight }}
-              thumbColor={
-                multiPurposeModeEnabled ? theme.colors.primary : "#f4f3f4"
-              }
-              ios_backgroundColor="#3e3e3e"
-            />
-          )}
-
-          {renderSettingItem(
-            <MaterialIcons
-              name="touch-app"
-              size={20}
-              color={theme.colors.primary}
-            />,
-            t("multi_action_button"),
-            t("multi_action_button_description"),
             <Switch
               value={multiActionButtonEnabled}
               onValueChange={handleToggleMultiActionButton}
