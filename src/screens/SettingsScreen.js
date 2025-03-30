@@ -174,19 +174,22 @@ const SettingsScreen = () => {
     // Đồng bộ giá trị với AppSettingsStorage
     await AppSettingsStorage.setMultiPurposeMode(newValue);
 
-    // Nếu bật chế độ nút đa năng, hủy tất cả thông báo
-    if (newValue) {
+    // Xử lý thông báo nhắc nhở dựa trên trạng thái mới
+    if (!newValue) {
+      // Nếu tắt chế độ nút đa năng, hủy tất cả thông báo
       await NotificationService.cancelAllShiftNotifications();
+      console.log("Tắt chế độ nút đa năng, đã hủy tất cả thông báo");
     } else if (
       notificationsEnabled &&
       reminderType !== "none" &&
       currentShift
     ) {
-      // Nếu tắt chế độ nút đa năng và thông báo được bật, lên lịch lại thông báo
+      // Nếu bật chế độ nút đa năng và thông báo được bật, lên lịch lại thông báo
       await NotificationService.scheduleShiftReminders(
         currentShift,
         reminderType
       );
+      console.log("Bật chế độ nút đa năng, đã lên lịch lại thông báo");
     }
   };
 

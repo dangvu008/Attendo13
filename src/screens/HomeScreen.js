@@ -961,7 +961,7 @@ const HomeScreen = () => {
 
   // Xử lý khi bấm nút đơn trong chế độ multi_purpose_mode = false
   const handleSingleButtonPress = async () => {
-    console.log("Single button pressed");
+    console.log("Single button pressed in simplified mode");
 
     // Vô hiệu hóa nút để tránh nhấn nhiều lần
     setActionButtonDisabled(true);
@@ -978,23 +978,26 @@ const HomeScreen = () => {
         setTodayEntries(updatedEntries);
 
         // Cập nhật trạng thái làm việc
-        setWorkStatus("check_in");
+        setWorkStatus("completed");
 
-        // Thêm mục "Chấm công vào" vào danh sách
-        const checkInEntry = await addWorkEntry("check_in");
-        if (checkInEntry) {
-          console.log('Đã tự động thêm mục "Chấm công vào":', checkInEntry);
-        }
+        // Tự động hoàn tất tất cả các bước làm việc
+        await addWorkEntry("check_in");
+        await addWorkEntry("check_out");
+        await addWorkEntry("complete");
+
+        console.log("Tự động hoàn tất tất cả các bước làm việc");
 
         // Hủy tất cả các thông báo nhắc nhở
         await NotificationService.cancelAllShiftNotifications();
 
         // Hiển thị thông báo thành công
-        showToast(i18n.t("work_started_success"));
+        showToast(i18n.t("work_completed_automatically"));
 
         // Lưu lịch sử vào thống kê
         await saveWorkActionHistory("go_work");
         await saveWorkActionHistory("check_in");
+        await saveWorkActionHistory("check_out");
+        await saveWorkActionHistory("complete");
 
         // Cập nhật UI
         await updateInfo();
@@ -1440,8 +1443,19 @@ const HomeScreen = () => {
         setWorkStatus(null);
         setTodayEntries([]);
 
-        // Kích hoạt lại các nhắc nhở
-        await NotificationService.rescheduleAllNotifications();
+        // Nếu multi_purpose_mode = true, cần kích hoạt lại các nhắc nhở
+        if (multiActionButtonEnabled) {
+          // Lấy thông tin ca làm việc hiện tại
+          const shiftData = await getCurrentShift();
+          if (shiftData) {
+            // Lên lịch lại tất cả các thông báo nhắc nhở
+            await NotificationService.scheduleShiftReminders(
+              shiftData,
+              await NotificationService.loadReminderType()
+            );
+            console.log("Đã khởi động lại các thông báo nhắc nhở");
+          }
+        }
 
         // Hiển thị thông báo thành công
         showToast(i18n.t("reset_success"));
@@ -1817,59 +1831,15 @@ const HomeScreen = () => {
                 />
               )
             ) : (
-              // Chế độ nút riêng lẻ: hiển thị các nút riêng biệt dựa trên trạng thái
-              <View style={styles.multipleButtonsContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.singleActionButton,
-                    { backgroundColor: theme.colors.goWorkButton },
-                  ]}
-                  onPress={() => {
-                    setNextAction("go_work");
-                    performAction("go_work");
-                  }}
-                  disabled={workStatus !== null || actionButtonDisabled}
-                >
-                  <Ionicons name="briefcase-outline" size={24} color="#fff" />
-                  <Text style={styles.singleActionButtonText}>
-                    {i18n.t("goToWork")}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.singleActionButton,
-                    { backgroundColor: theme.colors.checkInButton },
-                  ]}
-                  onPress={() => {
-                    setNextAction("check_in");
-                    performAction("check_in");
-                  }}
-                  disabled={workStatus !== "go_work" || actionButtonDisabled}
-                >
-                  <Ionicons name="log-in-outline" size={24} color="#fff" />
-                  <Text style={styles.singleActionButtonText}>
-                    {i18n.t("checkIn")}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.singleActionButton,
-                    { backgroundColor: theme.colors.checkOutButton },
-                  ]}
-                  onPress={() => {
-                    setNextAction("check_out");
-                    performAction("check_out");
-                  }}
-                  disabled={workStatus !== "check_in" || actionButtonDisabled}
-                >
-                  <Ionicons name="log-out-outline" size={24} color="#fff" />
-                  <Text style={styles.singleActionButtonText}>
-                    {i18n.t("checkOut")}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              // Khi tắt chế độ nút đa năng, chỉ hiển thị nút "Đi làm" duy nhất
+              <MultiActionButton
+                status="go_work"
+                label={i18n.t("goToWork")}
+                iconName="briefcase-outline"
+                color={theme.colors.goWorkButton}
+                onPress={handleSingleButtonPress}
+                disabled={actionButtonDisabled || workStatus === "completed"}
+              />
             )}
 
             {/* Nút reset - chỉ hiển thị sau khi bấm "Đi Làm" và trước khi hoàn thành */}

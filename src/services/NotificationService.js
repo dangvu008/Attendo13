@@ -502,6 +502,17 @@ export const cancelRemindersByAction = async (action) => {
   }
 };
 
+// Load reminder type from settings
+export const loadReminderType = async () => {
+  try {
+    const settings = await getNotificationSettings();
+    return settings.reminderType || "default";
+  } catch (error) {
+    console.error("Error loading reminder type:", error);
+    return "default";
+  }
+};
+
 // Clean up expired notifications from storage
 export const cleanupExpiredNotifications = async () => {
   try {
@@ -569,4 +580,5 @@ export default {
   scheduleEndShiftReminder,
   scheduleShiftReminders,
   cancelRemindersByAction,
+  loadReminderType,
 };
