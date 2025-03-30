@@ -224,7 +224,7 @@ const ShiftScreen = () => {
     Alert.alert(t("confirm"), t("save_shift_confirm"), [
       { text: t("cancel"), style: "cancel" },
       {
-        text: t("save"),
+        text: t("confirm"),
         onPress: async () => {
           let success = false;
           if (editingShift) {
@@ -393,7 +393,7 @@ const ShiftScreen = () => {
           <View style={styles.timeItem}>
             <Ionicons
               name="time-outline"
-              size={20}
+              size={16}
               color={theme.colors.primary}
             />
             <Text
@@ -460,20 +460,18 @@ const ShiftScreen = () => {
                 { backgroundColor: theme.colors.primary },
               ]}
               onPress={() => handleApplyShift(item)}
-              accessibilityLabel={t("apply")}
             >
-              <Ionicons name="checkmark-circle" size={24} color="#fff" />
+              <Ionicons name="checkmark-circle" size={20} color="#fff" />
             </TouchableOpacity>
           )}
 
           <TouchableOpacity
             style={[styles.actionButton, { borderColor: theme.colors.primary }]}
             onPress={() => handleEditShift(item)}
-            accessibilityLabel={t("edit")}
           >
             <Ionicons
               name="create-outline"
-              size={18}
+              size={16}
               color={theme.colors.primary}
             />
           </TouchableOpacity>
@@ -481,11 +479,10 @@ const ShiftScreen = () => {
           <TouchableOpacity
             style={[styles.actionButton, { borderColor: theme.colors.error }]}
             onPress={() => handleDeleteShift(item.id)}
-            accessibilityLabel={t("delete")}
           >
             <Ionicons
               name="trash-outline"
-              size={18}
+              size={16}
               color={theme.colors.error}
             />
           </TouchableOpacity>
@@ -526,7 +523,6 @@ const ShiftScreen = () => {
       <TouchableOpacity
         style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
         onPress={handleAddShift}
-        accessibilityLabel={t("add_shift")}
       >
         <Ionicons name="add" size={24} color="#fff" />
       </TouchableOpacity>
@@ -551,7 +547,6 @@ const ShiftScreen = () => {
               <TouchableOpacity
                 onPress={() => setModalVisible(false)}
                 style={styles.closeButton}
-                accessibilityLabel={t("cancel")}
               >
                 <Ionicons name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
@@ -800,23 +795,20 @@ const ShiftScreen = () => {
                       ? "rgba(255, 255, 255, 0.1)"
                       : "#f5f5f5",
                     borderColor: theme.colors.border,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    width: 48,
-                    height: 48,
-                    borderRadius: 24,
-                    alignSelf: "center",
-                    marginVertical: 16,
                   },
                 ]}
                 onPress={handleResetShiftForm}
-                accessibilityLabel={t("reset")}
               >
                 <Ionicons
                   name="refresh-outline"
-                  size={24}
+                  size={20}
                   color={theme.colors.text}
                 />
+                <Text
+                  style={[styles.resetButtonText, { color: theme.colors.text }]}
+                >
+                  {t("reset")}
+                </Text>
               </TouchableOpacity>
             </ScrollView>
 
@@ -827,18 +819,26 @@ const ShiftScreen = () => {
                   styles.cancelButton,
                   {
                     borderColor: theme.colors.border,
-                    justifyContent: "center",
+                    flexDirection: "row",
                     alignItems: "center",
+                    paddingHorizontal: 20,
                   },
                 ]}
                 onPress={() => setModalVisible(false)}
-                accessibilityLabel={t("cancel")}
               >
                 <Ionicons
                   name="close-circle-outline"
-                  size={28}
+                  size={24}
                   color={theme.colors.text}
                 />
+                <Text
+                  style={[
+                    styles.cancelButtonText,
+                    { color: theme.colors.text, marginLeft: 8, fontSize: 16 },
+                  ]}
+                >
+                  {t("cancel_shift_button")}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -847,14 +847,22 @@ const ShiftScreen = () => {
                   styles.saveButton,
                   {
                     backgroundColor: theme.colors.primary,
-                    justifyContent: "center",
+                    flexDirection: "row",
                     alignItems: "center",
+                    paddingHorizontal: 20,
                   },
                 ]}
                 onPress={handleSaveShift}
-                accessibilityLabel={t("save")}
               >
-                <Ionicons name="save-outline" size={28} color="#fff" />
+                <Ionicons name="save-outline" size={24} color="#fff" />
+                <Text
+                  style={[
+                    styles.saveButtonText,
+                    { marginLeft: 8, fontSize: 16 },
+                  ]}
+                >
+                  {t("save_shift_button")}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -886,7 +894,6 @@ const ShiftScreen = () => {
                   </Text>
                   <TouchableOpacity
                     onPress={() => setDisplayReminderOptions(false)}
-                    accessibilityLabel={t("cancel")}
                   >
                     <Ionicons
                       name="close"
@@ -1006,17 +1013,13 @@ const styles = StyleSheet.create({
   applyButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 4,
     marginRight: 8,
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
   },
   actionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
@@ -1154,20 +1157,17 @@ const styles = StyleSheet.create({
   footerButton: {
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 4,
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    margin: 5,
-    maxWidth: 60,
-    height: 60,
   },
   cancelButton: {
-    borderWidth: 1,
     borderColor: "#ccc",
   },
   saveButton: {
     backgroundColor: "#6200ee",
+    marginLeft: 8,
   },
   cancelButtonText: {
     color: "#666",

@@ -519,6 +519,14 @@ const HomeScreen = () => {
         // Cập nhật trạng thái làm việc
         setWorkStatus("go_work");
 
+        // Hiển thị nút reset khi bấm "Đi làm"
+        setShowResetButton(true);
+
+        // Vô hiệu hóa nút đa năng nếu chế độ "chỉ bấm đi làm" đang bật
+        if (!multiActionButtonEnabled) {
+          setActionButtonDisabled(true);
+        }
+
         // Hủy thông báo nhắc nhở xuất phát vì đã thực hiện
         await NotificationService.cancelRemindersByAction("go_work");
 
@@ -973,6 +981,15 @@ const HomeScreen = () => {
   const handleSingleButtonPress = async () => {
     console.log("Single button pressed in simplified mode");
 
+    // Kiểm tra nếu nút đã bị vô hiệu hóa
+    if (
+      actionButtonDisabled ||
+      workStatus === "completed" ||
+      workStatus === "go_work"
+    ) {
+      return;
+    }
+
     // Vô hiệu hóa nút để tránh nhấn nhiều lần
     setActionButtonDisabled(true);
 
@@ -988,35 +1005,19 @@ const HomeScreen = () => {
         setTodayEntries(updatedEntries);
 
         // Cập nhật trạng thái làm việc
-        setWorkStatus("completed");
+        setWorkStatus("go_work");
 
-        // Tự động hoàn tất tất cả các bước làm việc
-        await addWorkEntry("check_in");
-        await addWorkEntry("check_out");
-        await addWorkEntry("complete");
-
-        console.log("Tự động hoàn tất tất cả các bước làm việc");
-
-        // Hủy tất cả các thông báo nhắc nhở
-        await NotificationService.cancelAllShiftNotifications();
-
-        // Lưu lịch sử làm việc (work_log)
-        await saveWorkLog();
-
-        // Tính toán giờ công
-        await calculateAndSaveWorkHours();
-
-        // Hiển thị nút reset nhỏ ở góc của nút đa năng
+        // Hiển thị nút reset
         setShowResetButton(true);
 
-        // Hiển thị thông báo thành công
-        showToast(i18n.t("work_completed_automatically"));
+        // Hủy thông báo nhắc nhở xuất phát vì đã thực hiện
+        await NotificationService.cancelRemindersByAction("go_work");
 
         // Lưu lịch sử vào thống kê
         await saveWorkActionHistory("go_work");
-        await saveWorkActionHistory("check_in");
-        await saveWorkActionHistory("check_out");
-        await saveWorkActionHistory("complete");
+
+        // Hiển thị thông báo thành công
+        showToast(i18n.t("work_started"));
 
         // Cập nhật UI
         await updateInfo();
@@ -1026,11 +1027,9 @@ const HomeScreen = () => {
       Alert.alert(i18n.t("error"), i18n.t("action_execution_error"), [
         { text: i18n.t("ok") },
       ]);
-    } finally {
-      // Đặt lại nút để có thể sử dụng lại
-      setTimeout(() => {
-        setActionButtonDisabled(false);
-      }, 500);
+
+      // Kích hoạt lại nút trong trường hợp lỗi
+      setActionButtonDisabled(false);
     }
   };
 
@@ -1459,6 +1458,10 @@ const HomeScreen = () => {
         setWorkStatus(null);
         setTodayEntries([]);
 
+        // Đặt lại trạng thái của nút đa năng và nút reset
+        setActionButtonDisabled(false);
+        setShowResetButton(false);
+
         // Nếu multi_purpose_mode = true, cần kích hoạt lại các nhắc nhở
         if (multiActionButtonEnabled) {
           // Lấy thông tin ca làm việc hiện tại
@@ -1495,7 +1498,7 @@ const HomeScreen = () => {
         <Text
           style={[styles.emptyListText, { color: theme.colors.textSecondary }]}
         >
-          {i18n.t("no_history")}
+          {i18n.t("no_history_today")}
         </Text>
       );
     }
@@ -1505,8 +1508,20 @@ const HomeScreen = () => {
       (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
     );
 
+    // Lọc các mục dựa vào chế độ nút đa năng
+    let filteredEntries;
+    if (!multiActionButtonEnabled) {
+      // Chỉ hiển thị thời gian bấm "Đi làm" và "Hoàn thành" (nếu có)
+      filteredEntries = sortedEntries.filter(
+        (entry) => entry.status === "go_work" || entry.status === "complete"
+      );
+    } else {
+      // Hiển thị tất cả các mục
+      filteredEntries = sortedEntries;
+    }
+
     // Lấy 3 mục gần nhất
-    const recentEntries = sortedEntries.slice(0, 3);
+    const recentEntries = filteredEntries.slice(0, 3);
 
     return (
       <View style={styles.actionHistoryContainer}>
@@ -1517,7 +1532,9 @@ const HomeScreen = () => {
               size={16}
               color={getColorForStatus(entry.status, theme)}
             />
-            <Text style={styles.actionHistoryText}>
+            <Text
+              style={[styles.actionHistoryText, { color: theme.colors.text }]}
+            >
               {getActionName(entry.status)}:{" "}
               {format(parseISO(entry.timestamp), "HH:mm")}
             </Text>
@@ -2329,7 +2346,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10,
+    position: "relative",
   },
   multiActionButton: {
     width: 180,
@@ -2376,20 +2393,21 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     position: "absolute",
-    right: -15,
-    top: -15,
+    right: -10,
+    top: -10,
+    backgroundColor: "white",
+    borderRadius: 20,
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
-    elevation: 5,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    zIndex: 10,
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#ddd",
   },
   currentStatusText: {
     marginTop: 2,
@@ -2590,9 +2608,13 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   resetButtonHighlighted: {
-    backgroundColor: "#fff",
-    borderWidth: 2,
-    borderColor: "#ddd",
+    backgroundColor: "#f0f8ff",
+    borderColor: "#4285F4",
+    shadowColor: "#4285F4",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 5,
   },
 });
 

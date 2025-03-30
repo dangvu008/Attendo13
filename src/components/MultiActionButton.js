@@ -3,7 +3,7 @@ import { TouchableOpacity, Text, StyleSheet, View, Animated } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import i18n from '../i18n';
 
-const MultiActionButton = ({ status, label, iconName, color, onPress, disabled, showResetButton, onResetPress }) => {
+const MultiActionButton = ({ status, label, iconName, color, onPress, disabled }) => {
   // Animation effect for urgent statuses
   const isUrgent = status === 'check_in' || status === 'check_out';
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -111,16 +111,7 @@ const MultiActionButton = ({ status, label, iconName, color, onPress, disabled, 
         </Animated.View>
       </TouchableOpacity>
       
-      {/* Nút reset nhỏ ở góc */}
-      {showResetButton && (
-        <TouchableOpacity 
-          style={styles.resetButton}
-          onPress={onResetPress}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="refresh-outline" size={18} color="#fff" />
-        </TouchableOpacity>
-      )}  
+  
     </View>
   );
 };
@@ -161,22 +152,7 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.6,
   },
-  resetButton: {
-    position: 'absolute',
-    bottom: 5,
-    right: 5,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#FF5722',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-  },
+
 });
 
 export default MultiActionButton;

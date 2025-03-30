@@ -31,6 +31,7 @@ export const vi = {
   check_in: "Check In",
   check_out: "Check Out",
   work_started: "Đã bắt đầu làm việc",
+  work_completed: "Đã hoàn thành công việc",
 
   // Status messages
   working: "Đang làm việc",
@@ -473,6 +474,7 @@ export const en = {
   check_in: "Check In",
   check_out: "Check Out",
   work_started: "Work started",
+  work_completed: "Completed",
 
   // Status messages
   working: "Working",
