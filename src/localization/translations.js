@@ -133,6 +133,8 @@ export const vi = {
   confirm: "Xác nhận",
   reset: "Đặt lại",
   apply: "Áp dụng",
+  cancel_shift_button: "Hủy",
+  save_shift_button: "Lưu",
 
   // Notes
   notes_title: "Ghi chú công việc",
@@ -253,10 +255,13 @@ export const vi = {
   totalHours: "Tổng số giờ",
 
   // Shifts
-  shifts_title: "Danh sách ca làm việc",
-  no_shifts: "Chưa có ca làm việc nào",
-  new_shift: "Thêm ca làm việc mới",
+  shifts_title: "Quản lý ca làm việc",
   edit_shift: "Chỉnh sửa ca làm việc",
+  add_shift: "Thêm ca làm việc",
+  no_shifts: "Chưa có ca làm việc nào",
+  show_sign_button: "Hiển thị nút chấm công",
+  sign_button_hint:
+    "Hiển thị nút chấm công trên màn hình chính khi ca làm việc này được áp dụng",
   shift_name: "Tên ca làm việc",
   shift_name_placeholder: "Nhập tên ca làm việc",
   character_count: "ký tự",
@@ -443,51 +448,11 @@ export const en = {
   // Time and Date
   date: "Date",
   day_of_week: "Day of Week",
-  check_in: "Check In Time",
-  check_out: "Check Out Time",
-  regular_hours: "Regular Hours",
+  check_in: "Check In",
+  check_out: "Check Out",
+  regular_hours: "Work Hours",
   checked_out: "Completed",
-
-  // Work history
-  workHistory: "Work History",
-  currentStatus: "Current Status",
-  statusIdle: "Not Started",
-  statusWorking: "Working",
-  statusCheckedIn: "Checked In",
-  statusCheckedOut: "Checked Out",
-  statusCompleted: "Completed",
-  no_history_today: "No activity today",
-  // Common
-  appName: "Attendo13",
-
-  // Shifts
-  shifts_title: "Work Shifts",
-  currently_applied: "Currently Applied",
-  shifts_title: "Shift List",
-  no_shifts: "No shifts available",
-  new_shift: "Add New Shift",
-  edit_shift: "Edit Shift",
-  shift_name: "Shift Name",
-  shift_name_placeholder: "Enter shift name",
-  character_count: "characters",
-  shift_name_required: "Shift name is required",
-  shift_name_special_chars: "Shift name cannot contain special characters",
-  shift_name_max_length: "Shift name cannot exceed 200 characters",
-  shift_name_duplicate: "Shift name already exists",
-  shift_times_required: "Start and end times are required",
-  shift_duplicate: "This shift already exists",
-  save_shift: "Save Shift",
-  save_shift_confirm: "Are you sure you want to save this shift?",
-  save_shift_error: "Error saving shift",
-  delete_shift_confirm: "Are you sure you want to delete this shift?",
-  shift_applied: "Shift applied successfully",
-  reset_confirm: "Are you sure you want to reset all changes?",
-  set_as_active: "Set as current shift",
-  manage_shifts: "Manage Shifts",
-
-  // History
-  no_history: "No History",
-  not_started_yet: "Not Started Yet",
+  checked_in: "Checked In",
 
   // Tabs navigation
   home: "Home",
@@ -497,66 +462,66 @@ export const en = {
   stats: "Statistics",
 
   // Work status
-  goToWork: "Go to Work",
+  goToWork: "Go To Work",
   checkIn: "Check In",
   checkOut: "Check Out",
   complete: "Complete",
   current: "Current",
-  go_work: "Go to Work",
+  go_work: "Go To Work",
   check_in: "Check In",
   check_out: "Check Out",
-  work_completed: "Work Completed",
 
   // Status messages
   working: "Working",
-  not_started: "Not started",
-  gone_to_work: "Gone to work",
-  clocked_in: "Clocked in",
-  clocked_out: "Clocked out",
-  action_history: "Action history",
+  not_started: "Not Started",
+  gone_to_work: "Gone to Work",
+  clocked_in: "Clocked In",
+  clocked_out: "Clocked Out",
+  checked_out: "Completed",
+  action_history: "Action History",
   no_history_today: "No activity today",
   workHistory: "Work History",
 
   // Time status
-  late_check_in_warning: "You are late! Your work hours may be reduced.",
+  late_check_in_warning: "You're late! Today's work hours may be reduced.",
   early_check_out_warning:
-    "You are leaving early! Your work hours may be reduced.",
+    "You're leaving early! Today's work hours may be reduced.",
   must_go_work_first_message:
-    'You need to press "Go to Work" before checking in.',
+    'You need to press "Go To Work" before checking in.',
   must_check_in_first_message: "You need to check in before checking out.",
   must_check_out_first_message:
     "You need to check out before completing your shift.",
 
-  // Multi-purpose mode settings
-  multi_purpose_mode: "Multi-purpose Button Mode",
-  multi_purpose_mode_description:
-    "Enable multi-purpose button mode to track check-in process step by step",
-  confirm_reset: "Confirm Reset",
-  reset_confirmation_message: "Are you sure you want to reset the work status?",
-
   // Work hours summary
   work_hours_summary: "Work Hours Summary",
   work_status: "Work Status",
-  work_status_full: "Full Hours (✅)",
-  work_status_rv: "Late/Early (RV)",
+  work_status_full: "Full Day (✅)",
+  work_status_rv: "Late In/Early Out (RV)",
   work_status_absent: "Absent (❌)",
   regular_work_hours: "Regular Work Hours",
+  check_in: "Check In Time",
+  check_out: "Check Out Time",
+  regular_hours: "Regular Hours",
   hours: "hours",
 
   // Messages
   confirmCheckIn: "Confirm check in?",
   confirmCheckOut: "Confirm check out?",
-  confirmComplete: "Confirm complete work shift?",
-  confirmReset: "Confirm reset today's status?",
+  confirmComplete: "Confirm completion of work shift?",
+  confirmReset: "Confirm reset",
+  confirm_reset: "Confirm Reset",
+  reset_confirmation_message:
+    "Are you sure you want to reset your work status?",
   confirm_reset_today: "Are you sure you want to reset today's work status?",
-  confirm_apply_shift: "Are you sure you want to apply this shift?",
+  confirm_apply_shift: "Are you sure you want to apply this work shift?",
+  confirm_reset_form_message: "Are you sure you want to reset this form?",
 
   // Success and Error messages
   success_message: "Success",
   error_message: "Error",
-  shift_applied_message: "Shift applied successfully",
-  shift_apply_error: "Error applying shift",
-  reset_error: "Reset error",
+  shift_applied_message: "Work shift applied successfully",
+  shift_apply_error: "Error applying work shift",
+  reset_error: "Reset Error",
   reset_success: "Status reset successfully",
 
   // Time labels
@@ -567,7 +532,9 @@ export const en = {
   day_of_week: "Day of Week",
   total: "Total",
   time_minutes: "minutes",
-  time_select: "Select Time",
+  time_select: "Select time",
+  vi_select_time: "Select time",
+  select_time: "Select time",
 
   // Shift information
   shift_start_time: "Start Time",
@@ -579,14 +546,14 @@ export const en = {
   check_in_time: "Check In Time",
   check_out_time: "Check Out Time",
   total_hours: "Total Hours",
-  shift_regular_hours: "Regular Work Hours",
+  shift_regular_hours: "Regular Hours",
   overtime_150: "Overtime 150%",
   overtime_200: "Overtime 200%",
   overtime_300: "Overtime 300%",
 
   // Weekly status
   weekly_status: "Weekly Status",
-  status_full_work: "Full Work",
+  status_full_work: "Full Work Day",
   status_missing_check: "Missing Check",
   status_early_late: "Early/Late",
   status_leave: "Leave",
@@ -608,16 +575,17 @@ export const en = {
   confirm: "Confirm",
   reset: "Reset",
   apply: "Apply",
-  save_shift_button: "Save",
   cancel_shift_button: "Cancel",
+  save_shift_button: "Save",
 
-  // Icons
-  icon_clock: "Clock",
-  icon_calendar: "Calendar",
-  icon_save: "Save",
-  icon_cancel: "Cancel",
-  icon_edit: "Edit",
-  icon_delete: "Delete",
+  // Shifts
+  shifts_title: "Manage Shifts",
+  edit_shift: "Edit Shift",
+  add_shift: "Add Shift",
+  no_shifts: "No shifts yet",
+  show_sign_button: "Show Sign Button",
+  sign_button_hint:
+    "Display sign button on home screen when this shift is applied",
 
   // Notes
   notes_title: "Work Notes",
@@ -753,8 +721,8 @@ export const en = {
   totalHours: "Total Hours",
 
   // Shifts
-  shifts_title: "Shift List",
-  no_shifts: "No shifts available",
+  shifts_title: "Manage Shifts",
+  no_shifts: "No shifts yet",
   new_shift: "Add New Shift",
   edit_shift: "Edit Shift",
   shift_name: "Shift Name",
