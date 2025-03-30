@@ -788,39 +788,45 @@ const HomeScreen = () => {
   // Lên lịch thông báo nhắc nhở kết thúc ca
   const scheduleShiftEndReminder = async () => {
     try {
-      if (Platform.OS === 'web') return;
-      
+      if (Platform.OS === "web") return;
+
       const currentShift = await getCurrentShift();
       if (!currentShift) return;
-      
+
       // Đảm bảo có ngày/thời gian hợp lệ
       const now = new Date();
-      const endTimeParts = currentShift.endWorkTime.split(':');
+      const endTimeParts = currentShift.endWorkTime.split(":");
       const endTime = new Date();
       endTime.setHours(parseInt(endTimeParts[0], 10));
       endTime.setMinutes(parseInt(endTimeParts[1], 10));
-      
+
       // Nếu thời gian kết thúc đã qua, không cần lên lịch
       if (endTime <= now) return;
-      
+
       // Tính toán thời gian để thông báo (15 phút trước khi kết thúc)
       const reminderTime = new Date(endTime);
-      reminderTime.setMinutes(reminderTime.getMinutes() - (currentShift.remindAfterWork || 15));
-      
+      reminderTime.setMinutes(
+        reminderTime.getMinutes() - (currentShift.remindAfterWork || 15)
+      );
+
       // Lên lịch thông báo
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: t('shift_end_reminder_title'),
-          body: t('shift_end_reminder_body', { time: currentShift.endWorkTime }),
+          title: t("shift_end_reminder_title"),
+          body: t("shift_end_reminder_body", {
+            time: currentShift.endWorkTime,
+          }),
         },
         trigger: {
           date: reminderTime,
         },
       });
-      
-      console.log(`Đã lên lịch nhắc nhở kết thúc ca làm: ${reminderTime.toLocaleString()}`);
+
+      console.log(
+        `Đã lên lịch nhắc nhở kết thúc ca làm: ${reminderTime.toLocaleString()}`
+      );
     } catch (error) {
-      console.error('Lỗi khi lên lịch nhắc nhở kết thúc ca làm:', error);
+      console.error("Lỗi khi lên lịch nhắc nhở kết thúc ca làm:", error);
     }
   };
 
@@ -1371,23 +1377,26 @@ const HomeScreen = () => {
     try {
       // Logic hiện tại của bạn
       // ...
-      
+
       // Đảm bảo luôn trả về JSX hợp lệ
       return (
         <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
+          style={[
+            styles.actionButton,
+            { backgroundColor: theme.colors.primary },
+          ]}
           onPress={() => handleActionButtonPress()}
         >
-          <Text style={styles.actionButtonText}>{t('action')}</Text>
+          <Text style={styles.actionButtonText}>{t("action")}</Text>
         </TouchableOpacity>
       );
     } catch (error) {
-      console.error('Lỗi trong getActionButton:', error);
+      console.error("Lỗi trong getActionButton:", error);
       // Trả về JSX mặc định khi có lỗi
       return (
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: theme.colors.error }]}
-          onPress={() => console.log('Fallback button pressed')}
+          onPress={() => console.log("Fallback button pressed")}
         >
           <Text style={styles.actionButtonText}>Error</Text>
         </TouchableOpacity>
@@ -1438,11 +1447,11 @@ const HomeScreen = () => {
       if (workStatus === "completed") {
         return (
           <View style={styles.actionButtonContainer}>
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.disabledButton]} 
+            <TouchableOpacity
+              style={[styles.actionButton, styles.disabledButton]}
               disabled={true}
             >
-              <Text style={styles.actionButtonText}>{t('completed')}</Text>
+              <Text style={styles.actionButtonText}>{t("completed")}</Text>
             </TouchableOpacity>
             {/* Nút Reset */}
             <TouchableOpacity
@@ -1461,11 +1470,11 @@ const HomeScreen = () => {
           <TouchableOpacity
             style={[
               styles.actionButton,
-              { backgroundColor: theme.colors.primary }
+              { backgroundColor: theme.colors.primary },
             ]}
             onPress={handleSingleButtonPress}
           >
-            <Text style={styles.actionButtonText}>{t('go_work')}</Text>
+            <Text style={styles.actionButtonText}>{t("go_work")}</Text>
           </TouchableOpacity>
         );
       }
@@ -1473,12 +1482,12 @@ const HomeScreen = () => {
       // Các trường hợp khác
       return getActionButton();
     } catch (error) {
-      console.error('Lỗi trong renderActionButton:', error);
+      console.error("Lỗi trong renderActionButton:", error);
       // Trả về một nút đơn giản khi có lỗi
       return (
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: theme.colors.error }]}
-          onPress={() => console.log('Nút dự phòng được nhấn')}
+          onPress={() => console.log("Nút dự phòng được nhấn")}
         >
           <Text style={styles.actionButtonText}>Lỗi</Text>
         </TouchableOpacity>
@@ -1939,16 +1948,16 @@ const HomeScreen = () => {
       // Sử dụng context.setAppLanguage thay vì i18n.setAppLanguage
       if (context && context.setAppLanguage) {
         await context.setAppLanguage(languageCode);
-        await AsyncStorage.setItem('userLanguage', languageCode);
+        await AsyncStorage.setItem("userLanguage", languageCode);
         console.log(`Đã thay đổi ngôn ngữ thành: ${languageCode}`);
       } else {
         // Fallback nếu không có context.setAppLanguage
         context.setLocale(languageCode);
-        await AsyncStorage.setItem('userLanguage', languageCode);
+        await AsyncStorage.setItem("userLanguage", languageCode);
         console.log(`Đã thay đổi ngôn ngữ thành: ${languageCode} (fallback)`);
       }
     } catch (error) {
-      console.error('Lỗi khi thay đổi ngôn ngữ:', error);
+      console.error("Lỗi khi thay đổi ngôn ngữ:", error);
     }
   };
 
@@ -1988,8 +1997,8 @@ const HomeScreen = () => {
   useEffect(() => {
     const configurePushNotifications = async () => {
       try {
-        if (Platform.OS === 'web') {
-          console.log('Push notifications không được hỗ trợ đầy đủ trên web');
+        if (Platform.OS === "web") {
+          console.log("Push notifications không được hỗ trợ đầy đủ trên web");
           return;
         }
 
@@ -2003,32 +2012,33 @@ const HomeScreen = () => {
         });
 
         // Yêu cầu quyền thông báo
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        const { status: existingStatus } =
+          await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
-        
-        if (existingStatus !== 'granted') {
+
+        if (existingStatus !== "granted") {
           const { status } = await Notifications.requestPermissionsAsync();
           finalStatus = status;
         }
-        
-        if (finalStatus !== 'granted') {
-          console.log('Không có quyền thông báo!');
+
+        if (finalStatus !== "granted") {
+          console.log("Không có quyền thông báo!");
           return;
         }
 
         // Tạo kênh thông báo cho Android
-        if (Platform.OS === 'android') {
-          await Notifications.setNotificationChannelAsync('default', {
-            name: 'Mặc định',
+        if (Platform.OS === "android") {
+          await Notifications.setNotificationChannelAsync("default", {
+            name: "Mặc định",
             importance: Notifications.AndroidImportance.MAX,
             vibrationPattern: [0, 250, 250, 250],
-            lightColor: '#FF231F7C',
+            lightColor: "#FF231F7C",
           });
         }
-        
-        console.log('Đã cấu hình thông báo thành công');
+
+        console.log("Đã cấu hình thông báo thành công");
       } catch (error) {
-        console.error('Lỗi khi cấu hình thông báo:', error);
+        console.error("Lỗi khi cấu hình thông báo:", error);
       }
     };
 
@@ -2038,58 +2048,65 @@ const HomeScreen = () => {
   // Sửa hàm handleCancelReminders tại khoảng dòng 1997
   const handleCancelReminders = async (action) => {
     try {
-      if (Platform.OS === 'web') {
-        console.log('Hủy thông báo không được hỗ trợ đầy đủ trên web:', action);
+      if (Platform.OS === "web") {
+        console.log("Hủy thông báo không được hỗ trợ đầy đủ trên web:", action);
         return;
       }
-      
+
       // Hủy tất cả thông báo đã lên lịch
       await Notifications.cancelAllScheduledNotificationsAsync();
       console.log(`Đã hủy tất cả thông báo cho hành động: ${action}`);
     } catch (error) {
-      console.error('Error canceling notification:', error);
+      console.error("Error canceling notification:", error);
     }
   };
 
   // Sửa hàm handleScheduleNotification tại khoảng dòng 2008
   const handleScheduleNotification = async (notificationData) => {
     try {
-      if (Platform.OS === 'web') {
-        console.log('Thông báo không được hỗ trợ đầy đủ trên web:', notificationData);
+      if (Platform.OS === "web") {
+        console.log(
+          "Thông báo không được hỗ trợ đầy đủ trên web:",
+          notificationData
+        );
         return;
       }
 
       if (!notificationData) {
-        console.warn('Dữ liệu thông báo không hợp lệ');
+        console.warn("Dữ liệu thông báo không hợp lệ");
         return;
       }
 
       // Tính toán thời gian thông báo
       const currentDate = new Date();
       const minutesToAdd = notificationData.minutes || 0;
-      const scheduledTime = new Date(currentDate.getTime() + minutesToAdd * 60000);
-      
+      const scheduledTime = new Date(
+        currentDate.getTime() + minutesToAdd * 60000
+      );
+
       // Lên lịch thông báo với trigger rõ ràng
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: notificationData.title || 'Nhắc nhở',
-          body: notificationData.message || 'Bạn có một thông báo mới',
+          title: notificationData.title || "Nhắc nhở",
+          body: notificationData.message || "Bạn có một thông báo mới",
           data: notificationData.data || {},
         },
         trigger: {
           date: scheduledTime,
         },
       });
-      
-      console.log(`Đã lên lịch thông báo cho: ${scheduledTime.toLocaleString()}`);
+
+      console.log(
+        `Đã lên lịch thông báo cho: ${scheduledTime.toLocaleString()}`
+      );
     } catch (error) {
-      console.error('Error scheduling notification:', error);
+      console.error("Error scheduling notification:", error);
     }
   };
 
   // Thêm hàm showToast tự định nghĩa
   const showToast = (type, message1, message2 = "") => {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       // Đơn giản hóa cho web để tránh lỗi
       console.log(`[${type}] ${message1} ${message2}`);
       alert(`${message1} ${message2}`);
@@ -2600,15 +2617,15 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   resetButton: {
-    position: 'absolute',
+    position: "absolute",
     right: 5,
     bottom: 5,
-    backgroundColor: '#eeeeee',
+    backgroundColor: "#eeeeee",
     width: 30,
     height: 30,
     borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -2812,23 +2829,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
   },
-  confirmButtonText: {
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  resetButtonHighlighted: {
-    backgroundColor: "#f0f8ff",
-    borderColor: "#4285F4",
-    shadowColor: "#4285F4",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-});
-
-export default HomeScreen;
-
   confirmButtonText: {
     fontSize: 14,
     fontWeight: "bold",
