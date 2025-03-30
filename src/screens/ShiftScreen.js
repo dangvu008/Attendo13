@@ -846,14 +846,6 @@ const ShiftScreen = () => {
         </View>
       </Modal>
 
-      <TimePicker
-        visible={showTimePicker}
-        value={timePickerValue}
-        onChange={handleTimeChange}
-        onClose={() => setShowTimePicker(false)}
-        theme={theme}
-      />
-
       <Modal
         transparent={true}
         visible={displayReminderOptions}
@@ -1071,9 +1063,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  timePicker: {
-    flex: 1,
-  },
   timeSeparator: {
     fontSize: 16,
     marginHorizontal: 8,
@@ -1190,20 +1179,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
-  },
-  timePickerContainer: {
-    padding: 16,
-  },
-  timePickerInput: {
-    height: 48,
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 12,
-    fontSize: 16,
-  },
-  timePickerHelp: {
-    fontSize: 14,
-    marginBottom: 8,
   },
   reminderOptionsContainer: {
     padding: 16,

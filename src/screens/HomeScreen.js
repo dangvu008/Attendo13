@@ -33,7 +33,7 @@ import {
   parse,
 } from "date-fns";
 import { vi } from "../utils/viLocale";
-import { enUS } from "date-fns/locale/en-US";
+import { enUS } from "date-fns/locale";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -1772,7 +1772,7 @@ const HomeScreen = () => {
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Vùng thông tin thời gian */}
+        {/* Vùng thông tin thởi gian */}
         <View style={styles.timeInfoSection}>
           <View style={styles.timeDisplayContainer}>
             <Text style={styles.timeDisplay}>
