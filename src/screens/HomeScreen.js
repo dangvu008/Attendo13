@@ -788,24 +788,39 @@ const HomeScreen = () => {
   // Lên lịch thông báo nhắc nhở kết thúc ca
   const scheduleShiftEndReminder = async () => {
     try {
+      if (Platform.OS === 'web') return;
+      
       const currentShift = await getCurrentShift();
-      if (!currentShift || !currentShift.endTime) {
-        console.log("Không có thông tin ca làm việc hoặc giờ kết thúc ca");
-        return;
-      }
-
-      // Hủy thông báo cũ nếu có
-      await NotificationService.cancelNotification("shift-end-reminder");
-
-      // Lên lịch thông báo mới
-      await NotificationService.scheduleEndShiftReminder(
-        currentShift.endTime,
-        currentShift
-      );
-
-      console.log("Đã lên lịch thông báo nhắc nhở kết thúc ca");
+      if (!currentShift) return;
+      
+      // Đảm bảo có ngày/thời gian hợp lệ
+      const now = new Date();
+      const endTimeParts = currentShift.endWorkTime.split(':');
+      const endTime = new Date();
+      endTime.setHours(parseInt(endTimeParts[0], 10));
+      endTime.setMinutes(parseInt(endTimeParts[1], 10));
+      
+      // Nếu thời gian kết thúc đã qua, không cần lên lịch
+      if (endTime <= now) return;
+      
+      // Tính toán thời gian để thông báo (15 phút trước khi kết thúc)
+      const reminderTime = new Date(endTime);
+      reminderTime.setMinutes(reminderTime.getMinutes() - (currentShift.remindAfterWork || 15));
+      
+      // Lên lịch thông báo
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: t('shift_end_reminder_title'),
+          body: t('shift_end_reminder_body', { time: currentShift.endWorkTime }),
+        },
+        trigger: {
+          date: reminderTime,
+        },
+      });
+      
+      console.log(`Đã lên lịch nhắc nhở kết thúc ca làm: ${reminderTime.toLocaleString()}`);
     } catch (error) {
-      console.error("Lỗi khi lên lịch thông báo nhắc nhở kết thúc ca:", error);
+      console.error('Lỗi khi lên lịch nhắc nhở kết thúc ca làm:', error);
     }
   };
 
@@ -1419,29 +1434,54 @@ const HomeScreen = () => {
 
   const renderActionButton = () => {
     try {
-      // Logic hiện tại của bạn
-      // ...
-      
-      // Đảm bảo luôn trả về JSX hợp lệ
-      if (someCondition) {
+      // Thay thế điều kiện `someCondition` bằng logic thực tế
+      if (workStatus === "completed") {
         return (
-          <View>
-            <Text>Button Text</Text>
+          <View style={styles.actionButtonContainer}>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.disabledButton]} 
+              disabled={true}
+            >
+              <Text style={styles.actionButtonText}>{t('completed')}</Text>
+            </TouchableOpacity>
+            {/* Nút Reset */}
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={handleResetPress}
+            >
+              <Icon name="refresh" size={20} color={theme.colors.onSurface} />
+            </TouchableOpacity>
           </View>
         );
       }
-      
-      // Logic khác...
-      
-      // Mặc định trả về
+
+      // Nút đa năng
+      if (multiActionButtonEnabled) {
+        return (
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              { backgroundColor: theme.colors.primary }
+            ]}
+            onPress={handleSingleButtonPress}
+          >
+            <Text style={styles.actionButtonText}>{t('go_work')}</Text>
+          </TouchableOpacity>
+        );
+      }
+
+      // Các trường hợp khác
       return getActionButton();
     } catch (error) {
       console.error('Lỗi trong renderActionButton:', error);
-      // Trả về JSX mặc định khi có lỗi
+      // Trả về một nút đơn giản khi có lỗi
       return (
-        <View>
-          <Text>Error in button rendering</Text>
-        </View>
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: theme.colors.error }]}
+          onPress={() => console.log('Nút dự phòng được nhấn')}
+        >
+          <Text style={styles.actionButtonText}>Lỗi</Text>
+        </TouchableOpacity>
       );
     }
   };
@@ -1895,9 +1935,21 @@ const HomeScreen = () => {
   };
 
   const handleLanguageChange = async (languageCode) => {
-    await setAppLanguage(languageCode);
-    loadStoredLanguage();
-    updateUI();
+    try {
+      // Sử dụng context.setAppLanguage thay vì i18n.setAppLanguage
+      if (context && context.setAppLanguage) {
+        await context.setAppLanguage(languageCode);
+        await AsyncStorage.setItem('userLanguage', languageCode);
+        console.log(`Đã thay đổi ngôn ngữ thành: ${languageCode}`);
+      } else {
+        // Fallback nếu không có context.setAppLanguage
+        context.setLocale(languageCode);
+        await AsyncStorage.setItem('userLanguage', languageCode);
+        console.log(`Đã thay đổi ngôn ngữ thành: ${languageCode} (fallback)`);
+      }
+    } catch (error) {
+      console.error('Lỗi khi thay đổi ngôn ngữ:', error);
+    }
   };
 
   const loadCurrentShift = async () => {
@@ -1936,6 +1988,11 @@ const HomeScreen = () => {
   useEffect(() => {
     const configurePushNotifications = async () => {
       try {
+        if (Platform.OS === 'web') {
+          console.log('Push notifications không được hỗ trợ đầy đủ trên web');
+          return;
+        }
+
         // Cấu hình Expo Notifications
         await Notifications.setNotificationHandler({
           handleNotification: async () => ({
@@ -1946,34 +2003,32 @@ const HomeScreen = () => {
         });
 
         // Yêu cầu quyền thông báo
-        if (Platform.OS !== "web") {
-          const { status: existingStatus } = await Notifications.getPermissionsAsync();
-          let finalStatus = existingStatus;
-          
-          if (existingStatus !== "granted") {
-            const { status } = await Notifications.requestPermissionsAsync();
-            finalStatus = status;
-          }
-          
-          if (finalStatus !== "granted") {
-            console.log("Không có quyền thông báo!");
-            return;
-          }
-
-          // Tạo kênh thông báo cho Android
-          if (Platform.OS === "android") {
-            await Notifications.setNotificationChannelAsync("default", {
-              name: "Mặc định",
-              importance: Notifications.AndroidImportance.MAX,
-              vibrationPattern: [0, 250, 250, 250],
-              lightColor: "#FF231F7C",
-            });
-          }
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
         }
         
-        console.log("Đã cấu hình thông báo thành công");
+        if (finalStatus !== 'granted') {
+          console.log('Không có quyền thông báo!');
+          return;
+        }
+
+        // Tạo kênh thông báo cho Android
+        if (Platform.OS === 'android') {
+          await Notifications.setNotificationChannelAsync('default', {
+            name: 'Mặc định',
+            importance: Notifications.AndroidImportance.MAX,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#FF231F7C',
+          });
+        }
+        
+        console.log('Đã cấu hình thông báo thành công');
       } catch (error) {
-        console.error("Lỗi khi cấu hình thông báo:", error);
+        console.error('Lỗi khi cấu hình thông báo:', error);
       }
     };
 
@@ -1983,19 +2038,29 @@ const HomeScreen = () => {
   // Sửa hàm handleCancelReminders tại khoảng dòng 1997
   const handleCancelReminders = async (action) => {
     try {
+      if (Platform.OS === 'web') {
+        console.log('Hủy thông báo không được hỗ trợ đầy đủ trên web:', action);
+        return;
+      }
+      
       // Hủy tất cả thông báo đã lên lịch
       await Notifications.cancelAllScheduledNotificationsAsync();
       console.log(`Đã hủy tất cả thông báo cho hành động: ${action}`);
     } catch (error) {
-      console.error("Lỗi khi hủy thông báo:", error);
+      console.error('Error canceling notification:', error);
     }
   };
 
   // Sửa hàm handleScheduleNotification tại khoảng dòng 2008
   const handleScheduleNotification = async (notificationData) => {
     try {
+      if (Platform.OS === 'web') {
+        console.log('Thông báo không được hỗ trợ đầy đủ trên web:', notificationData);
+        return;
+      }
+
       if (!notificationData) {
-        console.warn("Dữ liệu thông báo không hợp lệ");
+        console.warn('Dữ liệu thông báo không hợp lệ');
         return;
       }
 
@@ -2004,11 +2069,11 @@ const HomeScreen = () => {
       const minutesToAdd = notificationData.minutes || 0;
       const scheduledTime = new Date(currentDate.getTime() + minutesToAdd * 60000);
       
-      // Lên lịch thông báo với Expo Notifications
+      // Lên lịch thông báo với trigger rõ ràng
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: notificationData.title || "Nhắc nhở",
-          body: notificationData.message || "Bạn có một thông báo mới",
+          title: notificationData.title || 'Nhắc nhở',
+          body: notificationData.message || 'Bạn có một thông báo mới',
           data: notificationData.data || {},
         },
         trigger: {
@@ -2018,7 +2083,7 @@ const HomeScreen = () => {
       
       console.log(`Đã lên lịch thông báo cho: ${scheduledTime.toLocaleString()}`);
     } catch (error) {
-      console.error("Lỗi khi lên lịch thông báo:", error);
+      console.error('Error scheduling notification:', error);
     }
   };
 
@@ -2764,6 +2829,13 @@ const styles = StyleSheet.create({
 
 export default HomeScreen;
 
+  confirmButtonText: {
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  resetButtonHighlighted: {
+    backgroundColor: "#f0f8ff",
+    borderColor: "#4285F4",
     shadowColor: "#4285F4",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
@@ -2771,3 +2843,5 @@ export default HomeScreen;
     elevation: 5,
   },
 });
+
+export default HomeScreen;

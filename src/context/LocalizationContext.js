@@ -9,41 +9,49 @@ import * as Localization from "expo-localization";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import i18n, { loadStoredLanguage } from "../i18n";
 import { I18nManager } from "react-native";
+import translations from "../translations";
 
 const LocalizationContext = createContext();
 
 export const useLocalization = () => useContext(LocalizationContext);
 
 export const LocalizationProvider = ({ children }) => {
-  const [locale, setLocale] = useState(i18n.locale || "vi");
+  const [locale, setLocale] = useState(Localization.locale);
   const [isReady, setIsReady] = useState(false);
   const [forceRender, setForceRender] = useState(0);
 
-  // Load locale preference from storage
-  useEffect(() => {
-    const loadLocalePreference = async () => {
-      try {
-        const storedLocale = await AsyncStorage.getItem("appLanguage");
-        if (storedLocale !== null) {
-          setLocale(storedLocale);
-          await setAppLanguage(storedLocale);
-        } else {
-          // Use device locale or default to Vietnamese if not available
-          const deviceLocale = Localization.locale.split("-")[0];
-          const newLocale = deviceLocale === "en" ? "en" : "vi";
-          setLocale(newLocale);
-          await setAppLanguage(newLocale);
-        }
-      } catch (error) {
-        console.error("Error loading locale preference:", error);
-        setLocale("vi"); // Default to Vietnamese if error
-        await setAppLanguage("vi");
-      } finally {
-        setIsReady(true);
-      }
-    };
+  i18n.translations = translations;
+  i18n.locale = locale;
+  i18n.fallbacks = true;
 
-    loadLocalePreference();
+  // Thêm hàm setAppLanguage
+  const setAppLanguage = async (languageCode) => {
+    try {
+      await AsyncStorage.setItem("userLanguage", languageCode);
+      setLocale(languageCode);
+      i18n.locale = languageCode;
+      console.log(`Đã đặt ngôn ngữ ứng dụng thành: ${languageCode}`);
+    } catch (error) {
+      console.error("Lỗi khi cài đặt ngôn ngữ:", error);
+    }
+  };
+
+  // Hàm để lấy ngôn ngữ đã lưu
+  const loadSavedLanguage = async () => {
+    try {
+      const savedLanguage = await AsyncStorage.getItem("userLanguage");
+      if (savedLanguage) {
+        setLocale(savedLanguage);
+        i18n.locale = savedLanguage;
+        console.log(`Đã tải ngôn ngữ: ${savedLanguage}`);
+      }
+    } catch (error) {
+      console.error("Error loading locale preference:", error);
+    }
+  };
+
+  useEffect(() => {
+    loadSavedLanguage();
   }, []);
 
   const changeLocale = useCallback(async (newLocale) => {
@@ -71,7 +79,15 @@ export const LocalizationProvider = ({ children }) => {
   };
 
   return (
-    <LocalizationContext.Provider value={{ locale, changeLocale, t, isReady }}>
+    <LocalizationContext.Provider
+      value={{
+        locale,
+        setLocale,
+        t,
+        isReady,
+        setAppLanguage,
+      }}
+    >
       {children}
     </LocalizationContext.Provider>
   );

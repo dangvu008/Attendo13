@@ -20,6 +20,7 @@ import { ShiftProvider } from "./src/context/ShiftContext";
 
 // Navigation
 import MainNavigator from "./src/navigation/MainNavigator";
+import Toast from "react-native-toast-message";
 
 // Mock BackgroundNotificationService - sẽ được sử dụng thay thế cho notifee
 const BackgroundNotificationService = {
@@ -140,6 +141,7 @@ export default function App() {
                 <StatusBar style="auto" />
                 <NavigationContainer>
                   <MainNavigator />
+                  <Toast />
                 </NavigationContainer>
               </View>
             </ShiftProvider>
