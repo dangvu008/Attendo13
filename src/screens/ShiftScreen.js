@@ -817,17 +817,27 @@ const ShiftScreen = () => {
                 style={[
                   styles.footerButton,
                   styles.cancelButton,
-                  { borderColor: theme.colors.border },
+                  {
+                    borderColor: theme.colors.border,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingHorizontal: 20,
+                  },
                 ]}
                 onPress={() => setModalVisible(false)}
               >
+                <Ionicons
+                  name="close-circle-outline"
+                  size={24}
+                  color={theme.colors.text}
+                />
                 <Text
                   style={[
                     styles.cancelButtonText,
-                    { color: theme.colors.text },
+                    { color: theme.colors.text, marginLeft: 8, fontSize: 16 },
                   ]}
                 >
-                  {t("cancel")}
+                  {t("cancel_shift_button")}
                 </Text>
               </TouchableOpacity>
 
@@ -835,11 +845,24 @@ const ShiftScreen = () => {
                 style={[
                   styles.footerButton,
                   styles.saveButton,
-                  { backgroundColor: theme.colors.primary },
+                  {
+                    backgroundColor: theme.colors.primary,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingHorizontal: 20,
+                  },
                 ]}
                 onPress={handleSaveShift}
               >
-                <Text style={styles.saveButtonText}>{t("save")}</Text>
+                <Ionicons name="save-outline" size={24} color="#fff" />
+                <Text
+                  style={[
+                    styles.saveButtonText,
+                    { marginLeft: 8, fontSize: 16 },
+                  ]}
+                >
+                  {t("save_shift_button")}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

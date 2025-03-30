@@ -198,6 +198,8 @@ export const vi = {
   reminder_type_before_15_min: "15 phút trước khi vào ca",
   reminder_type_before_30_min: "30 phút trước khi vào ca",
   no_reminder: "Không nhắc nhở",
+  reminder: "Nhắc nhở",
+  workCompleted: "Đã hoàn thành công việc",
   before_5_min: "5 phút trước khi vào ca",
   before_15_min: "15 phút trước khi vào ca",
   before_30_min: "30 phút trước khi vào ca",
@@ -588,6 +590,16 @@ export const en = {
   confirm: "Confirm",
   reset: "Reset",
   apply: "Apply",
+  save_shift_button: "Save",
+  cancel_shift_button: "Cancel",
+
+  // Icons
+  icon_clock: "Clock",
+  icon_calendar: "Calendar",
+  icon_save: "Save",
+  icon_cancel: "Cancel",
+  icon_edit: "Edit",
+  icon_delete: "Delete",
 
   // Notes
   notes_title: "Work Notes",
