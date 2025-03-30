@@ -2251,12 +2251,16 @@ const styles = StyleSheet.create({
     width: "80%",
     marginTop: 8,
     marginBottom: 8,
-    alignItems: "flex-start",
+    alignItems: "center",
+    alignSelf: "center",
   },
   actionHistoryItem: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 4,
+    alignSelf: "center",
+    width: "100%",
+    justifyContent: "center",
   },
   actionHistoryText: {
     fontSize: 14,

@@ -8,8 +8,9 @@ import * as SplashScreen from "expo-splash-screen";
 import { Provider as PaperProvider } from "react-native-paper";
 import * as NotificationService from "./src/services/NotificationService";
 import * as Notifications from "expo-notifications";
-import notifee, { EventType } from "@notifee/react-native";
-import BackgroundNotificationService from "./src/services/BackgroundNotificationService";
+// Tạm thời comment để giải quyết lỗi - cần cài đặt development builds hoặc eject
+// import notifee, { EventType } from "@notifee/react-native";
+// import BackgroundNotificationService from "./src/services/BackgroundNotificationService";
 
 // Contexts
 import { ThemeProvider } from "./src/context/ThemeContext";
@@ -19,6 +20,12 @@ import { ShiftProvider } from "./src/context/ShiftContext";
 
 // Navigation
 import MainNavigator from "./src/navigation/MainNavigator";
+
+// Mock BackgroundNotificationService - sẽ được sử dụng thay thế cho notifee
+const BackgroundNotificationService = {
+  createNotificationChannel: NotificationService.createNotificationChannel,
+  onNotificationInteraction: NotificationService.onNotificationInteraction,
+};
 
 // Prevent native splash screen from hiding automatically
 SplashScreen.preventAutoHideAsync();
@@ -33,7 +40,7 @@ export default function App() {
         // Artificially delay for a smooth startup experience
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        // Khởi tạo kênh thông báo cho Android
+        // Khởi tạo kênh thông báo cho Android - sử dụng mock service
         await BackgroundNotificationService.createNotificationChannel();
       } catch (e) {
         console.warn(e);
@@ -69,7 +76,8 @@ export default function App() {
         NotificationService.handleNotificationResponse(response);
       });
 
-    // Thiết lập listener cho Notifee (thông báo nền)
+    // Thiết lập listener cho Notifee (thông báo nền) - tạm thời comment
+    /*
     const notifeeUnsubscribe = notifee.onForegroundEvent(({ type, detail }) => {
       switch (type) {
         case EventType.DISMISSED:
@@ -93,12 +101,28 @@ export default function App() {
         );
       }
     });
+    */
+
+    // Thiết lập xử lý thông báo sử dụng expo-notifications thay thế
+    const backgroundSubscription =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        const notification = response.notification;
+        console.log("Người dùng đã nhấn vào thông báo:", notification);
+        if (notification.request.content.data) {
+          BackgroundNotificationService.onNotificationInteraction({
+            data: notification.request.content.data,
+            title: notification.request.content.title,
+            body: notification.request.content.body,
+          });
+        }
+      });
 
     // Cleanup on unmount
     return () => {
       Notifications.removeNotificationSubscription(notificationListener);
       Notifications.removeNotificationSubscription(responseListener);
-      notifeeUnsubscribe();
+      Notifications.removeNotificationSubscription(backgroundSubscription);
+      // notifeeUnsubscribe();
     };
   }, []);
 

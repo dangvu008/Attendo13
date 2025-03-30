@@ -565,6 +565,20 @@ export const handleNotificationResponse = (response) => {
   }
 };
 
+// Phương thức mock tạm thời cho khi không sử dụng Notifee
+export const createNotificationChannel = async () => {
+  console.log("createNotificationChannel: Đã bị comment do lỗi Notifee");
+  return "mock-channel-id";
+};
+
+// Phương thức mock tạm thời cho khi không sử dụng Notifee
+export const onNotificationInteraction = async (notification) => {
+  console.log(
+    "onNotificationInteraction: Đã bị comment do lỗi Notifee",
+    notification
+  );
+};
+
 export default {
   initializeNotifications,
   saveNotificationSettings,
@@ -581,4 +595,6 @@ export default {
   scheduleShiftReminders,
   cancelRemindersByAction,
   loadReminderType,
+  createNotificationChannel,
+  onNotificationInteraction,
 };

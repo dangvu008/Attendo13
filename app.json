@@ -11,9 +11,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#121212"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true
     },
@@ -22,10 +20,7 @@
         "foregroundImage": "./src/assets/adaptive-icon.png",
         "backgroundColor": "#121212"
       },
-      "permissions": [
-        "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
-      ]
+      "permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE"]
     },
     "web": {
       "favicon": "./src/assets/favicon.png"
@@ -35,7 +30,9 @@
         "expo-notifications",
         {
           "icon": "./src/assets/notification-icon.png",
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "sounds": ["./src/assets/notification.wav"],
+          "mode": "production"
         }
       ]
     ]
