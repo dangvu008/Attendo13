@@ -30,6 +30,7 @@ export const vi = {
   go_work: "Đi làm",
   check_in: "Check In",
   check_out: "Check Out",
+  work_started: "Đã bắt đầu làm việc",
 
   // Status messages
   working: "Đang làm việc",
@@ -131,6 +132,7 @@ export const vi = {
   delete: "Xóa",
   add: "Thêm",
   confirm: "Xác nhận",
+  confirm_delete: "Xác nhận xóa",
   reset: "Đặt lại",
   apply: "Áp dụng",
   cancel_shift_button: "Hủy",
@@ -470,6 +472,7 @@ export const en = {
   go_work: "Go To Work",
   check_in: "Check In",
   check_out: "Check Out",
+  work_started: "Work started",
 
   // Status messages
   working: "Working",
@@ -573,19 +576,11 @@ export const en = {
   delete: "Delete",
   add: "Add",
   confirm: "Confirm",
+  confirm_delete: "Confirm Delete",
   reset: "Reset",
   apply: "Apply",
   cancel_shift_button: "Cancel",
   save_shift_button: "Save",
-
-  // Shifts
-  shifts_title: "Manage Shifts",
-  edit_shift: "Edit Shift",
-  add_shift: "Add Shift",
-  no_shifts: "No shifts yet",
-  show_sign_button: "Show Sign Button",
-  sign_button_hint:
-    "Display sign button on home screen when this shift is applied",
 
   // Notes
   notes_title: "Work Notes",
@@ -674,6 +669,121 @@ export const en = {
   manage_work_shifts: "Manage Work Shifts",
   shift_reminders: "Shift Reminders",
   shift_reminder_description: "Set reminders before and after work shifts",
+  reminder_type: "Reminder Type",
+  reminder_type_none: "No Reminder",
+  reminder_type_before_5_min: "5 minutes before shift",
+  reminder_type_before_15_min: "15 minutes before shift",
+  reminder_type_before_30_min: "30 minutes before shift",
+  no_reminder: "No Reminder",
+  before_5_min: "5 minutes before shift",
+  before_15_min: "15 minutes before shift",
+  before_30_min: "30 minutes before shift",
+  reminder_date: "Reminder Date",
+  reminder_time: "Reminder Time",
+  select_reminder_type: "Select Reminder Type",
+
+  // Notifications
+  enableNotifications: "Enable Notifications",
+  notification_reminder_time: "Reminder Time",
+  reminder_before_work: "Reminder Before Work",
+  reminder_after_work: "Reminder After Work",
+  remind_when_shift_changes: "Remind When Shift Changes",
+  notification_no_reminder: "No Reminder",
+  notification_reminder_type: "Reminder Type",
+  notification_select_reminder_type: "Select Reminder Type",
+  notification_reminder_type_none: "No Change",
+  reminder_type_weekly: "Weekly",
+  reminder_type_biweekly: "Bi-weekly",
+  reminder_type_triweekly: "Tri-weekly",
+  reminder_type_monthly: "Monthly",
+  reminder_type_all: "All Types",
+  shift_change_reminder: "Work Shift Change Reminder",
+  notification_settings: "Notification Settings",
+  notifications_enabled: "Enable Notifications",
+  notifications_enabled_description: "Allow app to send notifications",
+  notification_sound: "Notification Sound",
+  notification_sound_description: "Play sound when notification appears",
+  notification_vibration: "Notification Vibration",
+  notification_vibration_description: "Vibrate when notification appears",
+  notification_before_5_min: "Before 5 minutes",
+  notification_before_15_min: "Before 15 minutes",
+  notification_before_30_min: "Before 30 minutes",
+
+  // Statistics
+  monthlyStats: "Monthly Statistics",
+  monthly_stats: "Monthly Statistics",
+  totalShifts: "Total Shifts",
+  totalHours: "Total Hours",
+
+  // Shifts
+  shifts_title: "Manage Shifts",
+  edit_shift: "Edit Shift",
+  add_shift: "Add Shift",
+  no_shifts: "No shifts yet",
+  show_sign_button: "Show Sign Button",
+  sign_button_hint:
+    "Display sign button on home screen when this shift is applied",
+
+  // Notes
+  notes_title: "Work Notes",
+  notes_add_note: "Add Note",
+  notes_edit_note: "Edit Note",
+  no_notes: "No notes yet",
+  no_notes_yet: "No notes yet",
+  add_new_note_hint: "Press Add button to create a new note",
+  noteTitle: "Title",
+  noteContent: "Content",
+  note: "Note",
+  title: "Title",
+  content: "Content",
+  title_placeholder: "Enter note title",
+  content_placeholder: "Enter note content",
+  notes_note_title_required: "Title is required",
+  notes_note_content_required: "Content is required",
+  notes_note_title_duplicate:
+    "This title already exists, please choose a different title",
+  notes_note_title_too_long: "Title cannot exceed {{max}} characters",
+  notes_note_content_too_long: "Content cannot exceed {{max}} characters",
+  notes_save_confirm: "Are you sure you want to save this note?",
+  notes_exit_confirm: "Do you want to exit without saving note?",
+  notes_color: "Note Color",
+  notes_tags: "Tags",
+  notes_tag_work: "Work",
+  notes_tag_personal: "Personal",
+  notes_tag_important: "Important",
+  notes_tag_urgent: "Urgent",
+  max_title_chars: "Maximum 100 characters",
+  max_content_chars: "Maximum 300 characters",
+  show_on_days: "Select days of week",
+  work_notes: "Work Notes",
+  search: "Search",
+  delete_note_confirm: "Are you sure you want to delete this note?",
+  delete_note_error: "Could not delete note",
+  continue_editing: "Continue editing",
+  exit: "Exit",
+  notes_reminder_date: "Reminder Date",
+  notes_reminder_time: "Reminder Time",
+
+  // Status validation messages
+  check_in_time_warning:
+    "You are checking in too early after going to work. It requires at least 5 minutes (missing {{minutes}} minutes). Do you want to continue?",
+  check_out_time_warning:
+    "You are checking out too early after checking in. It requires at least 2 hours (missing {{hours}} hours). Do you want to continue?",
+  validation_must_go_work_first:
+    "You need to Go To Work before you can Check In",
+  validation_must_check_in_first:
+    "You need to Check In before you can Check Out",
+  validation_must_check_out_first:
+    "You need to Check Out before you can Complete",
+
+  // Settings
+  language: "Language",
+  theme: "Theme",
+  notifications: "Notifications",
+  work_shift: "Work Shift",
+  manage_work_shifts: "Manage Work Shifts",
+  shift_reminders: "Shift Reminders",
+  shift_reminder_description: "Set reminders for before and after shifts",
   reminder_type: "Reminder Type",
   reminder_type_none: "No Reminder",
   reminder_type_before_5_min: "5 minutes before shift",
@@ -885,8 +995,14 @@ export const en = {
   statusCheckedOut: "Checked out",
   statusCompleted: "Completed",
   no_history_today: "No activity today",
+  work_started: "Work started",
 
-  // Add these translation keys inside your English translations object
+  // Settings and buttons
   multi_action_button: "Multi-action Button",
   multi_action_button_description: "Enable step-by-step attendance tracking",
+  multi_purpose_mode: "Multi-purpose Mode",
+  multi_purpose_mode_description:
+    "Enable multi-purpose mode to track attendance step by step",
+  action_execution_error: "Action Execution Error",
+  ok: "OK",
 };

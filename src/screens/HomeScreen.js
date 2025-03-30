@@ -76,7 +76,8 @@ const HomeScreen = () => {
   const [notes, setNotes] = useState([]);
   const [actionHistory, setActionHistory] = useState([]);
   const [actionLogs, setActionLogs] = useState([]);
-  const [multiActionButtonEnabled, setMultiActionButtonEnabled] = useState(true);
+  const [multiActionButtonEnabled, setMultiActionButtonEnabled] =
+    useState(true);
   const [showResetButton, setShowResetButton] = useState(false);
 
   // Lấy thông tin nhắc nhở hiện tại
@@ -1694,7 +1695,9 @@ const HomeScreen = () => {
   const saveWorkLog = async () => {
     try {
       if (!checkInEntry || !checkOutEntry) {
-        console.error("Không thể lưu lịch sử làm việc: thiếu thông tin check-in hoặc check-out");
+        console.error(
+          "Không thể lưu lịch sử làm việc: thiếu thông tin check-in hoặc check-out"
+        );
         return false;
       }
 
@@ -1740,7 +1743,7 @@ const HomeScreen = () => {
 
       const checkInTime = new Date(checkInEntry.timestamp);
       const checkOutTime = new Date(checkOutEntry.timestamp);
-      
+
       // Lấy các mốc thời gian từ ca làm việc
       const startTime = parseShiftTime(shiftInfo.startTime);
       const officeEndTime = parseShiftTime(shiftInfo.officeEndTime);
@@ -1754,7 +1757,8 @@ const HomeScreen = () => {
       // Kiểm tra vào muộn
       if (checkInTime > startTime) {
         const minutesLate = differenceInMinutes(checkInTime, startTime);
-        if (minutesLate > 5) { // Nếu vào muộn quá 5 phút
+        if (minutesLate > 5) {
+          // Nếu vào muộn quá 5 phút
           checkInStatus = "late";
           workStatus = "rv"; // Vào muộn
         }
@@ -1763,7 +1767,8 @@ const HomeScreen = () => {
       // Kiểm tra ra sớm
       if (checkOutTime < officeEndTime) {
         const minutesEarly = differenceInMinutes(officeEndTime, checkOutTime);
-        if (minutesEarly > 5) { // Nếu ra sớm quá 5 phút
+        if (minutesEarly > 5) {
+          // Nếu ra sớm quá 5 phút
           checkOutStatus = "early";
           workStatus = "rv"; // Ra sớm
         }
@@ -1772,14 +1777,18 @@ const HomeScreen = () => {
       // Tính giờ làm tiêu chuẩn và giờ tăng ca
       const standardWorkMinutes = differenceInMinutes(officeEndTime, startTime);
       const actualWorkMinutes = differenceInMinutes(checkOutTime, checkInTime);
-      
+
       // Giờ làm tiêu chuẩn (tối đa là thời gian tiêu chuẩn)
-      const standardHours = Math.min(actualWorkMinutes, standardWorkMinutes) / 60;
-      
+      const standardHours =
+        Math.min(actualWorkMinutes, standardWorkMinutes) / 60;
+
       // Giờ tăng ca (nếu làm quá giờ hành chính)
       let overtimeHours = 0;
       if (checkOutTime > officeEndTime) {
-        const overtimeMinutes = differenceInMinutes(checkOutTime, officeEndTime);
+        const overtimeMinutes = differenceInMinutes(
+          checkOutTime,
+          officeEndTime
+        );
         overtimeHours = overtimeMinutes / 60;
       }
 
@@ -1796,7 +1805,10 @@ const HomeScreen = () => {
 
       // Lưu thống kê giờ công
       const today = format(new Date(), "yyyy-MM-dd");
-      await AsyncStorage.setItem(`workHours_${today}`, JSON.stringify(workHoursData));
+      await AsyncStorage.setItem(
+        `workHours_${today}`,
+        JSON.stringify(workHoursData)
+      );
 
       // Cập nhật trạng thái làm việc
       setWorkDayStatus(workStatus);
