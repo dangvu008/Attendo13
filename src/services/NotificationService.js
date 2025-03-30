@@ -13,11 +13,14 @@ import {
 
 // Configure notification behavior for the app
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
+  handleNotification: async () => {
+    const settings = await getNotificationSettings();
+    return {
+      shouldShowAlert: true,
+      shouldPlaySound: settings.soundEnabled,
+      shouldSetBadge: true,
+    };
+  },
 });
 
 // Key for storing notification settings
@@ -62,86 +65,57 @@ export const saveNotificationSettings = async (settings) => {
 };
 
 // Load notification settings
-export const loadNotificationSettings = async () => {
+export const getNotificationSettings = async () => {
   try {
-    const settingsJson = await AsyncStorage.getItem(NOTIFICATION_SETTINGS_KEY);
-    return settingsJson
-      ? JSON.parse(settingsJson)
-      : {
-          enabled: true,
-          sound: true,
-          vibration: true,
-          reminderType: "none", // none, before_5_min, before_15_min, before_30_min
-        };
-  } catch (error) {
-    console.error("Error loading notification settings:", error);
+    const settingsStr = await AsyncStorage.getItem(NOTIFICATION_SETTINGS_KEY);
+    if (settingsStr) {
+      return JSON.parse(settingsStr);
+    }
+    // Giá trị mặc định
     return {
+      soundEnabled: true,
+      vibrationEnabled: true,
+      // Giữ lại các cài đặt khác
       enabled: true,
-      sound: true,
-      vibration: true,
-      reminderType: "none",
+      reminderType: "default",
+    };
+  } catch (error) {
+    console.error("Error getting notification settings:", error);
+    return {
+      soundEnabled: true,
+      vibrationEnabled: true,
+      enabled: true,
+      reminderType: "default",
     };
   }
 };
 
 // Schedule a notification
-export const scheduleNotification = async ({
-  id,
+export const scheduleNotification = async (
   title,
-  message,
-  date,
-  sound = true,
-  vibrate = true,
-  data = {},
-  repeat = false,
-  repeatType = null,
-  repeatInterval = null,
-}) => {
+  body,
+  trigger,
+  options = {}
+) => {
+  const settings = await getNotificationSettings();
+
+  const notificationContent = {
+    title,
+    body,
+    data: options.data || {},
+    sound: settings.soundEnabled,
+    vibrate: settings.vibrationEnabled ? [0, 250, 250, 250] : null,
+    priority: Notifications.AndroidNotificationPriority.HIGH,
+  };
+
   try {
-    // Tạo trigger dựa vào thời gian và cài đặt lặp lại
-    let trigger;
-    if (repeat && repeatType && repeatInterval) {
-      trigger = {
-        seconds: repeatInterval,
-        repeats: true,
-      };
-    } else {
-      trigger = new Date(date);
-      // Đảm bảo trigger trong tương lai
-      if (trigger <= new Date()) {
-        console.log("Notification date is in the past, not scheduling");
-        return null;
-      }
-    }
-
-    // Hủy thông báo cũ nếu có
-    await cancelNotification(id);
-
-    // Schedule the notification
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title,
-        body: message,
-        data: { ...data, id },
-        sound,
-        vibrationPattern: vibrate ? [0, 250, 250, 250] : null,
-      },
+    const identifier = await Notifications.scheduleNotificationAsync({
+      content: notificationContent,
       trigger,
-      identifier: id,
     });
-
-    // Lưu thông tin thông báo đã lên lịch
-    await saveScheduledNotification(id, {
-      id,
-      title,
-      message,
-      date: date.toISOString(),
-      scheduled: true,
-    });
-
-    return id;
+    return identifier;
   } catch (error) {
-    console.error("Lỗi khi lên lịch thông báo:", error);
+    console.error("Error scheduling notification:", error);
     return null;
   }
 };
@@ -184,23 +158,7 @@ export const getScheduledNotifications = async () => {
 // Cancel a specific notification
 export const cancelNotification = async (notificationId) => {
   try {
-    if (!notificationId) return false;
-
-    // Cancel the notification with Expo
     await Notifications.cancelScheduledNotificationAsync(notificationId);
-
-    // Remove from our stored notifications
-    const storedNotifications = await getScheduledNotifications();
-    if (storedNotifications[notificationId]) {
-      delete storedNotifications[notificationId];
-
-      // Save updated notifications back to AsyncStorage
-      await AsyncStorage.setItem(
-        SCHEDULED_NOTIFICATIONS_KEY,
-        JSON.stringify(storedNotifications)
-      );
-    }
-
     return true;
   } catch (error) {
     console.error("Error canceling notification:", error);
@@ -257,7 +215,7 @@ export const scheduleDepartureReminder = async (departureTime, shiftInfo) => {
     }
 
     // Get notification settings
-    const settings = await loadNotificationSettings();
+    const settings = await getNotificationSettings();
     if (!settings.enabled) {
       console.log("Notifications are disabled");
       return null;
@@ -283,21 +241,16 @@ export const scheduleDepartureReminder = async (departureTime, shiftInfo) => {
     const notificationId = `departure-reminder-${
       today.toISOString().split("T")[0]
     }`;
-    return await scheduleNotification({
-      id: notificationId,
-      title: "Nhắc nhở xuất phát",
-      message: `Đã đến giờ xuất phát cho ca làm việc ${
-        shiftInfo ? shiftInfo.name : ""
-      }`,
-      date: departureDate,
-      sound: settings.sound,
-      vibrate: settings.vibration,
-      data: {
+    return await scheduleNotification(
+      "Nhắc nhở xuất phát",
+      `Đã đến giờ xuất phát cho ca làm việc ${shiftInfo ? shiftInfo.name : ""}`,
+      departureDate,
+      {
         type: "departure_reminder",
         action: "go_work",
         shiftInfo,
-      },
-    });
+      }
+    );
   } catch (error) {
     console.error("Error scheduling departure reminder:", error);
     return null;
@@ -314,7 +267,7 @@ export const scheduleStartTimeReminder = async (startTime, shiftInfo) => {
     }
 
     // Get notification settings
-    const settings = await loadNotificationSettings();
+    const settings = await getNotificationSettings();
     if (!settings.enabled) {
       console.log("Notifications are disabled");
       return null;
@@ -344,21 +297,18 @@ export const scheduleStartTimeReminder = async (startTime, shiftInfo) => {
     const notificationId = `checkin-reminder-${
       today.toISOString().split("T")[0]
     }`;
-    return await scheduleNotification({
-      id: notificationId,
-      title: "Nhắc nhở chấm công vào",
-      message: `Còn 10 phút nữa đến giờ chấm công vào cho ca ${
+    return await scheduleNotification(
+      "Nhắc nhở chấm công vào",
+      `Còn 10 phút nữa đến giờ chấm công vào cho ca ${
         shiftInfo ? shiftInfo.name : ""
       }`,
-      date: reminderDate,
-      sound: settings.sound,
-      vibrate: settings.vibration,
-      data: {
+      reminderDate,
+      {
         type: "check_in_reminder",
         action: "check_in",
         shiftInfo,
-      },
-    });
+      }
+    );
   } catch (error) {
     console.error("Error scheduling start time reminder:", error);
     return null;
@@ -375,7 +325,7 @@ export const scheduleOfficeEndReminder = async (officeEndTime, shiftInfo) => {
     }
 
     // Get notification settings
-    const settings = await loadNotificationSettings();
+    const settings = await getNotificationSettings();
     if (!settings.enabled) {
       console.log("Notifications are disabled");
       return null;
@@ -401,19 +351,16 @@ export const scheduleOfficeEndReminder = async (officeEndTime, shiftInfo) => {
     const notificationId = `office-end-reminder-${
       today.toISOString().split("T")[0]
     }`;
-    return await scheduleNotification({
-      id: notificationId,
-      title: "Nhắc nhở kết thúc giờ hành chính",
-      message: `Đã đến giờ kết thúc làm việc hành chính, hãy chấm công ra`,
-      date: officeEndDate,
-      sound: settings.sound,
-      vibrate: settings.vibration,
-      data: {
+    return await scheduleNotification(
+      "Nhắc nhở kết thúc giờ hành chính",
+      `Đã đến giờ kết thúc làm việc hành chính, hãy chấm công ra`,
+      officeEndDate,
+      {
         type: "office_end_reminder",
         action: "check_out",
         shiftInfo,
-      },
-    });
+      }
+    );
   } catch (error) {
     console.error("Error scheduling office end reminder:", error);
     return null;
@@ -430,7 +377,7 @@ export const scheduleEndShiftReminder = async (endTime, shiftInfo) => {
     }
 
     // Get notification settings
-    const settings = await loadNotificationSettings();
+    const settings = await getNotificationSettings();
     if (!settings.enabled) {
       console.log("Notifications are disabled");
       return null;
@@ -458,21 +405,18 @@ export const scheduleEndShiftReminder = async (endTime, shiftInfo) => {
     const notificationId = `shift-end-reminder-${
       today.toISOString().split("T")[0]
     }`;
-    return await scheduleNotification({
-      id: notificationId,
-      title: "Nhắc nhở hoàn tất ca làm việc",
-      message: `Đã quá giờ kết thúc ca làm việc ${
+    return await scheduleNotification(
+      "Nhắc nhở hoàn tất ca làm việc",
+      `Đã quá giờ kết thúc ca làm việc ${
         shiftInfo ? shiftInfo.name : ""
       }, hãy hoàn tất ca`,
-      date: reminderDate,
-      sound: settings.sound,
-      vibrate: settings.vibration,
-      data: {
+      reminderDate,
+      {
         type: "shift_end_reminder",
         action: "complete",
         shiftInfo,
-      },
-    });
+      }
+    );
   } catch (error) {
     console.error("Error scheduling end shift reminder:", error);
     return null;
@@ -480,7 +424,7 @@ export const scheduleEndShiftReminder = async (endTime, shiftInfo) => {
 };
 
 // Schedule all reminders for today's shift
-export const scheduleShiftReminders = async (shiftInfo) => {
+export const scheduleShiftReminders = async (shiftInfo, reminderType) => {
   if (!shiftInfo) {
     console.log("No shift info provided, not scheduling reminders");
     return;
@@ -489,9 +433,27 @@ export const scheduleShiftReminders = async (shiftInfo) => {
   // Cancel any existing reminders first
   await cancelAllShiftNotifications();
 
-  const settings = await loadNotificationSettings();
+  const settings = await getNotificationSettings();
   if (!settings.enabled) {
     console.log("Notifications are disabled, not scheduling");
+    return;
+  }
+
+  // Kiểm tra chế độ nút đa năng
+  const AppSettingsStorage = require("../storage/AppSettingsStorage");
+  const multiPurposeMode = await AppSettingsStorage.getMultiPurposeMode();
+
+  // Nếu chế độ nút đa năng được bật, không lên lịch nhắc nhở
+  if (multiPurposeMode) {
+    console.log(
+      "Multi-purpose mode is enabled, no reminders will be scheduled"
+    );
+    return;
+  }
+
+  // Nếu reminderType là 'none', không lên lịch nhắc nhở
+  if (reminderType === "none") {
+    console.log("Reminder type is set to 'none', not scheduling reminders");
     return;
   }
 
@@ -595,7 +557,7 @@ export const handleNotificationResponse = (response) => {
 export default {
   initializeNotifications,
   saveNotificationSettings,
-  loadNotificationSettings,
+  getNotificationSettings,
   scheduleNotification,
   cancelNotification,
   cancelAllShiftNotifications,

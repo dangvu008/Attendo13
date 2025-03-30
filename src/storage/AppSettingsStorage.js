@@ -80,5 +80,15 @@ export const getMultiPurposeMode = async () => {
 
 // Cập nhật trạng thái chế độ nút đa năng
 export const setMultiPurposeMode = async (enabled) => {
-  return await updateAppSetting("multi_purpose_mode", enabled);
+  // Đồng bộ với MultiActionButtonStorage để đảm bảo tính nhất quán
+  try {
+    const result = await updateAppSetting("multi_purpose_mode", enabled);
+    // Đồng bộ với MultiActionButtonStorage
+    const MultiActionButtonStorage = require('./MultiActionButtonStorage');
+    await MultiActionButtonStorage.saveMultiActionButtonState(enabled);
+    return result;
+  } catch (error) {
+    console.error("Lỗi khi cập nhật chế độ nút đa năng:", error);
+    return false;
+  }
 };

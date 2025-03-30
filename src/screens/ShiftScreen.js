@@ -270,10 +270,10 @@ const ShiftScreen = () => {
   const handleTimeChange = (time) => {
     let formattedTime = time;
     if (time && time.length) {
-      // Remove any non-digit and non-colon characters
+      // Remove any non-numeric and non-colon characters
       formattedTime = time.replace(/[^0-9:]/g, "");
 
-      // Handle different input formats
+      // Add colon if not present
       if (!formattedTime.includes(":")) {
         if (formattedTime.length <= 2) {
           formattedTime = formattedTime.padStart(2, "0") + ":00";
@@ -283,14 +283,13 @@ const ShiftScreen = () => {
             ":" +
             formattedTime.substring(2, 4).padEnd(2, "0");
         }
-      } else {
-        const [hours, minutes] = formattedTime.split(":");
-        formattedTime =
-          hours.padStart(2, "0") + ":" + (minutes || "00").padEnd(2, "0");
       }
 
-      // Validate 24-hour format
+      // Validate hours and minutes
       const [hours, minutes] = formattedTime.split(":");
+      formattedTime = hours.padStart(2, "0") + ":" + minutes.padEnd(2, "0");
+
+      // Ensure hours and minutes are within valid ranges
       if (parseInt(hours) > 23) formattedTime = "23:" + minutes;
       if (parseInt(minutes) > 59) formattedTime = hours + ":59";
     }
@@ -585,59 +584,31 @@ const ShiftScreen = () => {
                   {t("work_time")}
                 </Text>
                 <View style={styles.timeContainer}>
-                  <TouchableOpacity
-                    style={[
-                      styles.timeButton,
-                      {
-                        backgroundColor: theme.isDarkMode
-                          ? "rgba(255, 255, 255, 0.1)"
-                          : "#f5f5f5",
-                        borderColor: theme.colors.border,
-                      },
-                    ]}
-                    onPress={() => handleOpenTimePicker("startWorkTime")}
-                  >
-                    <Ionicons
-                      name="time-outline"
-                      size={18}
-                      color={theme.colors.primary}
-                    />
-                    <Text
-                      style={[styles.timeText, { color: theme.colors.text }]}
-                    >
-                      {newShift.startWorkTime || t("select_time")}
-                    </Text>
-                  </TouchableOpacity>
-
+                  <TimePicker
+                    value={newShift.startWorkTime}
+                    onChange={(time) =>
+                      setNewShift({ ...newShift, startWorkTime: time })
+                    }
+                    placeholder={t("select_time")}
+                    theme={theme}
+                    label={t("shift_start_time")}
+                    style={styles.timePicker}
+                  />
                   <Text
                     style={[styles.timeSeparator, { color: theme.colors.text }]}
                   >
                     -
                   </Text>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.timeButton,
-                      {
-                        backgroundColor: theme.isDarkMode
-                          ? "rgba(255, 255, 255, 0.1)"
-                          : "#f5f5f5",
-                        borderColor: theme.colors.border,
-                      },
-                    ]}
-                    onPress={() => handleOpenTimePicker("endWorkTime")}
-                  >
-                    <Ionicons
-                      name="time-outline"
-                      size={18}
-                      color={theme.colors.primary}
-                    />
-                    <Text
-                      style={[styles.timeText, { color: theme.colors.text }]}
-                    >
-                      {newShift.endWorkTime || t("select_time")}
-                    </Text>
-                  </TouchableOpacity>
+                  <TimePicker
+                    value={newShift.endWorkTime}
+                    onChange={(time) =>
+                      setNewShift({ ...newShift, endWorkTime: time })
+                    }
+                    placeholder={t("select_time")}
+                    theme={theme}
+                    label={t("shift_end_time")}
+                    style={styles.timePicker}
+                  />
                 </View>
               </View>
 
@@ -646,27 +617,16 @@ const ShiftScreen = () => {
                 <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
                   {t("departure_time")}
                 </Text>
-                <TouchableOpacity
-                  style={[
-                    styles.departureButton,
-                    {
-                      backgroundColor: theme.isDarkMode
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "#f5f5f5",
-                      borderColor: theme.colors.border,
-                    },
-                  ]}
-                  onPress={() => handleOpenTimePicker("departureTime")}
-                >
-                  <Ionicons
-                    name="time-outline"
-                    size={18}
-                    color={theme.colors.primary}
-                  />
-                  <Text style={[styles.timeText, { color: theme.colors.text }]}>
-                    {newShift.departureTime || t("select_time")}
-                  </Text>
-                </TouchableOpacity>
+                <TimePicker
+                  value={newShift.departureTime}
+                  onChange={(time) =>
+                    setNewShift({ ...newShift, departureTime: time })
+                  }
+                  placeholder={t("select_time")}
+                  theme={theme}
+                  label={t("departure_time")}
+                  style={styles.timePicker}
+                />
               </View>
 
               {/* Week Days Selection */}
@@ -885,66 +845,13 @@ const ShiftScreen = () => {
         </View>
       </Modal>
 
-      <Modal
-        transparent={true}
+      <TimePicker
         visible={showTimePicker}
-        animationType="slide"
-        onRequestClose={() => setShowTimePicker(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setShowTimePicker(false)}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View
-                style={[
-                  styles.modalContent,
-                  { backgroundColor: theme.colors.surface, maxHeight: "40%" },
-                ]}
-              >
-                <View style={styles.modalHeader}>
-                  <Text
-                    style={[styles.modalTitle, { color: theme.colors.text }]}
-                  >
-                    {t("select_time")}
-                  </Text>
-                  <TouchableOpacity onPress={() => setShowTimePicker(false)}>
-                    <Ionicons
-                      name="close"
-                      size={24}
-                      color={theme.colors.text}
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.timePickerContainer}>
-                  <Text
-                    style={[
-                      styles.timePickerHelp,
-                      { color: theme.colors.textSecondary },
-                    ]}
-                  >
-                    {t("time_format_help")}
-                  </Text>
-                  <TextInput
-                    style={[
-                      styles.timePickerInput,
-                      {
-                        color: theme.colors.text,
-                        borderColor: theme.colors.border,
-                      },
-                    ]}
-                    value={newShift[timePickerFor] || "08:00"}
-                    onChangeText={handleTimeChange}
-                    placeholder="08:00"
-                    placeholderTextColor={theme.colors.placeholder}
-                    keyboardType="numbers-and-punctuation"
-                    maxLength={5}
-                  />
-                </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+        value={timePickerValue}
+        onChange={handleTimeChange}
+        onClose={() => setShowTimePicker(false)}
+        theme={theme}
+      />
 
       <Modal
         transparent={true}
@@ -1011,6 +918,10 @@ const ShiftScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  timePicker: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
   container: {
     flex: 1,
   },
@@ -1153,34 +1064,21 @@ const styles = StyleSheet.create({
   },
   timeContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-  },
-  timeButton: {
-    height: 48,
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 12,
+    marginBottom: 8,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    flex: 1,
   },
-  timeText: {
-    fontSize: 16,
+  timePicker: {
+    flex: 1,
   },
   timeSeparator: {
     fontSize: 16,
     marginHorizontal: 8,
   },
-  departureButton: {
-    height: 48,
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  departureTimePicker: {
+    width: "100%",
   },
   daysContainer: {
     flexDirection: "row",

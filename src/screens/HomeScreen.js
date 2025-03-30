@@ -33,7 +33,7 @@ import {
   parse,
 } from "date-fns";
 import { vi } from "../utils/viLocale";
-import { enUS } from "date-fns/locale";
+import { enUS } from "date-fns/locale/en-US";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -84,17 +84,33 @@ const HomeScreen = () => {
   useEffect(() => {
     const loadMultiActionState = async () => {
       try {
-        // Ưu tiên lấy từ MultiActionButtonStorage để đảm bảo tính nhất quán
-        const state =
-          await MultiActionButtonStorage.loadMultiActionButtonState();
-        setMultiActionButtonEnabled(state !== null ? state : true);
+        // Ưu tiên lấy từ AppSettingsStorage để đảm bảo tính nhất quán
+        const multiPurposeMode = await AppSettingsStorage.getMultiPurposeMode();
+        setMultiActionButtonEnabled(multiPurposeMode);
       } catch (error) {
-        console.error("Error loading multi-action button state:", error);
+        console.error("Error loading multi-purpose mode state:", error);
         setMultiActionButtonEnabled(true); // Default to true on error
       }
     };
     loadMultiActionState();
   }, []);
+
+  // Theo dõi sự thay đổi của chế độ nút đa năng khi màn hình được focus
+  useFocusEffect(
+    useCallback(() => {
+      const checkMultiPurposeMode = async () => {
+        try {
+          const multiPurposeMode =
+            await AppSettingsStorage.getMultiPurposeMode();
+          setMultiActionButtonEnabled(multiPurposeMode);
+        } catch (error) {
+          console.error("Error checking multi-purpose mode state:", error);
+        }
+      };
+
+      checkMultiPurposeMode();
+    }, [])
+  );
 
   useEffect(() => {
     const loadReminders = async () => {
@@ -1787,7 +1803,7 @@ const HomeScreen = () => {
         <View style={styles.multiActionSection}>
           <View style={styles.buttonContainer}>
             {multiActionButtonEnabled ? (
-              // Render the full multi-action button when enabled
+              // Chế độ nút đa năng: hiển thị một nút duy nhất thay đổi theo trạng thái
               actionButton.visible && (
                 <MultiActionButton
                   status={actionButton.status}
@@ -1801,20 +1817,59 @@ const HomeScreen = () => {
                 />
               )
             ) : (
-              // Render simple "Go to work" button when disabled
-              <TouchableOpacity
-                style={[
-                  styles.singleActionButton,
-                  { backgroundColor: theme.colors.primary },
-                ]}
-                onPress={() => handleWorkConfirmation()}
-                disabled={actionButton.status === "completed"}
-              >
-                <Ionicons name="briefcase-outline" size={24} color="#fff" />
-                <Text style={styles.singleActionButtonText}>
-                  {i18n.t("go_to_work")}
-                </Text>
-              </TouchableOpacity>
+              // Chế độ nút riêng lẻ: hiển thị các nút riêng biệt dựa trên trạng thái
+              <View style={styles.multipleButtonsContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.singleActionButton,
+                    { backgroundColor: theme.colors.goWorkButton },
+                  ]}
+                  onPress={() => {
+                    setNextAction("go_work");
+                    performAction("go_work");
+                  }}
+                  disabled={workStatus !== null || actionButtonDisabled}
+                >
+                  <Ionicons name="briefcase-outline" size={24} color="#fff" />
+                  <Text style={styles.singleActionButtonText}>
+                    {i18n.t("goToWork")}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.singleActionButton,
+                    { backgroundColor: theme.colors.checkInButton },
+                  ]}
+                  onPress={() => {
+                    setNextAction("check_in");
+                    performAction("check_in");
+                  }}
+                  disabled={workStatus !== "go_work" || actionButtonDisabled}
+                >
+                  <Ionicons name="log-in-outline" size={24} color="#fff" />
+                  <Text style={styles.singleActionButtonText}>
+                    {i18n.t("checkIn")}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.singleActionButton,
+                    { backgroundColor: theme.colors.checkOutButton },
+                  ]}
+                  onPress={() => {
+                    setNextAction("check_out");
+                    performAction("check_out");
+                  }}
+                  disabled={workStatus !== "check_in" || actionButtonDisabled}
+                >
+                  <Ionicons name="log-out-outline" size={24} color="#fff" />
+                  <Text style={styles.singleActionButtonText}>
+                    {i18n.t("checkOut")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             )}
 
             {/* Nút reset - chỉ hiển thị sau khi bấm "Đi Làm" và trước khi hoàn thành */}
@@ -2161,6 +2216,31 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginTop: 8,
+  },
+  multipleButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
+  },
+  singleActionButton: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    margin: 5,
+  },
+  singleActionButtonText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
+    marginTop: 5,
+    textAlign: "center",
   },
   resetButton: {
     position: "absolute",

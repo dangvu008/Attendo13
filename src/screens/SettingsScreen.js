@@ -25,6 +25,7 @@ import { useNavigation } from "@react-navigation/native";
 import Constants from "expo-constants";
 import * as NotificationService from "../services/NotificationService";
 import i18n, { setAppLanguage, loadStoredLanguage } from "../i18n";
+import { List } from "react-native-paper";
 
 const SettingsScreen = () => {
   const { theme, isDarkMode, toggleTheme } = useTheme();
@@ -49,6 +50,8 @@ const SettingsScreen = () => {
   const [multiActionButtonEnabled, setMultiActionButtonEnabled] =
     useState(true);
   const [multiPurposeModeEnabled, setMultiPurposeModeEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
 
   // Load notification settings
   useEffect(() => {
@@ -66,28 +69,24 @@ const SettingsScreen = () => {
         setReminderType(settings.reminderType);
         setNotificationsEnabled(settings.enabled);
 
-        // Load multi-action button setting from MultiActionButtonStorage
-        try {
-          const multiActionValue =
-            await MultiActionButtonStorage.loadMultiActionButtonState();
-          setMultiActionButtonEnabled(
-            multiActionValue !== null ? multiActionValue : true
-          );
-
-          // Đồng bộ giá trị với AppSettingsStorage
-          await AppSettingsStorage.setMultiPurposeMode(
-            multiActionValue !== null ? multiActionValue : true
-          );
-        } catch (error) {
-          console.error("Error loading multi-action button state:", error);
-          setMultiActionButtonEnabled(true); // Default to true on error
-        }
-
-        // Load multi-purpose mode setting
+        // Load multi-purpose mode setting từ AppSettingsStorage
         const multiPurposeMode = await AppSettingsStorage.getMultiPurposeMode();
         setMultiPurposeModeEnabled(multiPurposeMode);
+        setMultiActionButtonEnabled(multiPurposeMode);
+
+        // Đảm bảo MultiActionButtonStorage cũng được đồng bộ
+        await MultiActionButtonStorage.saveMultiActionButtonState(
+          multiPurposeMode
+        );
+
+        // Load sound and vibration settings
+        setSoundEnabled(settings.soundEnabled);
+        setVibrationEnabled(settings.vibrationEnabled);
       } catch (error) {
-        console.error("Error loading notification settings:", error);
+        console.error("Error loading settings:", error);
+        // Default to true on error
+        setMultiPurposeModeEnabled(true);
+        setMultiActionButtonEnabled(true);
       } finally {
         setIsLoadingSettings(false);
       }
@@ -107,6 +106,8 @@ const SettingsScreen = () => {
           sound: notificationSound,
           vibration: notificationVibration,
           reminderType: reminderType,
+          soundEnabled: soundEnabled,
+          vibrationEnabled: vibrationEnabled,
         };
 
         await NotificationService.saveNotificationSettings(settings);
@@ -139,29 +140,55 @@ const SettingsScreen = () => {
     currentShift,
     isLoadingSettings,
     multiActionButtonEnabled, // Add this to the dependency array
+    soundEnabled,
+    vibrationEnabled,
   ]);
 
   const handleToggleNotifications = () => {
     setNotificationsEnabled((prev) => !prev);
   };
 
-  const handleToggleSound = () => {
-    setNotificationSound((prev) => !prev);
+  const handleToggleSound = async () => {
+    const newValue = !soundEnabled;
+    setSoundEnabled(newValue);
+    await NotificationService.saveNotificationSettings(
+      newValue,
+      notificationVibration
+    );
   };
 
-  const handleToggleVibration = () => {
-    setNotificationVibration((prev) => !prev);
+  const handleToggleVibration = async () => {
+    const newValue = !vibrationEnabled;
+    setVibrationEnabled(newValue);
+    await NotificationService.saveNotificationSettings(
+      notificationSound,
+      newValue
+    );
   };
 
   const handleToggleMultiActionButton = async () => {
     const newValue = !multiActionButtonEnabled;
     setMultiActionButtonEnabled(newValue);
+    setMultiPurposeModeEnabled(newValue);
 
     // Đồng bộ giá trị với AppSettingsStorage
     await AppSettingsStorage.setMultiPurposeMode(newValue);
-  };
 
-  // Đã hợp nhất với handleToggleMultiActionButton
+    // Nếu bật chế độ nút đa năng, hủy tất cả thông báo
+    if (newValue) {
+      await NotificationService.cancelAllShiftNotifications();
+    } else if (
+      notificationsEnabled &&
+      reminderType !== "none" &&
+      currentShift
+    ) {
+      // Nếu tắt chế độ nút đa năng và thông báo được bật, lên lịch lại thông báo
+      await NotificationService.scheduleShiftReminders(
+        currentShift,
+        reminderType
+      );
+    }
+  };
 
   const handleSelectShift = (shift) => {
     setCurrentShift(shift);
@@ -504,10 +531,10 @@ const SettingsScreen = () => {
             t("notification_sound"),
             t("notification_sound_description"),
             <Switch
-              value={notificationSound}
+              value={soundEnabled}
               onValueChange={handleToggleSound}
               trackColor={{ false: "#767577", true: theme.colors.primaryLight }}
-              thumbColor={notificationSound ? theme.colors.primary : "#f4f3f4"}
+              thumbColor={soundEnabled ? theme.colors.primary : "#f4f3f4"}
               ios_backgroundColor="#3e3e3e"
             />
           )}
@@ -521,12 +548,10 @@ const SettingsScreen = () => {
             t("notification_vibration"),
             t("notification_vibration_description"),
             <Switch
-              value={notificationVibration}
+              value={vibrationEnabled}
               onValueChange={handleToggleVibration}
               trackColor={{ false: "#767577", true: theme.colors.primaryLight }}
-              thumbColor={
-                notificationVibration ? theme.colors.primary : "#f4f3f4"
-              }
+              thumbColor={vibrationEnabled ? theme.colors.primary : "#f4f3f4"}
               ios_backgroundColor="#3e3e3e"
             />
           )}
