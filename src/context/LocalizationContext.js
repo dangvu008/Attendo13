@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import * as Localization from "expo-localization";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import i18n from "i18n-js";
+import { I18n } from "i18n-js";
 import { I18nManager } from "react-native";
 import translations from "../translations";
 
@@ -19,20 +19,23 @@ export const LocalizationProvider = ({ children }) => {
   const [locale, setLocale] = useState(Localization.locale);
   const [isReady, setIsReady] = useState(false);
   const [forceRender, setForceRender] = useState(0);
+  const [i18n] = useState(() => {
+    const i18nInstance = new I18n(translations);
+    i18nInstance.fallbacks = true;
+    i18nInstance.defaultLocale = "en";
+    return i18nInstance;
+  });
 
   useEffect(() => {
     if (translations) {
-      i18n.translations = translations;
       console.log("Loaded translations for:", Object.keys(translations));
 
       if (!translations.vi) {
         console.warn("Missing Vietnamese translations! Adding empty object.");
-        i18n.translations.vi = i18n.translations.vi || {};
+        translations.vi = translations.vi || {};
       }
 
       i18n.locale = locale;
-      i18n.fallbacks = true;
-      i18n.defaultLocale = "en";
       setIsReady(true);
     } else {
       console.error("Translations object is undefined or invalid");
@@ -41,7 +44,7 @@ export const LocalizationProvider = ({ children }) => {
 
   const setAppLanguage = async (languageCode) => {
     try {
-      if (!i18n.translations[languageCode]) {
+      if (!translations[languageCode]) {
         console.warn(
           `Missing translations for ${languageCode}, using default language`
         );
@@ -62,7 +65,7 @@ export const LocalizationProvider = ({ children }) => {
     try {
       const savedLanguage = await AsyncStorage.getItem("userLanguage");
       if (savedLanguage) {
-        if (i18n.translations[savedLanguage]) {
+        if (translations[savedLanguage]) {
           setLocale(savedLanguage);
           i18n.locale = savedLanguage;
           console.log(`Đã tải ngôn ngữ: ${savedLanguage}`);
@@ -82,14 +85,14 @@ export const LocalizationProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    if (i18n.translations) {
+    if (translations) {
       loadSavedLanguage();
     }
   }, []);
 
   const changeLocale = useCallback(async (newLocale) => {
     try {
-      if (!i18n.translations[newLocale]) {
+      if (!translations[newLocale]) {
         console.warn(
           `Missing translations for ${newLocale}, using default language`
         );

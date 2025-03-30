@@ -1,9 +1,10 @@
 import * as Localization from "expo-localization";
-import i18n from "i18n-js";
+import { I18n } from "i18n-js";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import translations from "./translations";
 
-i18n.translations = translations;
+const i18n = new I18n(translations);
+
 i18n.fallbacks = true;
 i18n.defaultLocale = "en";
 
