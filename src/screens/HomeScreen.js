@@ -1935,31 +1935,95 @@ const HomeScreen = () => {
 
   // Thêm đoạn này vào đầu component hoặc trong constructor
   useEffect(() => {
-    PushNotification.configure({
-      // Cấu hình cơ bản
-      onRegister: function (token) {
-        console.log("TOKEN:", token);
-      },
-      onNotification: function (notification) {
-        console.log("NOTIFICATION:", notification);
-      },
-      permissions: {
-        alert: true,
-        badge: true,
-        sound: true,
-      },
-      popInitialNotification: true,
-    });
+    const configurePushNotifications = async () => {
+      try {
+        // Kiểm tra và yêu cầu quyền thông báo trước
+        const { status: existingStatus } =
+          await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+
+        if (existingStatus !== "granted") {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+
+        if (finalStatus !== "granted") {
+          console.log("Permission not granted for notifications");
+          return;
+        }
+
+        // Cấu hình thông báo với Expo Notifications
+        await Notifications.setNotificationChannelAsync("default", {
+          name: "default",
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: "#FF231F7C",
+        });
+
+        // Cấu hình PushNotification
+        if (PushNotification) {
+          PushNotification.configure({
+            onRegister: function (token) {
+              console.log("TOKEN:", token);
+            },
+            onNotification: function (notification) {
+              console.log("NOTIFICATION:", notification);
+
+              // Xử lý thông báo khi nhận được
+              notification.finish(PushNotification.FetchResult.NoData);
+            },
+            onAction: function (notification) {
+              console.log("ACTION:", notification.action);
+              console.log("NOTIFICATION:", notification);
+            },
+            onRegistrationError: function (err) {
+              console.error(err.message, err);
+            },
+            permissions: {
+              alert: true,
+              badge: true,
+              sound: true,
+            },
+            popInitialNotification: true,
+            requestPermissions: true,
+          });
+
+          // Tạo channel cho Android
+          PushNotification.createChannel(
+            {
+              channelId: "default",
+              channelName: "Default Channel",
+              channelDescription: "Default notification channel",
+              soundName: "default",
+              importance: 4,
+              vibrate: true,
+            },
+            (created) => console.log(`Channel created: ${created}`)
+          );
+        }
+      } catch (error) {
+        console.error("Error configuring push notifications:", error);
+      }
+    };
+
+    configurePushNotifications();
   }, []);
 
-  // Sửa lại các hàm xử lý notification
+  // Sửa lại các hàm xử lý thông báo
   const handleCancelReminders = async (action) => {
     try {
-      if (PushNotification) {
-        await PushNotification.cancelRemindersByAction(action);
-      } else {
+      if (!PushNotification) {
         console.warn("PushNotification is not initialized");
+        return;
       }
+
+      // Hủy thông báo theo action
+      await new Promise((resolve) => {
+        PushNotification.cancelAllLocalNotifications();
+        resolve();
+      });
+
+      console.log(`Cancelled reminders for action: ${action}`);
     } catch (error) {
       console.error("Error canceling reminders:", error);
     }
@@ -1967,11 +2031,20 @@ const HomeScreen = () => {
 
   const handleScheduleNotification = async (notificationData) => {
     try {
-      if (PushNotification) {
-        await PushNotification.scheduleNotification(notificationData);
-      } else {
+      if (!PushNotification) {
         console.warn("PushNotification is not initialized");
+        return;
       }
+
+      // Lên lịch thông báo mới
+      PushNotification.localNotificationSchedule({
+        channelId: "default",
+        ...notificationData,
+        message: notificationData.message || "Notification message",
+        date: notificationData.date || new Date(Date.now() + 5000),
+      });
+
+      console.log("Scheduled notification:", notificationData);
     } catch (error) {
       console.error("Error scheduling notification:", error);
     }
