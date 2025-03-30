@@ -689,8 +689,8 @@ const HomeScreen = () => {
         const updatedEntries = await getTodayEntries();
         setTodayEntries(updatedEntries);
 
-        // Cập nhật trạng thái làm việc
-        setWorkStatus("complete");
+        // Cập nhật trạng thái làm việc thành "completed" để vô hiệu hóa nút
+        setWorkStatus("completed");
 
         // Hủy thông báo nhắc nhở hoàn tất vì đã thực hiện
         await NotificationService.cancelRemindersByAction("complete");
@@ -1352,7 +1352,7 @@ const HomeScreen = () => {
           label: i18n.t("workCompleted"),
           icon: "checkmark-circle-outline",
           color: theme.colors.completeButton,
-          visible: false,
+          visible: true,
         };
       default:
         return {
@@ -1420,11 +1420,8 @@ const HomeScreen = () => {
 
   const actionButton = getActionButton();
 
-  // Nút reset chỉ hiển thị sau khi bấm "Đi làm" và trước khi hoàn thành
-  const showResetButton =
-    workStatus !== null &&
-    workStatus !== "completed" &&
-    workStatus !== "complete";
+  // Nút reset hiển thị sau khi bấm "Đi làm" và sau khi hoàn thành
+  const showResetButton = workStatus !== null;
 
   // Xử lý reset work status
   const handleResetPress = () => {
@@ -1723,18 +1720,26 @@ const HomeScreen = () => {
 
   const loadCurrentShift = async () => {
     try {
-      // Fetch current shift data
       const shiftInfoJson = await AsyncStorage.getItem("currentShift");
       if (shiftInfoJson) {
         const shift = JSON.parse(shiftInfoJson);
         setShiftInfo(shift);
-        console.log("Loaded current shift:", shift);
+        console.log("Đã tải ca làm việc hiện tại:", shift);
+
+        // Khi ca làm việc thay đổi, kiểm tra nếu đang ở trạng thái hoàn tất
+        // thì reset lại trạng thái để cho phép bắt đầu ca mới
+        if (workStatus === "completed") {
+          console.log("Phát hiện ca làm việc mới, đặt lại trạng thái");
+          await resetDayStatus();
+          setWorkStatus(null);
+          setTodayEntries([]);
+        }
       } else {
         setShiftInfo(null);
-        console.log("No shift information found");
+        console.log("Không tìm thấy thông tin ca làm việc");
       }
     } catch (error) {
-      console.error("Error loading current shift:", error);
+      console.error("Lỗi khi tải thông tin ca làm việc:", error);
       setShiftInfo(null);
     }
   };
@@ -1818,18 +1823,16 @@ const HomeScreen = () => {
           <View style={styles.buttonContainer}>
             {multiActionButtonEnabled ? (
               // Chế độ nút đa năng: hiển thị một nút duy nhất thay đổi theo trạng thái
-              actionButton.visible && (
-                <MultiActionButton
-                  status={actionButton.status}
-                  label={actionButton.label}
-                  iconName={actionButton.icon}
-                  color={actionButton.color}
-                  onPress={handleActionButtonPress}
-                  disabled={
-                    actionButtonDisabled || actionButton.status === "completed"
-                  }
-                />
-              )
+              <MultiActionButton
+                status={actionButton.status}
+                label={actionButton.label}
+                iconName={actionButton.icon}
+                color={actionButton.color}
+                onPress={handleActionButtonPress}
+                disabled={
+                  actionButtonDisabled || actionButton.status === "completed"
+                }
+              />
             ) : (
               // Khi tắt chế độ nút đa năng, chỉ hiển thị nút "Đi làm" duy nhất
               <MultiActionButton
@@ -1842,16 +1845,24 @@ const HomeScreen = () => {
               />
             )}
 
-            {/* Nút reset - chỉ hiển thị sau khi bấm "Đi Làm" và trước khi hoàn thành */}
+            {/* Nút reset - hiển thị sau khi bấm "Đi Làm" và sau khi hoàn thành */}
             {showResetButton && (
               <TouchableOpacity
-                style={styles.resetButton}
+                style={[
+                  styles.resetButton,
+                  // Khi trạng thái đã hoàn thành, làm nút reset rõ ràng hơn
+                  workStatus === "completed" && styles.resetButtonHighlighted,
+                ]}
                 onPress={handleResetPress}
               >
                 <Ionicons
                   name="refresh-outline"
                   size={24}
-                  color={theme.colors.resetButton}
+                  color={
+                    workStatus === "completed"
+                      ? theme.colors.primary
+                      : theme.colors.resetButton
+                  }
                 />
               </TouchableOpacity>
             )}
@@ -2214,12 +2225,20 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     position: "absolute",
-    right: -30,
-    top: 10,
+    right: -15,
+    top: -15,
     width: 40,
     height: 40,
+    borderRadius: 20,
+    backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    zIndex: 10,
   },
   currentStatusText: {
     marginTop: 2,
@@ -2414,6 +2433,11 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     fontSize: 14,
     fontWeight: "bold",
+  },
+  resetButtonHighlighted: {
+    backgroundColor: "#fff",
+    borderWidth: 2,
+    borderColor: "#ddd",
   },
 });
 
