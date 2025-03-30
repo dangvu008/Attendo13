@@ -1,7 +1,4 @@
-import notifee, {
-  AndroidImportance,
-  AndroidStyle,
-} from "@notifee/react-native";
+import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import * as NotificationService from "./NotificationService";
@@ -9,13 +6,12 @@ import * as NotificationService from "./NotificationService";
 // Tạo kênh thông báo cho Android
 export const createNotificationChannel = async () => {
   if (Platform.OS === "android") {
-    const channelId = await notifee.createChannel({
-      id: "shift-reminders",
+    const channelId = await Notifications.setNotificationChannelAsync("shift-reminders", {
       name: "Nhắc nhở ca làm việc",
-      importance: AndroidImportance.HIGH,
-      sound: "default",
-      vibration: true,
+      importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#4285F4",
+      sound: true,
     });
 
     return channelId;
@@ -41,53 +37,28 @@ export const scheduleBackgroundNotification = async (
       return null;
     }
 
-    // Tạo kênh thông báo cho Android nếu chưa có
-    let channelId = await AsyncStorage.getItem("notification_channel_id");
-    if (!channelId) {
-      channelId = await createNotificationChannel();
-      if (channelId) {
-        await AsyncStorage.setItem("notification_channel_id", channelId);
-      }
-    }
+    // Tạo nội dung thông báo
+    const notificationContent = {
+      title,
+      body,
+      data,
+      sound: settings.soundEnabled ? "default" : null,
+      vibrate: settings.vibrationEnabled ? [0, 250, 250, 250] : null,
+      priority: Notifications.AndroidNotificationPriority.HIGH,
+    };
 
     // Tạo trigger dựa trên timestamp
     const trigger = {
-      type: "timestamp",
-      timestamp:
-        timestamp instanceof Date
-          ? timestamp.getTime()
-          : new Date(timestamp).getTime(),
-    };
-
-    // Tạo nội dung thông báo
-    const notification = {
-      id: `${data.type || "reminder"}-${Date.now()}`,
-      title: title,
-      body: body,
-      android: {
-        channelId,
-        smallIcon: "ic_notification",
-        pressAction: {
-          id: "default",
-        },
-        importance: AndroidImportance.HIGH,
-        sound: settings.soundEnabled ? "default" : undefined,
-        vibrationPattern: settings.vibrationEnabled
-          ? [0, 250, 250, 250]
-          : undefined,
-        style: {
-          type: AndroidStyle.BIGTEXT,
-          text: body,
-        },
-      },
-      ios: {
-        sound: settings.soundEnabled ? "default" : undefined,
-      },
-      data,
+      date: new Date(timestamp),
     };
 
     // Lên lịch thông báo
-    return await notifee.createTriggerNotification(notification, trigger);
+    const identifier = await Notifications.scheduleNotificationAsync({
+      content: notificationContent,
+      trigger,
+    });
+
+    return identifier;
   } catch (error) {
     console.error("Error scheduling background notification:", error);
     return null;
