@@ -22,7 +22,7 @@ import {
   MaterialCommunityIcons,
 } from "@expo/vector-icons";
 import {
-  format,
+  format as formatDateFn,
   differenceInMinutes,
   differenceInHours,
   isToday,
@@ -57,22 +57,21 @@ import AddNoteModal from "../components/AddNoteModal";
 import NoteItem from "../components/NoteItem";
 
 // Kiểm tra xem cấu trúc của date-fns có đúng không
-import { format } from "date-fns";
-console.log("date-fns available:", typeof format === "function");
+// console.log("date-fns available:", typeof formatDateFn === "function");
 
 // Kiểm tra xem locale có sẵn không
-try {
-  // Cố gắng import và sử dụng không có .js
-  const enUS = require("date-fns/locale/enUS");
-  console.log("Locale en-US available:", enUS);
-
-  // Dùng thử nếu tìm thấy
-  const testDate = new Date();
-  const formattedDate = format(testDate, "PPP", { locale: enUS });
-  console.log("Formatted date with locale:", formattedDate);
-} catch (error) {
-  console.error("Error importing locale:", error);
-}
+// try {
+//   // Cố gắng import và sử dụng không có .js
+//   const enUS = require("date-fns/locale/enUS");
+//   console.log("Locale en-US available:", enUS);
+//
+//   // Dùng thử nếu tìm thấy
+//   const testDate = new Date();
+//   const formattedDate = formatDateFn(testDate, "PPP", { locale: enUS });
+//   console.log("Formatted date with locale:", formattedDate);
+// } catch (error) {
+//   console.error("Error importing locale:", error);
+// }
 
 // Hàm định dạng ngày tháng sử dụng Intl API
 const formatDateWithIntl = (date, locale = "vi-VN") => {
@@ -403,11 +402,13 @@ const HomeScreen = () => {
   // Format date using the current locale
   const formatDate = (date, formatStr = "dd/MM/yyyy") => {
     try {
-      return format(date, formatStr, { locale: locale === "vi" ? vi : enUS });
+      return formatDateFn(date, formatStr, {
+        locale: locale === "vi" ? vi : enUS,
+      });
     } catch (error) {
       console.error("Error formatting date:", error);
       // Fallback không sử dụng locale
-      return format(date, formatStr);
+      return formatDateFn(date, formatStr);
     }
   };
 
@@ -889,7 +890,7 @@ const HomeScreen = () => {
   // Cập nhật trạng thái công
   const updateWorkStatus = async (status) => {
     try {
-      const today = format(new Date(), "yyyy-MM-dd");
+      const today = formatDateFn(new Date(), "yyyy-MM-dd");
       await AsyncStorage.setItem(`workStatus_${today}`, status);
 
       // Cập nhật trạng thái tuần
@@ -1012,7 +1013,7 @@ const HomeScreen = () => {
   // Lấy lịch sử bấm nút trong ngày
   const getTodayActionLogs = async () => {
     try {
-      const today = format(new Date(), "yyyy-MM-dd");
+      const today = formatDateFn(new Date(), "yyyy-MM-dd");
       const logsKey = `actionLogs_${today}`;
       const logsJson = await AsyncStorage.getItem(logsKey);
 
@@ -1189,14 +1190,14 @@ const HomeScreen = () => {
     try {
       // Lấy thời gian hiện tại
       const now = new Date();
-      const today = format(now, "yyyy-MM-dd");
+      const today = formatDateFn(now, "yyyy-MM-dd");
 
       // Tạo đối tượng lịch sử hành động
       const actionHistory = {
         action,
         timestamp: now.toISOString(),
         weekNumber: getWeekNumber(now),
-        month: format(now, "MM-yyyy"),
+        month: formatDateFn(now, "MM-yyyy"),
       };
 
       // Lấy lịch sử hành động hiện có
@@ -1262,9 +1263,9 @@ const HomeScreen = () => {
         );
 
         // Tạo đối tượng dữ liệu thống kê
-        const workDate = format(timestamp, "yyyy-MM-dd");
+        const workDate = formatDateFn(timestamp, "yyyy-MM-dd");
         const weekNumber = getWeekNumber(timestamp);
-        const monthYear = format(timestamp, "MM-yyyy");
+        const monthYear = formatDateFn(timestamp, "MM-yyyy");
 
         const workStats = {
           date: workDate,
@@ -1469,26 +1470,29 @@ const HomeScreen = () => {
     switch (workStatus) {
       case "go_work":
         return (
-          format(new Date(goWorkEntry.timestamp), "HH:mm") +
+          formatDateFn(new Date(goWorkEntry.timestamp), "HH:mm") +
           " - " +
           i18n.t("work_started")
         );
       case "check_in":
         return (
-          format(new Date(checkInEntry.timestamp), "HH:mm") +
+          formatDateFn(new Date(checkInEntry.timestamp), "HH:mm") +
           " - " +
           i18n.t("checked_in")
         );
       case "check_out":
         return (
-          format(new Date(checkOutEntry.timestamp), "HH:mm") +
+          formatDateFn(new Date(checkOutEntry.timestamp), "HH:mm") +
           " - " +
           i18n.t("checked_out")
         );
       case "complete":
       case "completed":
         return (
-          format(new Date(completeEntry?.timestamp || new Date()), "HH:mm") +
+          formatDateFn(
+            new Date(completeEntry?.timestamp || new Date()),
+            "HH:mm"
+          ) +
           " - " +
           i18n.t("work_completed")
         );
@@ -1657,7 +1661,7 @@ const HomeScreen = () => {
               style={[styles.actionHistoryText, { color: theme.colors.text }]}
             >
               {getActionName(entry.status)}:{" "}
-              {format(parseISO(entry.timestamp), "HH:mm")}
+              {formatDateFn(parseISO(entry.timestamp), "HH:mm")}
             </Text>
           </View>
         ))}
@@ -1751,7 +1755,7 @@ const HomeScreen = () => {
   const updateWeeklyStatus = async () => {
     try {
       // Lấy trạng thái công của ngày hiện tại
-      const today = format(new Date(), "yyyy-MM-dd");
+      const today = formatDateFn(new Date(), "yyyy-MM-dd");
       let currentStatus = "?"; // Mặc định là không xác định
 
       // Xác định trạng thái dựa trên các hành động đã thực hiện
@@ -1839,7 +1843,7 @@ const HomeScreen = () => {
         return false;
       }
 
-      const today = format(new Date(), "yyyy-MM-dd");
+      const today = formatDateFn(new Date(), "yyyy-MM-dd");
       const checkInTime = new Date(checkInEntry.timestamp);
       const checkOutTime = new Date(checkOutEntry.timestamp);
 
@@ -1932,7 +1936,7 @@ const HomeScreen = () => {
 
       // Tạo đối tượng thống kê giờ công
       const workHoursData = {
-        date: format(new Date(), "yyyy-MM-dd"),
+        date: formatDateFn(new Date(), "yyyy-MM-dd"),
         standardHours: Number(standardHours.toFixed(2)),
         overtimeHours: Number(overtimeHours.toFixed(2)),
         totalHours: Number((standardHours + overtimeHours).toFixed(2)),
@@ -1942,7 +1946,7 @@ const HomeScreen = () => {
       };
 
       // Lưu thống kê giờ công
-      const today = format(new Date(), "yyyy-MM-dd");
+      const today = formatDateFn(new Date(), "yyyy-MM-dd");
       await AsyncStorage.setItem(
         `workHours_${today}`,
         JSON.stringify(workHoursData)
@@ -2343,7 +2347,7 @@ const HomeScreen = () => {
         <View style={styles.timeInfoSection}>
           <View style={styles.timeDisplayContainer}>
             <Text style={styles.timeDisplay}>
-              {format(currentTime, "HH:mm", {
+              {formatDateFn(currentTime, "HH:mm", {
                 locale: i18n.locale === "vi" ? vi : enUS,
               })}
             </Text>
@@ -2463,7 +2467,7 @@ const HomeScreen = () => {
                         {note.content}
                       </Text>
                       <Text style={styles.noteTime}>
-                        {format(
+                        {formatDateFn(
                           new Date(note.reminderTime),
                           "HH:mm, dd/MM/yyyy"
                         )}
