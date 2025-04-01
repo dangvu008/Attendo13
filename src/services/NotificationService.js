@@ -30,15 +30,16 @@ const SCHEDULED_NOTIFICATIONS_KEY = "scheduled_notifications";
 
 // Initialize notification permissions
 export const initializeNotifications = async () => {
-  try {
-    if (Platform.OS === "web") {
-      if ("Notification" in window) {
-        const permission = await Notification.requestPermission();
-        console.log(`Web notification permission: ${permission}`);
-      }
-      return;
+  // Check if running on web platform
+  if (Platform.OS === 'web') {
+    if ("Notification" in window) {
+      const permission = await Notification.requestPermission();
+      console.log(`Web notification permission: ${permission}`);
     }
-
+    return false; // Return false on web as permissions can't be requested
+  }
+  
+  try {
     // Cấu hình cho thiết bị di động
     await Notifications.setNotificationHandler({
       handleNotification: async () => ({
@@ -49,14 +50,24 @@ export const initializeNotifications = async () => {
     });
 
     // Yêu cầu quyền thông báo
-    const { status } = await Notifications.requestPermissionsAsync();
-    console.log(`Notification permission status: ${status}`);
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    
+    console.log(`Notification permission status: ${finalStatus}`);
 
     if (Platform.OS === "android") {
       await createNotificationChannel();
     }
+    
+    return finalStatus === "granted";
   } catch (error) {
     console.error("Error initializing notifications:", error);
+    return false;
   }
 };
 
@@ -103,13 +114,15 @@ export const getNotificationSettings = async () => {
 // Schedule a notification
 export const scheduleNotification = async (options) => {
   try {
+    const settings = await getNotificationSettings();
+
     if (Platform.OS === "web") {
       console.log("Thông báo web:", options.title, options.body);
 
       if ("Notification" in window && Notification.permission === "granted") {
         new Notification(options.title, { body: options.body });
       }
-      return true;
+      return `web-mock-notification-${Date.now()}`;
     }
 
     // Lên lịch thông báo trên thiết bị di động
@@ -118,6 +131,9 @@ export const scheduleNotification = async (options) => {
         title: options.title,
         body: options.body,
         data: options.data || {},
+        sound: settings.soundEnabled,
+        vibrate: settings.vibrationEnabled ? [0, 250, 250, 250] : null,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
       },
       trigger: options.trigger || null,
     });
@@ -167,6 +183,12 @@ export const getScheduledNotifications = async () => {
 // Cancel a specific notification
 export const cancelNotification = async (notificationId) => {
   try {
+    // Check if running on web platform
+    if (Platform.OS === "web") {
+      console.log("Canceling notifications is not supported on web platform");
+      return true; // Return success on web as there's nothing to cancel
+    }
+
     await Notifications.cancelScheduledNotificationAsync(notificationId);
     return true;
   } catch (error) {
@@ -195,10 +217,17 @@ export const cancelAllShiftNotifications = async (shiftId = null) => {
       notificationsToCancel = Object.keys(storedNotifications);
     }
 
-    // Cancel each notification
-    for (const id of notificationsToCancel) {
-      await Notifications.cancelScheduledNotificationAsync(id);
-      delete storedNotifications[id];
+    // Check if running on web platform
+    if (Platform.OS !== "web") {
+      // Cancel each notification (only on native platforms)
+      for (const id of notificationsToCancel) {
+        await Notifications.cancelScheduledNotificationAsync(id);
+        delete storedNotifications[id];
+      }
+    } else {
+      // On web, just clear the stored notifications without calling native API
+      console.log("Canceling notifications is not supported on web platform");
+      notificationsToCancel.forEach((id) => delete storedNotifications[id]);
     }
 
     // Save updated notifications back to AsyncStorage
@@ -542,10 +571,12 @@ export const cleanupExpiredNotifications = async () => {
           delete storedNotifications[id];
           changed = true;
 
-          // Also make sure it's canceled in the system
-          await Notifications.cancelScheduledNotificationAsync(id).catch(
-            () => {}
-          ); // Ignore errors if already canceled
+          // Also make sure it's canceled in the system (only on native platforms)
+          if (Platform.OS !== 'web') {
+            await Notifications.cancelScheduledNotificationAsync(id).catch(
+              () => {}
+            ); // Ignore errors if already canceled
+          }
         }
       }
     }

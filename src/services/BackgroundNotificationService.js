@@ -6,13 +6,16 @@ import * as NotificationService from "./NotificationService";
 // Tạo kênh thông báo cho Android
 export const createNotificationChannel = async () => {
   if (Platform.OS === "android") {
-    const channelId = await Notifications.setNotificationChannelAsync("shift-reminders", {
-      name: "Nhắc nhở ca làm việc",
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#4285F4",
-      sound: true,
-    });
+    const channelId = await Notifications.setNotificationChannelAsync(
+      "shift-reminders",
+      {
+        name: "Nhắc nhở ca làm việc",
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#4285F4",
+        sound: true,
+      }
+    );
 
     return channelId;
   }
@@ -51,6 +54,13 @@ export const scheduleBackgroundNotification = async (
     const trigger = {
       date: new Date(timestamp),
     };
+
+    // Kiểm tra nếu đang chạy trên nền tảng web
+    if (Platform.OS === "web") {
+      console.log("Thông báo không được hỗ trợ trên nền tảng web");
+      // Trả về một identifier giả cho nền tảng web
+      return `web-mock-notification-${Date.now()}`;
+    }
 
     // Lên lịch thông báo
     const identifier = await Notifications.scheduleNotificationAsync({

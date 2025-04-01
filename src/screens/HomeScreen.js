@@ -43,6 +43,7 @@ import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import PushNotification from "react-native-push-notification";
 import Toast from "react-native-toast-message";
+import TextWrapper from "../components/TextWrapper";
 
 // Contexts & Services
 import { useTheme } from "../context/ThemeContext";
@@ -2112,15 +2113,18 @@ const HomeScreen = () => {
   };
 
   // Thêm hàm showToast tự định nghĩa
-  const showToast = (type, message1, message2 = "") => {
+  const showToast = (type, messageKey, defaultMessage = "") => {
+    const message = safeT(messageKey, defaultMessage);
     if (Platform.OS === "web") {
-      // Đơn giản hóa cho web để tránh lỗi
-      console.log(`[${type}] ${message1} ${message2}`);
-      alert(`${message1} ${message2}`);
+      console.log(`[${type}] ${message}`);
+      alert(message);
     } else {
-      // Giả sử bạn đã có một hàm toast cho thiết bị di động
-      // Ví dụ: Toast.show({ ... })
-      console.log(`[${type}] ${message1} ${message2}`);
+      Toast.show({
+        type: type || "info",
+        text1: message,
+        position: "bottom",
+        visibilityTime: 4000,
+      });
     }
   };
 
@@ -2175,6 +2179,32 @@ const HomeScreen = () => {
     // Fallback
     return fallback || key;
   };
+
+  // Trong hàm renderWeeklyStatus hoặc tương tự
+  const getDayName = (day) => {
+    const dayNames = {
+      0: safeT("sunday", "CN"),
+      1: safeT("monday", "T2"),
+      2: safeT("tuesday", "T3"),
+      3: safeT("wednesday", "T4"),
+      4: safeT("thursday", "T5"),
+      5: safeT("friday", "T6"),
+      6: safeT("saturday", "T7"),
+    };
+    return dayNames[day] || day.toString();
+  };
+
+  // Thêm đoạn debug này vào useEffect
+  useEffect(() => {
+    // Debug i18n
+    console.log("HomeScreen - Current locale:", locale);
+
+    // Test a few translations
+    const testKeys = ["goToWork", "completed", "no_history_today"];
+    testKeys.forEach((key) => {
+      console.log(`Translation for ${key}:`, t(key));
+    });
+  }, [locale]);
 
   return (
     <SafeAreaView
