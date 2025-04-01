@@ -126,6 +126,39 @@ export default function App() {
     };
   }, []);
 
+  // Đảm bảo rằng ngôn ngữ mặc định được đặt khi ứng dụng khởi động
+  useEffect(() => {
+    const setDefaultLanguage = async () => {
+      try {
+        const currentLang = await AsyncStorage.getItem("userLanguage");
+        if (!currentLang) {
+          await AsyncStorage.setItem("userLanguage", "vi");
+          console.log("Đã đặt ngôn ngữ mặc định: vi");
+        } else {
+          console.log("Ngôn ngữ hiện tại:", currentLang);
+        }
+
+        // In ra tất cả các keys trong AsyncStorage để debug
+        const allKeys = await AsyncStorage.getAllKeys();
+        console.log("Tất cả AsyncStorage keys:", allKeys);
+
+        // Kiểm tra xem có mâu thuẫn giữa các key ngôn ngữ không
+        const appLanguage = await AsyncStorage.getItem("appLanguage");
+        if (appLanguage && appLanguage !== currentLang) {
+          console.warn(
+            `Mâu thuẫn ngôn ngữ: userLanguage=${currentLang}, appLanguage=${appLanguage}`
+          );
+          // Đồng bộ hóa
+          await AsyncStorage.setItem("appLanguage", currentLang);
+        }
+      } catch (error) {
+        console.error("Error setting default language:", error);
+      }
+    };
+
+    setDefaultLanguage();
+  }, []);
+
   if (!appIsReady) {
     return null;
   }

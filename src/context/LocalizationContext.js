@@ -11,35 +11,42 @@ import { I18n } from "i18n-js";
 import { I18nManager } from "react-native";
 import translations from "../translations";
 
-const LocalizationContext = createContext();
+export const LocalizationContext = createContext({
+  locale: "vi",
+  setLocale: () => {},
+  t: (key) => key,
+});
 
 export const useLocalization = () => useContext(LocalizationContext);
 
 export const LocalizationProvider = ({ children }) => {
-  const [locale, setLocale] = useState(Localization.locale);
+  const [locale, setLocale] = useState("vi");
   const [isReady, setIsReady] = useState(false);
   const [forceRender, setForceRender] = useState(0);
-  const [i18n] = useState(() => {
-    const i18nInstance = new I18n(translations);
-    i18nInstance.fallbacks = true;
-    i18nInstance.defaultLocale = "en";
-    return i18nInstance;
-  });
+  const [i18n] = useState(() => new I18n(translations));
 
   useEffect(() => {
-    if (translations) {
-      console.log("Loaded translations for:", Object.keys(translations));
+    i18n.enableFallback = true;
+    i18n.defaultLocale = "vi";
+    i18n.locale = locale;
 
-      if (!translations.vi) {
-        console.warn("Missing Vietnamese translations! Adding empty object.");
-        translations.vi = translations.vi || {};
+    console.log("Loaded translations:", Object.keys(translations));
+    console.log("Current locale:", locale);
+
+    const loadSavedLanguage = async () => {
+      try {
+        const savedLanguage = await AsyncStorage.getItem("userLanguage");
+        if (savedLanguage) {
+          setLocale(savedLanguage);
+          i18n.locale = savedLanguage;
+          console.log(`Đã tải ngôn ngữ: ${savedLanguage}`);
+        }
+      } catch (error) {
+        console.error("Error loading language preference:", error);
       }
+    };
 
-      i18n.locale = locale;
-      setIsReady(true);
-    } else {
-      console.error("Translations object is undefined or invalid");
-    }
+    loadSavedLanguage();
   }, []);
 
   const setAppLanguage = async (languageCode) => {
@@ -61,35 +68,6 @@ export const LocalizationProvider = ({ children }) => {
     }
   };
 
-  const loadSavedLanguage = async () => {
-    try {
-      const savedLanguage = await AsyncStorage.getItem("userLanguage");
-      if (savedLanguage) {
-        if (translations[savedLanguage]) {
-          setLocale(savedLanguage);
-          i18n.locale = savedLanguage;
-          console.log(`Đã tải ngôn ngữ: ${savedLanguage}`);
-        } else {
-          console.warn(
-            `Saved language ${savedLanguage} not found in translations, using default`
-          );
-          setLocale("en");
-          i18n.locale = "en";
-        }
-      }
-      setIsReady(true);
-    } catch (error) {
-      console.error("Error loading locale preference:", error);
-      setIsReady(true);
-    }
-  };
-
-  useEffect(() => {
-    if (translations) {
-      loadSavedLanguage();
-    }
-  }, []);
-
   const changeLocale = useCallback(async (newLocale) => {
     try {
       if (!translations[newLocale]) {
@@ -110,12 +88,63 @@ export const LocalizationProvider = ({ children }) => {
 
   const t = (key, options = {}) => {
     try {
-      const translation = i18n.t(key, { ...options, defaultValue: key });
-      return translation || key;
+      if (!key) return "";
+      
+      // Xử lý khi key có tiền tố như "vi.goToWork"
+      let cleanKey = key;
+      if (key.includes('.')) {
+        const parts = key.split('.');
+        // Nếu phần đầu là mã ngôn ngữ (vi, en) thì lấy phần sau
+        if (parts.length > 1 && (parts[0] === 'vi' || parts[0] === 'en')) {
+          cleanKey = parts[1];
+        }
+      }
+
+      // Thử lấy bản dịch từ i18n
+      const translated = i18n.translate(cleanKey, {
+        ...options,
+        defaultValue: cleanKey,
+      });
+      
+      // Kiểm tra kết quả trả về
+      if (translated === cleanKey && translations[locale] && translations[locale][cleanKey]) {
+        return translations[locale][cleanKey];
+      }
+      
+      return translated || cleanKey;
     } catch (error) {
-      console.error(`Translation error for key ${key}:`, error);
+      console.warn(`Translation error for key "${key}":`, error);
+      
+      // Fallback: Tìm trực tiếp trong đối tượng translations
+      try {
+        if (translations[locale] && translations[locale][key]) {
+          return translations[locale][key];
+        }
+      } catch (e) {
+        // Không làm gì
+      }
+      
       return key;
     }
+  };
+
+  const getDirectTranslation = (key) => {
+    if (!key) return "";
+    
+    try {
+      if (translations[locale] && translations[locale][key]) {
+        return translations[locale][key];
+      }
+      
+      // Fallback to English
+      if (translations.en && translations.en[key]) {
+        return translations.en[key];
+      }
+    } catch (error) {
+      console.warn(`Direct translation error for key "${key}":`, error);
+    }
+    
+    return key;
   };
 
   return (
@@ -127,9 +156,14 @@ export const LocalizationProvider = ({ children }) => {
         isReady,
         setAppLanguage,
         changeLocale,
+        getDirectTranslation,
       }}
     >
       {children}
+    </LocalizationContext.Provider>
+  );
+};
+
     </LocalizationContext.Provider>
   );
 };

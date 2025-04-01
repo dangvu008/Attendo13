@@ -30,25 +30,34 @@ const SCHEDULED_NOTIFICATIONS_KEY = "scheduled_notifications";
 
 // Initialize notification permissions
 export const initializeNotifications = async () => {
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("shift-reminders", {
-      name: "Nhắc nhở ca làm việc",
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#4285F4",
-      sound: true,
+  try {
+    if (Platform.OS === "web") {
+      if ("Notification" in window) {
+        const permission = await Notification.requestPermission();
+        console.log(`Web notification permission: ${permission}`);
+      }
+      return;
+    }
+
+    // Cấu hình cho thiết bị di động
+    await Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
     });
-  }
 
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-
-  if (existingStatus !== "granted") {
+    // Yêu cầu quyền thông báo
     const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
+    console.log(`Notification permission status: ${status}`);
 
-  return finalStatus === "granted";
+    if (Platform.OS === "android") {
+      await createNotificationChannel();
+    }
+  } catch (error) {
+    console.error("Error initializing notifications:", error);
+  }
 };
 
 // Save notification settings
@@ -92,29 +101,28 @@ export const getNotificationSettings = async () => {
 };
 
 // Schedule a notification
-export const scheduleNotification = async (
-  title,
-  body,
-  trigger,
-  options = {}
-) => {
-  const settings = await getNotificationSettings();
-
-  const notificationContent = {
-    title,
-    body,
-    data: options.data || {},
-    sound: settings.soundEnabled,
-    vibrate: settings.vibrationEnabled ? [0, 250, 250, 250] : null,
-    priority: Notifications.AndroidNotificationPriority.HIGH,
-  };
-
+export const scheduleNotification = async (options) => {
   try {
-    const identifier = await Notifications.scheduleNotificationAsync({
-      content: notificationContent,
-      trigger,
+    if (Platform.OS === "web") {
+      console.log("Thông báo web:", options.title, options.body);
+
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(options.title, { body: options.body });
+      }
+      return true;
+    }
+
+    // Lên lịch thông báo trên thiết bị di động
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: options.title,
+        body: options.body,
+        data: options.data || {},
+      },
+      trigger: options.trigger || null,
     });
-    return identifier;
+
+    return id;
   } catch (error) {
     console.error("Error scheduling notification:", error);
     return null;
@@ -242,16 +250,18 @@ export const scheduleDepartureReminder = async (departureTime, shiftInfo) => {
     const notificationId = `departure-reminder-${
       today.toISOString().split("T")[0]
     }`;
-    return await scheduleNotification(
-      "Nhắc nhở xuất phát",
-      `Đã đến giờ xuất phát cho ca làm việc ${shiftInfo ? shiftInfo.name : ""}`,
-      departureDate,
-      {
+    return await scheduleNotification({
+      title: "Nhắc nhở xuất phát",
+      body: `Đã đến giờ xuất phát cho ca làm việc ${
+        shiftInfo ? shiftInfo.name : ""
+      }`,
+      data: {
         type: "departure_reminder",
         action: "go_work",
         shiftInfo,
-      }
-    );
+      },
+      trigger: departureDate,
+    });
   } catch (error) {
     console.error("Error scheduling departure reminder:", error);
     return null;
@@ -298,18 +308,18 @@ export const scheduleStartTimeReminder = async (startTime, shiftInfo) => {
     const notificationId = `checkin-reminder-${
       today.toISOString().split("T")[0]
     }`;
-    return await scheduleNotification(
-      "Nhắc nhở chấm công vào",
-      `Còn 10 phút nữa đến giờ chấm công vào cho ca ${
+    return await scheduleNotification({
+      title: "Nhắc nhở chấm công vào",
+      body: `Còn 10 phút nữa đến giờ chấm công vào cho ca ${
         shiftInfo ? shiftInfo.name : ""
       }`,
-      reminderDate,
-      {
+      data: {
         type: "check_in_reminder",
         action: "check_in",
         shiftInfo,
-      }
-    );
+      },
+      trigger: reminderDate,
+    });
   } catch (error) {
     console.error("Error scheduling start time reminder:", error);
     return null;
@@ -352,16 +362,16 @@ export const scheduleOfficeEndReminder = async (officeEndTime, shiftInfo) => {
     const notificationId = `office-end-reminder-${
       today.toISOString().split("T")[0]
     }`;
-    return await scheduleNotification(
-      "Nhắc nhở kết thúc giờ hành chính",
-      `Đã đến giờ kết thúc làm việc hành chính, hãy chấm công ra`,
-      officeEndDate,
-      {
+    return await scheduleNotification({
+      title: "Nhắc nhở kết thúc giờ hành chính",
+      body: `Đã đến giờ kết thúc làm việc hành chính, hãy chấm công ra`,
+      data: {
         type: "office_end_reminder",
         action: "check_out",
         shiftInfo,
-      }
-    );
+      },
+      trigger: officeEndDate,
+    });
   } catch (error) {
     console.error("Error scheduling office end reminder:", error);
     return null;
@@ -406,18 +416,18 @@ export const scheduleEndShiftReminder = async (endTime, shiftInfo) => {
     const notificationId = `shift-end-reminder-${
       today.toISOString().split("T")[0]
     }`;
-    return await scheduleNotification(
-      "Nhắc nhở hoàn tất ca làm việc",
-      `Đã quá giờ kết thúc ca làm việc ${
+    return await scheduleNotification({
+      title: "Nhắc nhở hoàn tất ca làm việc",
+      body: `Đã quá giờ kết thúc ca làm việc ${
         shiftInfo ? shiftInfo.name : ""
       }, hãy hoàn tất ca`,
-      reminderDate,
-      {
+      data: {
         type: "shift_end_reminder",
         action: "complete",
         shiftInfo,
-      }
-    );
+      },
+      trigger: reminderDate,
+    });
   } catch (error) {
     console.error("Error scheduling end shift reminder:", error);
     return null;
@@ -557,27 +567,34 @@ export const cleanupExpiredNotifications = async () => {
 
 // Handle notification response
 export const handleNotificationResponse = (response) => {
-  const data = response.notification.request.content.data;
+  const data = response?.notification?.request?.content?.data;
+  console.log("Notification response data:", data);
 
-  if (data.type === "shift_reminder") {
-    // Handle shift reminder notification interaction
-    console.log("User interacted with shift reminder:", data.shiftName);
-    // You could navigate to specific screen or show more details here
+  // Xử lý logic dựa vào dữ liệu thông báo
+};
+
+// Tạo kênh thông báo cho Android
+export const createNotificationChannel = async () => {
+  if (Platform.OS === "android") {
+    try {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "Default",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF231F7C",
+      });
+      console.log("Đã tạo kênh thông báo Android");
+    } catch (error) {
+      console.error("Error creating notification channel:", error);
+    }
   }
 };
 
-// Phương thức mock tạm thời cho khi không sử dụng Notifee
-export const createNotificationChannel = async () => {
-  console.log("createNotificationChannel: Đã bị comment do lỗi Notifee");
-  return "mock-channel-id";
-};
+// Xử lý tương tác thông báo
+export const onNotificationInteraction = (notification) => {
+  console.log("Interaction with notification:", notification);
 
-// Phương thức mock tạm thời cho khi không sử dụng Notifee
-export const onNotificationInteraction = async (notification) => {
-  console.log(
-    "onNotificationInteraction: Đã bị comment do lỗi Notifee",
-    notification
-  );
+  // Xử lý tương tác với thông báo
 };
 
 export default {

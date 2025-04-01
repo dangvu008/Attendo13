@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useContext } from "react";
 import {
   View,
   Text,
@@ -57,7 +57,8 @@ import NoteItem from "../components/NoteItem";
 
 const HomeScreen = () => {
   const { theme, isDarkMode } = useTheme();
-  const { t, locale, changeLocale } = useLocalization();
+  const { t, locale, changeLocale, setLocale, getDirectTranslation } =
+    useLocalization();
   const navigation = useNavigation();
 
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -788,8 +789,6 @@ const HomeScreen = () => {
   // Lên lịch thông báo nhắc nhở kết thúc ca
   const scheduleShiftEndReminder = async () => {
     try {
-      if (Platform.OS === "web") return;
-
       const currentShift = await getCurrentShift();
       if (!currentShift) return;
 
@@ -809,17 +808,12 @@ const HomeScreen = () => {
         reminderTime.getMinutes() - (currentShift.remindAfterWork || 15)
       );
 
-      // Lên lịch thông báo
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: t("shift_end_reminder_title"),
-          body: t("shift_end_reminder_body", {
-            time: currentShift.endWorkTime,
-          }),
-        },
-        trigger: {
-          date: reminderTime,
-        },
+      // Sử dụng service thông báo tương thích đa nền tảng
+      await NotificationService.scheduleNotification({
+        title: t("shift_end_reminder_title"),
+        body: t("shift_end_reminder_body", { time: currentShift.endWorkTime }),
+        data: { type: "shift_end", shiftId: currentShift.id },
+        trigger: Platform.OS !== "web" ? { date: reminderTime } : null,
       });
 
       console.log(
@@ -1038,7 +1032,10 @@ const HomeScreen = () => {
       // Lưu lịch sử
       await saveActionLog("go_work");
 
-      // Sử dụng hàm showToast thay vì gọi trực tiếp
+      // Hủy các thông báo hiện tại
+      await NotificationService.cancelAllNotifications();
+
+      // Hiển thị thông báo người dùng
       showToast("success", t("action_saved"));
 
       // Cập nhật danh sách
@@ -1050,9 +1047,6 @@ const HomeScreen = () => {
 
       // Hiển thị nút reset
       setShowResetButton(true);
-
-      // Hủy thông báo nhắc nhở xuất phát vì đã thực hiện
-      await NotificationService.cancelRemindersByAction("go_work");
 
       // Lưu lịch sử vào thống kê
       await saveWorkActionHistory("go_work");
@@ -1443,7 +1437,6 @@ const HomeScreen = () => {
 
   const renderActionButton = () => {
     try {
-      // Thay thế điều kiện `someCondition` bằng logic thực tế
       if (workStatus === "completed") {
         return (
           <View style={styles.actionButtonContainer}>
@@ -1451,7 +1444,9 @@ const HomeScreen = () => {
               style={[styles.actionButton, styles.disabledButton]}
               disabled={true}
             >
-              <Text style={styles.actionButtonText}>{t("completed")}</Text>
+              <Text style={styles.actionButtonText}>
+                {safeT("completed", "Hoàn Tất")}
+              </Text>
             </TouchableOpacity>
             {/* Nút Reset */}
             <TouchableOpacity
@@ -1464,7 +1459,7 @@ const HomeScreen = () => {
         );
       }
 
-      // Nút đa năng
+      // Nút đa năng - sửa để sử dụng khóa dịch đúng
       if (multiActionButtonEnabled) {
         return (
           <TouchableOpacity
@@ -1474,7 +1469,9 @@ const HomeScreen = () => {
             ]}
             onPress={handleSingleButtonPress}
           >
-            <Text style={styles.actionButtonText}>{t("go_work")}</Text>
+            <Text style={styles.actionButtonText}>
+              {safeT("goToWork", "Đi Làm")}
+            </Text>
           </TouchableOpacity>
         );
       }
@@ -1483,13 +1480,12 @@ const HomeScreen = () => {
       return getActionButton();
     } catch (error) {
       console.error("Lỗi trong renderActionButton:", error);
-      // Trả về một nút đơn giản khi có lỗi
       return (
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: theme.colors.error }]}
           onPress={() => console.log("Nút dự phòng được nhấn")}
         >
-          <Text style={styles.actionButtonText}>Lỗi</Text>
+          <Text style={styles.actionButtonText}>Đi Làm</Text>
         </TouchableOpacity>
       );
     }
@@ -1497,7 +1493,7 @@ const HomeScreen = () => {
 
   const actionButton = getActionButton();
 
-  // Nút reset hiển thị sau khi bấm "Đi làm" và sau khi hoàn thành
+  // Nút reset hiển thị sau khi bấm "Đi Làm" và sau khi hoàn thành
   // Đã chuyển thành state để có thể điều khiển hiển thị
 
   // Xử lý reset work status
@@ -2048,12 +2044,13 @@ const HomeScreen = () => {
   // Sửa hàm handleCancelReminders tại khoảng dòng 1997
   const handleCancelReminders = async (action) => {
     try {
+      // Kiểm tra nếu đang chạy trên web
       if (Platform.OS === "web") {
-        console.log("Hủy thông báo không được hỗ trợ đầy đủ trên web:", action);
+        console.log("Hủy thông báo trên web không được hỗ trợ.");
         return;
       }
 
-      // Hủy tất cả thông báo đã lên lịch
+      // Code hiện tại cho Android/iOS
       await Notifications.cancelAllScheduledNotificationsAsync();
       console.log(`Đã hủy tất cả thông báo cho hành động: ${action}`);
     } catch (error) {
@@ -2064,14 +2061,24 @@ const HomeScreen = () => {
   // Sửa hàm handleScheduleNotification tại khoảng dòng 2008
   const handleScheduleNotification = async (notificationData) => {
     try {
+      // Kiểm tra nếu đang chạy trên web
       if (Platform.OS === "web") {
         console.log(
-          "Thông báo không được hỗ trợ đầy đủ trên web:",
-          notificationData
+          "Web notification:",
+          notificationData?.title || "Thông báo",
+          notificationData?.message || "Nội dung thông báo"
         );
+
+        // Tùy chọn: Sử dụng API thông báo web nếu cần
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification(notificationData?.title || "Thông báo", {
+            body: notificationData?.message || "Nội dung thông báo",
+          });
+        }
         return;
       }
 
+      // Code hiện tại cho Android/iOS
       if (!notificationData) {
         console.warn("Dữ liệu thông báo không hợp lệ");
         return;
@@ -2145,6 +2152,30 @@ const HomeScreen = () => {
     };
   }, []);
 
+  // Thêm hàm an toàn cho t() trong component HomeScreen
+  const safeT = (key, fallback) => {
+    if (!key) return fallback || "";
+
+    // Đầu tiên thử dùng getDirectTranslation
+    const directTranslation = getDirectTranslation(key);
+    if (directTranslation !== key) {
+      return directTranslation;
+    }
+
+    // Nếu không được, dùng t()
+    try {
+      const translated = t(key);
+      if (translated !== key) {
+        return translated;
+      }
+    } catch (error) {
+      console.warn(`Error translating "${key}":`, error);
+    }
+
+    // Fallback
+    return fallback || key;
+  };
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -2217,17 +2248,6 @@ const HomeScreen = () => {
         <View style={styles.multiActionSection}>
           <View style={styles.buttonContainer}>
             {renderActionButton()}
-            ) : ( // Khi tắt chế độ nút đa năng, chỉ hiển thị nút "Đi làm" duy
-            nhất
-            <MultiActionButton
-              status="go_work"
-              label={i18n.t("goToWork")}
-              iconName="briefcase-outline"
-              color={theme.colors.goWorkButton}
-              onPress={handleSingleButtonPress}
-              disabled={actionButtonDisabled || workStatus === "completed"}
-            />
-            )}
             {/* Nút reset - hiển thị sau khi bấm "Đi Làm" và sau khi hoàn thành */}
             {showResetButton && (
               <TouchableOpacity
@@ -2620,12 +2640,13 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 5,
     bottom: 5,
-    backgroundColor: "#eeeeee",
+    backgroundColor: "#f0f0f0",
     width: 30,
     height: 30,
     borderRadius: 15,
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 2,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -2841,6 +2862,47 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 4,
     elevation: 5,
+  },
+  actionButton: {
+    height: 50,
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    backgroundColor: "#4CAF50",
+    marginVertical: 10,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  actionButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  actionButtonContainer: {
+    position: "relative",
+    marginVertical: 10,
+  },
+  weeklyStatusContainer: {
+    marginVertical: 15,
+    paddingVertical: 10,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 10,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  weeklyStatusTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 10,
+    marginHorizontal: 15,
   },
 });
 
