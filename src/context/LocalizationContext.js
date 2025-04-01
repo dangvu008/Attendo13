@@ -9,13 +9,15 @@ import * as Localization from "expo-localization";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { I18n } from "i18n-js";
 import { I18nManager } from "react-native";
-import translations from '../translations';
+import translations from "../translations";
 
 console.log("==== DEBUG TRANSLATIONS ====");
 console.log("translations type:", typeof translations);
 console.log("translations keys:", Object.keys(translations));
-if (translations.en) console.log("en keys:", Object.keys(translations.en).slice(0, 5));
-if (translations.vi) console.log("vi keys:", Object.keys(translations.vi).slice(0, 5));
+if (translations.en)
+  console.log("en keys:", Object.keys(translations.en).slice(0, 5));
+if (translations.vi)
+  console.log("vi keys:", Object.keys(translations.vi).slice(0, 5));
 console.log("============================");
 
 export const LocalizationContext = createContext({
@@ -34,28 +36,34 @@ export const LocalizationProvider = ({ children }) => {
 
   useEffect(() => {
     // Kiểm tra cấu trúc translations
-    if (!translations || typeof translations !== 'object') {
+    if (!translations || typeof translations !== "object") {
       console.error("Invalid translations object:", translations);
       return;
     }
-    
+
     // Kiểm tra các ngôn ngữ có tồn tại không
     if (!translations.vi || !translations.en) {
-      console.error("Missing language objects in translations:", Object.keys(translations));
-      
+      console.error(
+        "Missing language objects in translations:",
+        Object.keys(translations)
+      );
+
       // Tạo đối tượng rỗng nếu không tồn tại
       if (!translations.vi) translations.vi = {};
       if (!translations.en) translations.en = {};
     }
-    
+
     // Cấu hình i18n
     i18n.translations = translations;
     i18n.locale = locale;
     i18n.fallbacks = true;
-    i18n.defaultLocale = 'vi';
-    
-    console.log("i18n configured with translations:", Object.keys(translations));
-    
+    i18n.defaultLocale = "vi";
+
+    console.log(
+      "i18n configured with translations:",
+      Object.keys(translations)
+    );
+
     const loadSavedLanguage = async () => {
       try {
         const savedLanguage = await AsyncStorage.getItem("userLanguage");
@@ -67,6 +75,7 @@ export const LocalizationProvider = ({ children }) => {
       } catch (error) {
         console.error("Error loading language preference:", error);
       }
+      setIsReady(true);
     };
 
     loadSavedLanguage();
@@ -112,13 +121,13 @@ export const LocalizationProvider = ({ children }) => {
   const t = (key, options = {}) => {
     try {
       if (!key) return "";
-      
+
       // Xử lý khi key có tiền tố như "vi.goToWork"
       let cleanKey = key;
-      if (key.includes('.')) {
-        const parts = key.split('.');
+      if (key.includes(".")) {
+        const parts = key.split(".");
         // Nếu phần đầu là mã ngôn ngữ (vi, en) thì lấy phần sau
-        if (parts.length > 1 && (parts[0] === 'vi' || parts[0] === 'en')) {
+        if (parts.length > 1 && (parts[0] === "vi" || parts[0] === "en")) {
           cleanKey = parts[1];
         }
       }
@@ -128,16 +137,20 @@ export const LocalizationProvider = ({ children }) => {
         ...options,
         defaultValue: cleanKey,
       });
-      
+
       // Kiểm tra kết quả trả về
-      if (translated === cleanKey && translations[locale] && translations[locale][cleanKey]) {
+      if (
+        translated === cleanKey &&
+        translations[locale] &&
+        translations[locale][cleanKey]
+      ) {
         return translations[locale][cleanKey];
       }
-      
+
       return translated || cleanKey;
     } catch (error) {
       console.warn(`Translation error for key "${key}":`, error);
-      
+
       // Fallback: Tìm trực tiếp trong đối tượng translations
       try {
         if (translations[locale] && translations[locale][key]) {
@@ -146,19 +159,19 @@ export const LocalizationProvider = ({ children }) => {
       } catch (e) {
         // Không làm gì
       }
-      
+
       return key;
     }
   };
 
   const getDirectTranslation = (key) => {
     if (!key) return "";
-    
+
     try {
       if (translations[locale] && translations[locale][key]) {
         return translations[locale][key];
       }
-      
+
       // Fallback to English
       if (translations.en && translations.en[key]) {
         return translations.en[key];
@@ -166,7 +179,7 @@ export const LocalizationProvider = ({ children }) => {
     } catch (error) {
       console.warn(`Direct translation error for key "${key}":`, error);
     }
-    
+
     return key;
   };
 
@@ -181,12 +194,6 @@ export const LocalizationProvider = ({ children }) => {
         changeLocale,
         getDirectTranslation,
       }}
-    >
-      {children}
-    </LocalizationContext.Provider>
-  );
-};
-
     >
       {children}
     </LocalizationContext.Provider>
