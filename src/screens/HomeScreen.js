@@ -35,7 +35,7 @@ import {
   addMinutes,
 } from "date-fns";
 import { vi } from "../utils/viLocale";
-import { enUS } from "date-fns/locale/en-US";
+import enUS from "date-fns/locale/enUS";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -55,6 +55,56 @@ import MultiActionButton from "../components/MultiActionButton";
 import WeeklyStatusGrid from "../components/WeeklyStatusGrid";
 import AddNoteModal from "../components/AddNoteModal";
 import NoteItem from "../components/NoteItem";
+
+// Kiểm tra xem cấu trúc của date-fns có đúng không
+import { format } from "date-fns";
+console.log("date-fns available:", typeof format === "function");
+
+// Kiểm tra xem locale có sẵn không
+try {
+  // Cố gắng import và sử dụng không có .js
+  const enUS = require("date-fns/locale/enUS");
+  console.log("Locale en-US available:", enUS);
+
+  // Dùng thử nếu tìm thấy
+  const testDate = new Date();
+  const formattedDate = format(testDate, "PPP", { locale: enUS });
+  console.log("Formatted date with locale:", formattedDate);
+} catch (error) {
+  console.error("Error importing locale:", error);
+}
+
+// Hàm định dạng ngày tháng sử dụng Intl API
+const formatDateWithIntl = (date, locale = "vi-VN") => {
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(date));
+  } catch (error) {
+    console.error("Error formatting date with Intl:", error);
+    // Fallback đơn giản
+    const d = new Date(date);
+    return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+  }
+};
+
+// Hàm định dạng thời gian sử dụng Intl API
+const formatTimeWithIntl = (date, locale = "vi-VN") => {
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(new Date(date));
+  } catch (error) {
+    console.error("Error formatting time with Intl:", error);
+    // Fallback đơn giản
+    const d = new Date(date);
+    return `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
+  }
+};
 
 const HomeScreen = () => {
   const { theme, isDarkMode } = useTheme();
@@ -351,17 +401,28 @@ const HomeScreen = () => {
   }, [loadShiftInfo, updateInfo]);
 
   // Format date using the current locale
-  const formatDate = (date) => {
-    const formatOptions =
-      i18n.locale === "vi" ? "EEEE, dd/MM/yyyy" : "EEEE, MM/dd/yyyy";
-    return format(date, formatOptions, {
-      locale: i18n.locale === "vi" ? vi : enUS,
-    });
+  const formatDate = (date, formatStr = "dd/MM/yyyy") => {
+    try {
+      return format(date, formatStr, { locale: locale === "vi" ? vi : enUS });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      // Fallback không sử dụng locale
+      return format(date, formatStr);
+    }
   };
 
   // Format time
   const formatTime = (date) => {
-    return format(date, "HH:mm");
+    if (!date) return "";
+    try {
+      const d = new Date(date);
+      return `${String(d.getHours()).padStart(2, "0")}:${String(
+        d.getMinutes()
+      ).padStart(2, "0")}`;
+    } catch (error) {
+      console.error("Error formatting time:", error);
+      return "";
+    }
   };
 
   // Format shift time
@@ -2156,28 +2217,30 @@ const HomeScreen = () => {
     };
   }, []);
 
-  // Thêm hàm an toàn cho t() trong component HomeScreen
+  // Kiểm tra và điều chỉnh hàm safeT
   const safeT = (key, fallback) => {
     if (!key) return fallback || "";
 
-    // Đầu tiên thử dùng getDirectTranslation
-    const directTranslation = getDirectTranslation(key);
-    if (directTranslation !== key) {
-      return directTranslation;
-    }
-
-    // Nếu không được, dùng t()
     try {
+      // Kiểm tra xem translations có đúng cấu trúc không
+      if (translations && translations[locale] && translations[locale][key]) {
+        // Trả về trực tiếp từ object translations
+        return translations[locale][key];
+      }
+
+      // Sử dụng t() từ context
       const translated = t(key);
+      // Kiểm tra nếu kết quả giống key (không dịch được)
       if (translated !== key) {
         return translated;
       }
-    } catch (error) {
-      console.warn(`Error translating "${key}":`, error);
-    }
 
-    // Fallback
-    return fallback || key;
+      console.log(`Key "${key}" không tìm thấy bản dịch`);
+      return fallback || key;
+    } catch (error) {
+      console.error(`Lỗi khi dịch key "${key}":`, error);
+      return fallback || key;
+    }
   };
 
   // Trong hàm renderWeeklyStatus hoặc tương tự
@@ -2205,6 +2268,54 @@ const HomeScreen = () => {
       console.log(`Translation for ${key}:`, t(key));
     });
   }, [locale]);
+
+  // Thêm đoạn debug này để kiểm tra giá trị thực tế
+  useEffect(() => {
+    console.log("==== DEBUG TRANSLATIONS VALUES ====");
+
+    if (translations) {
+      // Kiểm tra giá trị của một số khóa
+      console.log("EN goToWork =", translations.en?.goToWork);
+      console.log("VI goToWork =", translations.vi?.goToWork);
+
+      console.log("EN check_in =", translations.en?.check_in);
+      console.log("VI check_in =", translations.vi?.check_in);
+    }
+
+    // Kiểm tra cách hoạt động của t()
+    console.log("t('goToWork') =", t("goToWork"));
+    console.log("safeT('goToWork') =", safeT("goToWork", "Đi Làm"));
+
+    console.log("==============================");
+  }, [locale]);
+
+  // Thêm đoạn code này để kiểm tra và đặt locale
+  useEffect(() => {
+    const checkLocale = async () => {
+      try {
+        // Kiểm tra locale hiện tại
+        console.log("Current locale:", locale);
+
+        // Đảm bảo locale đã được đặt trong AsyncStorage
+        const storedLocale = await AsyncStorage.getItem("userLanguage");
+        console.log("Stored locale:", storedLocale);
+
+        // Đặt lại locale nếu cần
+        if (!storedLocale) {
+          await AsyncStorage.setItem("userLanguage", "vi");
+          if (setLocale) setLocale("vi");
+          console.log("Set default locale to 'vi'");
+        } else if (locale !== storedLocale) {
+          if (setLocale) setLocale(storedLocale);
+          console.log(`Updated locale to match stored: ${storedLocale}`);
+        }
+      } catch (error) {
+        console.error("Error checking locale:", error);
+      }
+    };
+
+    checkLocale();
+  }, []);
 
   return (
     <SafeAreaView
